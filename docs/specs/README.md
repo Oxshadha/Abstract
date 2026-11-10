@@ -6,8 +6,8 @@ This is lightweight spec-driven development. Each feature gets a one-to-two page
 
 | # | Spec | Week | Status |
 |---|---|---|---|
-| 000 | [Benchmark harness & corpus (experiments A/B/C/E)](000-benchmark.md) | W1 | Draft: awaiting approval |
-| 001 | [Foundation: monorepo, CI, docker-compose, config, logging](001-foundation.md) | W1 | Draft: awaiting approval |
+| 000 | [Benchmark harness & corpus (experiments A/B/C/E)](000-benchmark.md) | W1 | Approved |
+| 001 | [Foundation: monorepo, CI, docker-compose, config, logging](001-foundation.md) | W1 | Approved |
 | 002 | Auth & tenancy: Clerk, orgs, policy service, RLS, audit log | W1 | Not started |
 | 003 | Design system: tokens pipeline, fonts, app shell, auth modal | W1 | Not started |
 | 004 | Upload & fast-path ingestion: validation, S3, PyMuPDF layout, chunks, embeddings, job progress SSE | W1 | Not started |

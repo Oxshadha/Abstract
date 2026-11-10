@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft |
+| **Status** | Approved (owner, 2026-11-11) |
 | **Week** | W1 (days 1–2) |
 | **Decisions** | D2, D9, D13, D14, D17, D29, D30, D31, D37, D47, D54, D56 |
 | **Requirements** | R6, R9, R10, N5 |
@@ -10,7 +10,7 @@
 | **Mockup** | n/a |
 
 ## Goal
-Anyone can clone the repo, run `cp .env.example .env && make dev`, and get the full local stack (web, api, worker, Postgres+pgvector, Redis, MinIO) healthy in one command. Every PR is linted, type-checked, tested and built in CI. This is the skeleton every later spec plugs into.
+Anyone can clone the repo, run `cp .env.example .env && make dev`, and get the full local stack (web, api, worker, Postgres+pgvector, Redis, SeaweedFS S3; D61) healthy in one command. Every PR is linted, type-checked, tested and built in CI. This is the skeleton every later spec plugs into.
 
 ## Scope
 **In:** monorepo layout (per AGENTS.md) · `apps/api` FastAPI skeleton (config, structlog, RFC 7807 errors, health endpoints, DB session, Alembic) · Celery worker with a ping task · ports package with empty interfaces · fake LLM provider stub · `apps/web` Vite + React + TS + Tailwind v4 + TanStack Router/Query skeleton · docker-compose · Makefile · pre-commit · GitHub Actions CI · Conventional Commit check · `.env.example` · README skeleton with setup instructions.
@@ -50,7 +50,7 @@ None yet. Health endpoints are public; debug routes are dev-only. (002 adds auth
 |---|---|---|
 | postgres | `pgvector/pgvector:pg17` | Matches Neon's Postgres major version (to verify at build, assumption C9) |
 | redis | `redis:7-alpine` | Celery broker + result backend |
-| minio | `minio/minio` + bucket init | S3-compatible; bucket `abstract-dev` |
+| s3 | `chrislusf/seaweedfs:4.53` | S3-compatible (D61); bucket created by the API on dev startup |
 | api | built from `apps/api/Dockerfile` | uvicorn with `--reload` in dev |
 | worker | same image, `celery worker` command | |
 | web | Vite dev server (or runs on host via pnpm) | |
