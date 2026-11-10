@@ -37,6 +37,7 @@ Agents: add an entry **before** acting on a new assumption. When the owner confi
 | C6 | Prompt caching via OpenRouter works for the chosen models (provider-dependent). | Assumed | `llm_usage` cache-hit metrics |
 | C7 | `page.search_for(quote)` reliably finds model-quoted sentences despite ligatures and hyphenation; fuzzy fallback is needed. | Assumed | Spec 008 tests |
 | C8 | Pre-rendering the landing page works with the chosen Vite plugin and Clerk on the client side. | Assumed | Spec 016 |
+| C9 | Local `pgvector/pgvector:pg17` matches the Postgres major version of the Neon project (and pgvector supports `halfvec` there). | Assumed | Check Neon console at spec 017; integration test on `halfvec` |
 
 ## D. External facts with expiry (re-check before relying on them)
 | ID | Fact (as of 2026-11-10) | Risk if changed |
