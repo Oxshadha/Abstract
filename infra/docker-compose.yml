@@ -1,0 +1,111 @@
+# Local stack (spec 001). Run via `make dev` (uses --project-directory . so paths are repo-relative).
+name: abstract
+
+x-api-env: &api-env
+  ENV: development
+  LOG_LEVEL: ${LOG_LEVEL:-INFO}
+  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-abstract}:${POSTGRES_PASSWORD:-abstract}@postgres:5432/${POSTGRES_DB:-abstract}
+  REDIS_URL: redis://redis:6379/0
+  S3_ENDPOINT_URL: http://s3:8333
+  S3_BUCKET: ${S3_BUCKET:-abstract-dev}
+  S3_REGION: ${S3_REGION:-us-east-1}
+  S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-abstract-dev}
+  S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-abstract-dev-secret}
+  LLM_PROVIDER: ${LLM_PROVIDER:-fake}
+  OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+  GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/gcp_sa
+  GCP_PROJECT_ID: ${GCP_PROJECT_ID:-}
+  GCP_LOCATION: ${GCP_LOCATION:-us-central1}
+  CORS_ORIGINS: '["http://localhost:${WEB_PORT:-5173}"]'
+
+services:
+  postgres:
+    image: pgvector/pgvector:0.8.7-pg17
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-abstract}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-abstract}
+      POSTGRES_DB: ${POSTGRES_DB:-abstract}
+    ports: ["${POSTGRES_PORT:-5432}:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-abstract} -d ${POSTGRES_DB:-abstract}"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7.4-alpine
+    ports: ["${REDIS_PORT:-6379}:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  # Local S3-compatible storage (D61, EDP-001). Production uses AWS S3.
+  s3:
+    image: chrislusf/seaweedfs:4.53
+    command: server -dir=/data -s3 -s3.port=8333 -s3.config=/etc/seaweedfs/s3.json -master.volumeSizeLimitMB=256
+    ports: ["${S3_PORT:-8333}:8333"]
+    volumes:
+      - s3data:/data
+      - ./infra/seaweedfs/s3.json:/etc/seaweedfs/s3.json:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9333/cluster/status || exit 1"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+
+  migrate:
+    build: { context: ./apps/api, target: dev }
+    command: ["alembic", "upgrade", "head"]
+    environment: *api-env
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  api:
+    build: { context: ./apps/api, target: dev }
+    environment: *api-env
+    ports: ["${API_PORT:-8000}:8000"]
+    volumes: ["./apps/api/app:/app/app"]
+    secrets: [gcp_sa]
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+      redis: { condition: service_healthy }
+      s3: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/api/v1/healthz',timeout=2).status==200 else 1)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  worker:
+    build: { context: ./apps/api, target: dev }
+    command: ["celery", "-A", "app.worker.celery_app", "worker", "--loglevel=INFO", "--concurrency=2"]
+    environment: *api-env
+    volumes: ["./apps/api/app:/app/app"]
+    secrets: [gcp_sa]
+    depends_on:
+      redis: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+
+  web:
+    build: { context: ./apps/web, target: dev }
+    environment:
+      API_PROXY_TARGET: http://api:8000
+    ports: ["${WEB_PORT:-5173}:5173"]
+    volumes:
+      - ./apps/web:/app
+      - /app/node_modules
+    depends_on:
+      api: { condition: service_healthy }
+
+# The Google service-account key is mounted as a secret (never baked into images or committed).
+# Without GCP_SA_FILE, an empty placeholder is mounted and Vertex stays disabled.
+secrets:
+  gcp_sa:
+    file: ${GCP_SA_FILE:-./infra/secrets/gcp-placeholder.json}
+
+volumes:
+  pgdata:
+  s3data:
