@@ -26,6 +26,7 @@ from harness import metrics
 from harness.budget import BudgetExceededError, BudgetGuard
 from harness.corpus import PDF_DIR, load_manifest
 from harness.parsers import PARSERS, ParsedDoc, parse_pymupdf
+from harness.providers import build_gateway, embedding_entries, load_config
 from harness.summary import (
     SUMMARY_MAX_TOKENS,
     first_field_offset,
@@ -36,7 +37,6 @@ from harness.summary import (
 )
 
 EVAL_DIR = Path(__file__).resolve().parents[1]
-CONFIG = EVAL_DIR / "config.yaml"
 GOLDEN_DIR = EVAL_DIR / "corpus" / "golden"
 RUNS_DIR = EVAL_DIR / "runs"
 REPORTS_DIR = EVAL_DIR / "reports"
@@ -440,15 +440,8 @@ async def _main(
     include_unverified: bool,
     runs_override: int | None,
 ) -> int:
-    from app.adapters.llm.openrouter import OpenRouterGateway
-
-    config = yaml.safe_load(CONFIG.read_text())
-    key = os.environ.get("OPENROUTER_API_KEY")
-    if not key:
-        raise SystemExit("OPENROUTER_API_KEY is not set (add it to .env)")
-    models = {"summarize": config["models"]["summarize"]}
-    models.update({e["name"]: e["model"] for e in config["embeddings"]})
-    gateway = OpenRouterGateway(key, models, pdf_engine=config.get("pdf_engine"))
+    config = load_config()
+    gateway = build_gateway(config)
     guard = BudgetGuard(max_usd=float(os.environ.get("EVAL_MAX_USD", config["budget_usd"])))
     runs = runs_override or int(config["runs"])
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S")
@@ -488,7 +481,7 @@ async def _main(
                         f"{result.total_s:6.1f}s ${result.cost_usd:.4f} {status}"
                     )
             if "E" in experiments:
-                for entry in config["embeddings"]:
+                for entry in embedding_entries(config):
                     row = await run_embeddings(entry, paper, reference, golden, gateway, guard)
                     if row:
                         embedding_rows.append(row)
@@ -497,7 +490,9 @@ async def _main(
         print(f"Stopped: {exc}. Partial results are recorded.")
     finally:
         raw.close()
-        await gateway.aclose()
+        closer = getattr(gateway, "aclose", None)
+        if closer is not None:
+            await closer()
     report = build_report(
         results, reading, embedding_rows, indicative=include_unverified, spent=guard.spent_usd
     )

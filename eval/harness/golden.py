@@ -8,7 +8,6 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
-import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -19,11 +18,11 @@ from app.ports.llm import ChatMessage, LLMGateway
 from harness.budget import BudgetGuard
 from harness.corpus import PDF_DIR, load_manifest, papers
 from harness.parsers import parse_pymupdf
+from harness.providers import build_gateway, load_config
 from harness.summary import FIELDS
 
 EVAL_DIR = Path(__file__).resolve().parents[1]
 GOLDEN_DIR = EVAL_DIR / "corpus" / "golden"
-CONFIG = EVAL_DIR / "config.yaml"
 QUESTION_KINDS = ("specific", "table_figure", "whole_paper", "unanswerable")
 # Explicit output caps: without them OpenRouter reserves budget for the model maximum.
 GOLDEN_MAX_TOKENS = 8000
@@ -170,18 +169,9 @@ def write_golden(record: dict[str, Any], directory: Path = GOLDEN_DIR) -> Path:
     return path
 
 
-def build_gateway(model: str) -> LLMGateway:
-    from app.adapters.llm.openrouter import OpenRouterGateway
-
-    key = os.environ.get("OPENROUTER_API_KEY")
-    if not key:
-        raise SystemExit("OPENROUTER_API_KEY is not set (add it to .env)")
-    return OpenRouterGateway(key, {"golden": model, "summarize": model})
-
-
 async def _main(ids: list[str] | None, overwrite: bool) -> int:
-    config = yaml.safe_load(CONFIG.read_text())
-    gateway = build_gateway(config["models"]["golden"])
+    config = load_config()
+    gateway = build_gateway(config)
     guard = BudgetGuard(max_usd=float(config["golden_budget_usd"]))
     targets = [p for p in papers(load_manifest()) if not ids or p.id in ids]
     for paper in targets:
