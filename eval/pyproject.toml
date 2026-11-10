@@ -19,7 +19,7 @@ files = ["harness", "tests"]
 explicit_package_bases = true
 
 [[tool.mypy.overrides]]
-module = ["pypdfium2.*", "yaml.*"]
+module = ["pypdfium2.*", "yaml.*", "pymupdf4llm.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
