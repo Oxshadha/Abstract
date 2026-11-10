@@ -14,6 +14,7 @@ from typing import Any
 from google import genai
 from google.genai import errors, types
 
+from app.adapters.llm.retry import backoff_delay
 from app.core.logging import get_logger
 from app.ports.llm import (
     ChatMessage,
@@ -124,7 +125,7 @@ class VertexGateway:
             except errors.APIError as exc:
                 if exc.code not in RETRY_CODES or attempt == self._max_attempts:
                     raise
-                delay = min(2**attempt, 20)
+                delay = backoff_delay(attempt)
                 log.warning("vertex_retry", code=exc.code, attempt=attempt, delay_s=delay)
                 await asyncio.sleep(delay)
         raise AssertionError("unreachable")

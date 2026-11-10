@@ -13,6 +13,7 @@ from typing import Any
 
 import httpx
 
+from app.adapters.llm.retry import backoff_delay
 from app.core.logging import get_logger
 from app.ports.llm import (
     ChatMessage,
@@ -154,6 +155,7 @@ class OpenRouterGateway:
 
     async def _post(self, path: str, body: dict[str, Any]) -> httpx.Response:
         for attempt in range(1, self._max_attempts + 1):
+            retry_after: str | None = None
             try:
                 response = await self._client.post(path, json=body)
             except httpx.TransportError as exc:
@@ -164,7 +166,8 @@ class OpenRouterGateway:
                     return response
                 if response.status_code not in RETRY_STATUSES or attempt == self._max_attempts:
                     raise LLMProviderError(response.status_code, response.text[:500])
-            delay = min(2**attempt, 20)
+                retry_after = response.headers.get("retry-after")
+            delay = backoff_delay(attempt, retry_after)
             log.warning("openrouter_retry", path=path, attempt=attempt, delay_s=delay)
             await asyncio.sleep(delay)
         raise AssertionError("unreachable")
