@@ -2,7 +2,7 @@
 # Only verified items are scored by the benchmark.
 paper: specaugment
 drafted_by: gemini-3.1-pro-preview
-draft_cost_usd: 0.05606
+draft_cost_usd: 0.04258
 present_fields:
   abstract: true
   problem_statement: false
@@ -11,84 +11,76 @@ present_fields:
   conclusion: true
 facts:
 - field: key_results
-  fact: On LibriSpeech, we achieve 6.8% WER on test-other without the use of a language
-    model, and 5.8% WER with shallow fusion with a language model.
+  fact: 6.8% WER on test-other without the use of a language model
   page: 1
   verified: false
 - field: key_results
-  fact: For Switchboard, we achieve 7.2%/14.6% on the Switchboard/CallHome portion
-    of the Hub5'00 test set without the use of a language model
+  fact: 2.8% Word Error Rate (WER) on the testclean set
   page: 1
   verified: false
 - field: methodology
-  fact: we turn on a variational weight noise [27] of standard deviation 0.075 at
-    step s noise and keep it constant throughout training.
+  fact: vocabulary size 16k for LibriSpeech and 1k for Switchboard
   page: 2
   verified: false
 - field: methodology
-  fact: we introduce uniform label smoothing [28] with uncertainty 0.1
+  fact: variational weight noise of standard deviation 0.075
   page: 2
   verified: false
-- field: key_results
-  fact: The experiments were run with peak learning rate of 0.001 and batch size of
-    512, on 32 Google Cloud TPU chips for 7 days.
-  page: 3
+- field: methodology
+  fact: uniform label smoothing with uncertainty 0.1
+  page: 2
   verified: false
 questions:
 - kind: specific
-  question: What is the standard deviation of the variational weight noise introduced
-    during training?
-  answer: '0.075'
+  question: What are the three kinds of deformations used in SpecAugment?
+  answer: Time warping, frequency masking, and time masking.
   pages:
-  - 2
+  - 1
   verified: false
 - kind: specific
-  question: What is the peak learning rate used to run the experiments on LibriSpeech
-    960h?
-  answer: '0.001'
-  pages:
-  - 3
-  verified: false
-- kind: table_figure
-  question: According to Table 1, what is the frequency mask parameter (F) for the
-    Switchboard mild (SM) augmentation policy?
-  answer: '15'
+  question: What is the cell dimension w of the RNN decoder in the LAS network?
+  answer: The RNN decoder has a cell dimension w.
   pages:
   - 2
   verified: false
 - kind: table_figure
-  question: Based on Table 4, what is the Word Error Rate (WER) on the Switchboard
-    (SWBD) dataset when using the SM policy without label smoothing?
-  answer: 9.5%
+  question: According to Table 1, what are the parameters W and F for the Switchboard
+    mild (SM) policy?
+  answer: W is 40 and F is 15.
+  pages:
+  - 2
+  verified: false
+- kind: table_figure
+  question: In Table 6, what is the test-other WER when time warping is turned off
+    (W=0)?
+  answer: 10.1%
   pages:
   - 4
   verified: false
 - kind: whole_paper
   question: What is the main contribution of this paper?
   answer: The introduction of SpecAugment, a simple and computationally cheap data
-    augmentation method for ASR that operates directly on the log mel spectrogram.
+    augmentation method operating directly on log mel spectrograms.
   pages:
   - 1
-  - 4
-  - 5
   verified: false
 - kind: whole_paper
-  question: What is a main challenge introduced by using the SpecAugment method as
-    described in the paper?
-  answer: It converts the training process from an over-fitting problem to an under-fitting
-    problem, requiring larger networks and longer training schedules to alleviate.
+  question: What is a major limitation or instability observed when combining label
+    smoothing with SpecAugment?
+  answer: Label smoothing introduces instability to training, particularly while the
+    learning rate is being decayed.
   pages:
   - 4
-  - 5
   verified: false
 - kind: unanswerable
-  question: What is the exact inference time reduction achieved by applying SpecAugment
-    compared to baseline models?
+  question: How much memory does the SpecAugment data augmentation method use per
+    batch during training?
   answer: Not answered in the document
   pages: []
   verified: false
 - kind: unanswerable
-  question: How does SpecAugment perform on the Chinese Mandarin Aishell corpus?
+  question: What is the exact Word Error Rate of the LAS-6-1280 model on the TED-LIUM
+    v3 corpus?
   answer: Not answered in the document
   pages: []
   verified: false

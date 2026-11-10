@@ -1,0 +1,87 @@
+# Drafted automatically. Owner: check each item, fix if wrong, set verified: true.
+# Only verified items are scored by the benchmark.
+paper: attention
+drafted_by: gemini-3.1-pro-preview
+draft_cost_usd: 0.04743
+present_fields:
+  abstract: true
+  problem_statement: true
+  methodology: true
+  key_results: true
+  conclusion: true
+facts:
+- field: key_results
+  fact: 28.4 BLEU on WMT 2014 English-to-German
+  page: 1
+  verified: false
+- field: key_results
+  fact: state-of-the-art BLEU score of 41.8
+  page: 1
+  verified: false
+- field: methodology
+  fact: stack of N = 6 identical layers
+  page: 3
+  verified: false
+- field: methodology
+  fact: outputs of dimension d_model = 512
+  page: 3
+  verified: false
+- field: key_results
+  fact: WSJ 23 F1 92.7
+  page: 10
+  verified: false
+questions:
+- kind: specific
+  question: What is the dimensionality of the inner-layer in the position-wise feed-forward
+    networks?
+  answer: '2048'
+  pages:
+  - 5
+  verified: false
+- kind: specific
+  question: What optimizer was used to train the models?
+  answer: Adam optimizer
+  pages:
+  - 7
+  verified: false
+- kind: table_figure
+  question: According to Table 1, what is the maximum path length for a Convolutional
+    layer?
+  answer: O(log_k(n))
+  pages:
+  - 6
+  verified: false
+- kind: table_figure
+  question: Based on Table 3, what is the development BLEU score of the base model?
+  answer: '25.8'
+  pages:
+  - 9
+  verified: false
+- kind: whole_paper
+  question: What is the primary architectural contribution of this paper?
+  answer: The Transformer, a sequence transduction model based entirely on attention,
+    dispensing with recurrence and convolution.
+  pages:
+  - 1
+  - 2
+  - 10
+  verified: false
+- kind: whole_paper
+  question: What future work directions are mentioned in the conclusion?
+  answer: Applying the model to other modalities like images, audio, and video, and
+    making generation less sequential.
+  pages:
+  - 10
+  verified: false
+- kind: unanswerable
+  question: What was the BLEU score of the Transformer on the WMT 2018 English-to-Chinese
+    translation task?
+  answer: Not answered in the document
+  pages: []
+  verified: false
+- kind: unanswerable
+  question: How much RAM in gigabytes did the training machine have?
+  answer: Not answered in the document
+  pages: []
+  verified: false
+layout_probes: []

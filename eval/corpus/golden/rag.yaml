@@ -1,0 +1,89 @@
+# Drafted automatically. Owner: check each item, fix if wrong, set verified: true.
+# Only verified items are scored by the benchmark.
+paper: rag
+drafted_by: gemini-3.1-pro-preview
+draft_cost_usd: 0.07808
+present_fields:
+  abstract: true
+  problem_statement: true
+  methodology: true
+  key_results: true
+  conclusion: true
+facts:
+- field: key_results
+  fact: RAG-Sequence achieves 44.5 Exact Match on NQ
+  page: 6
+  verified: false
+- field: methodology
+  fact: BART-large is a pre-trained seq2seq transformer with 400M parameters
+  page: 3
+  verified: false
+- field: key_results
+  fact: FEVER 3-way RAG scores are within 4.3% of state-of-the-art
+  page: 6
+  verified: false
+- field: key_results
+  fact: RAG answers 70% correctly using 2016 index for 2016 world leaders
+  page: 8
+  verified: false
+- field: key_results
+  fact: Top retrieved document from a gold article in 71% of cases
+  page: 7
+  verified: false
+questions:
+- kind: specific
+  question: What dataset is used to initialize the CuratedTrec and WebQuestions models?
+  answer: Natural Questions (NQ) RAG model
+  pages:
+  - 4
+  verified: false
+- kind: specific
+  question: How many documents are generated when splitting the Wikipedia dump into
+    100-word chunks?
+  answer: 21M documents
+  pages:
+  - 4
+  verified: false
+- kind: table_figure
+  question: According to Table 1, what is the exact match score of the RAG-Token model
+    on WebQuestions?
+  answer: '45.5'
+  pages:
+  - 6
+  verified: false
+- kind: table_figure
+  question: In Figure 2, which document has a high posterior when generating the phrase
+    'A Farewell to Arms'?
+  answer: Document 1
+  pages:
+  - 7
+  verified: false
+- kind: whole_paper
+  question: What is the primary contribution of the document?
+  answer: Introducing Retrieval-Augmented Generation (RAG) models that combine pre-trained
+    parametric and non-parametric memory for language generation.
+  pages:
+  - 1
+  - 2
+  verified: false
+- kind: whole_paper
+  question: What overall limitation concerning external knowledge is mentioned by
+    the authors?
+  answer: The external knowledge source, such as Wikipedia, will probably never be
+    entirely factual and devoid of bias.
+  pages:
+  - 10
+  verified: false
+- kind: unanswerable
+  question: How long does it take to fine-tune the RAG-Sequence model on the complete
+    MS-MARCO dataset using 8 GPUs?
+  answer: Not answered in the document
+  pages: []
+  verified: false
+- kind: unanswerable
+  question: What is the exact latency in milliseconds of a RAG query in a production
+    environment?
+  answer: Not answered in the document
+  pages: []
+  verified: false
+layout_probes: []

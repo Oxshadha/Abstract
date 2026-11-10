@@ -1,0 +1,87 @@
+# Drafted automatically. Owner: check each item, fix if wrong, set verified: true.
+# Only verified items are scored by the benchmark.
+paper: lora
+drafted_by: gemini-3.1-pro-preview
+draft_cost_usd: 0.09998
+present_fields:
+  abstract: true
+  problem_statement: true
+  methodology: true
+  key_results: true
+  conclusion: true
+facts:
+- field: abstract
+  fact: LoRA reduces trainable parameters by 10,000 times
+  page: 1
+  verified: false
+- field: key_results
+  fact: VRAM consumption reduced from 1.2TB to 350GB
+  page: 5
+  verified: false
+- field: key_results
+  fact: Checkpoint size reduced from 350GB to 35MB
+  page: 5
+  verified: false
+- field: key_results
+  fact: Training speedup of 25% on GPT-3 175B
+  page: 5
+  verified: false
+- field: key_results
+  fact: RoBERTa base LoRA GLUE average 87.2
+  page: 6
+  verified: false
+questions:
+- kind: specific
+  question: Which weight matrices are adapted by LoRA in most experiments?
+  answer: The query and value projection matrices (Wq and Wv).
+  pages:
+  - 5
+  - 6
+  verified: false
+- kind: specific
+  question: What is the initial value of matrix B in LoRA?
+  answer: Zero.
+  pages:
+  - 4
+  verified: false
+- kind: table_figure
+  question: According to Table 3, what BLEU score does GPT-2 M with LoRA achieve on
+    the E2E NLG Challenge?
+  answer: '70.4'
+  pages:
+  - 7
+  verified: false
+- kind: table_figure
+  question: Based on Figure 1, what are the trainable components in the reparametrization?
+  answer: A and B.
+  pages:
+  - 1
+  verified: false
+- kind: whole_paper
+  question: What is the main contribution of this work?
+  answer: Proposing Low-Rank Adaptation (LoRA) to efficiently fine-tune large language
+    models without adding inference latency.
+  pages:
+  - 1
+  - 12
+  verified: false
+- kind: whole_paper
+  question: What is the overall limitation of LoRA mentioned in the text?
+  answer: It is difficult to batch inputs for different tasks in a single forward
+    pass if the LoRA weights are merged.
+  pages:
+  - 5
+  verified: false
+- kind: unanswerable
+  question: How much training time does LoRA save when applied to Vision Transformers
+    on ImageNet?
+  answer: Not answered in the document
+  pages: []
+  verified: false
+- kind: unanswerable
+  question: What is the exact energy consumption in kWh for training the GPT-3 175B
+    model with LoRA?
+  answer: Not answered in the document
+  pages: []
+  verified: false
+layout_probes: []

@@ -1,0 +1,103 @@
+# Drafted automatically. Owner: check each item, fix if wrong, set verified: true.
+# Only verified items are scored by the benchmark.
+paper: resnet
+drafted_by: gemini-3.1-pro-preview
+draft_cost_usd: 0.07448
+present_fields:
+  abstract: true
+  problem_statement: true
+  methodology: true
+  key_results: true
+  conclusion: false
+facts:
+- field: abstract
+  fact: ensemble achieves 3.57% error on the ImageNet test set
+  page: 1
+  verified: false
+- field: abstract
+  fact: 28% relative improvement on the COCO object detection dataset
+  page: 1
+  verified: false
+- field: key_results
+  fact: ResNet-152 top-1 validation error 21.43
+  page: 6
+  verified: false
+- field: key_results
+  fact: ResNet-101 COCO mAP@[.5, .95] 27.2
+  page: 8
+  verified: false
+- field: key_results
+  fact: ResNet-110 CIFAR-10 error 6.43
+  page: 7
+  verified: false
+questions:
+- kind: specific
+  question: What is the mini-batch size used for training models on the ImageNet dataset?
+  answer: '256'
+  pages:
+  - 4
+  verified: false
+- kind: specific
+  question: What type of normalization is adopted right after each convolution and
+    before activation?
+  answer: Batch normalization (BN)
+  pages:
+  - 4
+  verified: false
+- kind: table_figure
+  question: According to Table 3, what is the top-5 error of ResNet-50 on ImageNet
+    validation?
+  answer: 6.71%
+  pages:
+  - 6
+  verified: false
+- kind: table_figure
+  question: Based on Figure 1, which network exhibits a higher training error on CIFAR-10,
+    the 20-layer or 56-layer plain network?
+  answer: The 56-layer plain network
+  pages:
+  - 1
+  verified: false
+- kind: whole_paper
+  question: What is the main contribution of this document?
+  answer: Introducing a deep residual learning framework with identity shortcut connections
+    to enable the training of extremely deep networks and address the degradation
+    problem.
+  pages:
+  - 1
+  - 2
+  - 3
+  verified: false
+- kind: whole_paper
+  question: What is the main limitation observed when training aggressively deep models,
+    such as the 1202-layer network on CIFAR-10?
+  answer: Overfitting, as the exceptionally large network may be unnecessarily complex
+    for small datasets without stronger regularization.
+  pages:
+  - 8
+  verified: false
+- kind: unanswerable
+  question: How many kilowatt-hours of energy were consumed to train the 152-layer
+    ResNet model on the ImageNet dataset?
+  answer: Not answered in the document
+  pages: []
+  verified: false
+- kind: unanswerable
+  question: How does the performance of the proposed residual networks compare to
+    modern Vision Transformers (ViT) on ImageNet?
+  answer: Not answered in the document
+  pages: []
+  verified: false
+layout_probes:
+- page: 1
+  first: tasks [8, 12, 7, 32, 27] have also
+  second: Figure 1. Training error (left) and test error
+  verified: false
+- page: 2
+  first: Our ensemble has 3.57% top-5 error on the
+  second: ImageNet test set, and won the 1st place
+  verified: false
+- page: 3
+  first: layers, F = W2σ(W1x) in which σ denotes
+  second: ReLU [29] and the biases are omitted for
+  verified: false

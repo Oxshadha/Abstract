@@ -1,0 +1,90 @@
+# Drafted automatically. Owner: check each item, fix if wrong, set verified: true.
+# Only verified items are scored by the benchmark.
+paper: nist-ai-rmf
+drafted_by: gemini-3.1-pro-preview
+draft_cost_usd: 0.07755
+present_fields:
+  abstract: true
+  problem_statement: true
+  methodology: true
+  key_results: true
+  conclusion: true
+facts:
+- field: conclusion
+  fact: formal input review no later than 2028
+  page: 3
+  verified: false
+- field: problem_statement
+  fact: National Artificial Intelligence Initiative Act of 2020
+  page: 2
+  verified: false
+- field: problem_statement
+  fact: Public Law 116-283
+  page: 2
+  verified: false
+- field: key_results
+  fact: four specific functions to address risks
+  page: 3
+  verified: false
+- field: methodology
+  fact: NIST Special Publication 1270
+  page: 18
+  verified: false
+questions:
+- kind: specific
+  question: What are the four specific functions comprising the Core of the AI RMF?
+  answer: GOVERN, MAP, MEASURE, and MANAGE.
+  pages:
+  - 3
+  - 20
+  verified: false
+- kind: specific
+  question: How is risk defined in the context of the AI RMF?
+  answer: The composite measure of an event’s probability of occurring and the magnitude
+    or degree of the consequences.
+  pages:
+  - 4
+  verified: false
+- kind: table_figure
+  question: According to Figure 4, which characteristic of trustworthy AI serves as
+    the necessary base for all other trustworthiness characteristics?
+  answer: Valid & Reliable
+  pages:
+  - 5
+  - 12
+  verified: false
+- kind: table_figure
+  question: Based on Table 1, which subcategory ensures mechanisms are in place to
+    inventory AI systems?
+  answer: GOVERN 1.6
+  pages:
+  - 23
+  verified: false
+- kind: whole_paper
+  question: What is the main contribution of this document?
+  answer: To present the voluntary Artificial Intelligence Risk Management Framework
+    (AI RMF 1.0) to help organizations manage AI risks.
+  pages:
+  - 1
+  - 2
+  verified: false
+- kind: whole_paper
+  question: What is a stated overall limitation of the Framework regarding acceptable
+    risk levels?
+  answer: It can be used to prioritize risk, but it does not prescribe risk tolerance.
+  pages:
+  - 7
+  verified: false
+- kind: unanswerable
+  question: What is the exact budget allocated by the US government for implementing
+    the AI RMF across federal agencies?
+  answer: Not answered in the document
+  pages: []
+  verified: false
+- kind: unanswerable
+  question: Which specific machine learning algorithms does NIST recommend to eliminate
+    computational and statistical bias completely?
+  answer: Not answered in the document
+  pages: []
+  verified: false
+layout_probes: []

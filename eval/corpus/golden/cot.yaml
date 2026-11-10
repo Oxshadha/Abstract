@@ -1,0 +1,99 @@
+# Drafted automatically. Owner: check each item, fix if wrong, set verified: true.
+# Only verified items are scored by the benchmark.
+paper: cot
+drafted_by: gemini-3.1-pro-preview
+draft_cost_usd: 0.11945
+present_fields:
+  abstract: true
+  problem_statement: true
+  methodology: true
+  key_results: true
+  conclusion: true
+facts:
+- field: abstract
+  fact: eight chain-of-thought exemplars
+  page: 1
+  verified: false
+- field: methodology
+  fact: LaMDA models of 422M, 2B, 8B, 68B, and 137B parameters
+  page: 4
+  verified: false
+- field: key_results
+  fact: StrategyQA 75.6%
+  page: 7
+  verified: false
+- field: key_results
+  fact: sports understanding 95.4%
+  page: 7
+  verified: false
+- field: key_results
+  fact: GSM8K solve rate 56.9%
+  page: 21
+  verified: false
+questions:
+- kind: specific
+  question: How many large language models were evaluated in the experiments?
+  answer: five
+  pages:
+  - 4
+  verified: false
+- kind: specific
+  question: What was the prior state-of-the-art accuracy on the StrategyQA benchmark?
+  answer: 69.4%
+  pages:
+  - 7
+  verified: false
+- kind: table_figure
+  question: According to Figure 2, what is the solve rate of PaLM 540B with standard
+    prompting on GSM8K?
+  answer: 18%
+  pages:
+  - 2
+  verified: false
+- kind: table_figure
+  question: Based on Figure 9, how many semantic understanding errors did the 62B
+    model make?
+  answer: '20'
+  pages:
+  - 16
+  verified: false
+- kind: whole_paper
+  question: What is the main contribution of this paper?
+  answer: Demonstrating that chain-of-thought prompting significantly improves the
+    complex reasoning abilities of large language models.
+  pages:
+  - 1
+  - 2
+  - 8
+  - 9
+  verified: false
+- kind: whole_paper
+  question: What is an overall limitation of the proposed approach?
+  answer: No guarantees of correct reasoning paths and the emergence of this ability
+    only at large model scales.
+  pages:
+  - 9
+  verified: false
+- kind: unanswerable
+  question: What is the exact training cost of the PaLM 540B model in dollars?
+  answer: Not answered in the document
+  pages: []
+  verified: false
+- kind: unanswerable
+  question: How does chain-of-thought prompting perform on machine translation tasks?
+  answer: Not answered in the document
+  pages: []
+  verified: false
+layout_probes:
+- page: 1
+  first: 6 more, how many apples do they have?
+  second: 'Q: Roger has 5 tennis balls. He buys'
+  verified: false
+- page: 4
+  first: bar) 3. find(user) 4. put(energy bar) 5. done().
+  second: 'Q: Sammy wanted to go to where the'
+  verified: false
+- page: 17
+  first: many people have all of the schools sent?
+  second: The wire was 4 feet long. This means
+  verified: false
