@@ -7,16 +7,18 @@ import unicodedata
 
 from rapidfuzz import fuzz
 
-_HYPHEN_BREAK = re.compile(r"(\w)-\s*\n\s*(\w)")
+# Line-break hyphenation: "trans-\nformer" or, once line breaks are flattened, "ar- chitecture".
+_HYPHEN_BREAK = re.compile(r"([a-z])-\s+([a-z])")
 _NON_WORD = re.compile(r"[^0-9a-z%.]+")
+_CITATION_MARKER = re.compile(r"\[\d+(?:\s*[,-]\s*\d+)*\]")
 _NUMBER = re.compile(r"-?\d+(?:[.,]\d+)?")
 
 
 def normalize(text: str) -> str:
     """Lowercase, fold ligatures/unicode, join hyphenated line breaks, collapse non-words."""
-    text = unicodedata.normalize("NFKC", text)
+    text = unicodedata.normalize("NFKC", text).lower()
     text = _HYPHEN_BREAK.sub(r"\1\2", text)
-    text = re.sub(r"[*_`#|]", " ", text.lower())  # markdown emphasis/table syntax
+    text = re.sub(r"[*_`#|]", " ", text)  # markdown emphasis/table syntax
     return _NON_WORD.sub(" ", text).strip()
 
 
@@ -46,7 +48,21 @@ def numbers_in(text: str) -> set[str]:
     return {f"{float(n.replace(',', '.')):g}" for n in _NUMBER.findall(text)}
 
 
-_CITATION_MARKER = re.compile(r"\[\d+(?:\s*[,-]\s*\d+)*\]")
+def numbers_grounded(summary_text: str, source_text: str) -> float | None:
+    """Share of numbers stated in the summary that also appear in the source (hallucination).
+
+    Small integers (0 to 10) are ignored: they are usually list counts or ordinals in prose.
+    """
+    stated = {n for n in numbers_in(_CITATION_MARKER.sub(" ", summary_text)) if not _small(n)}
+    if not stated:
+        return None
+    source = numbers_in(source_text)
+    return sum(n in source for n in stated) / len(stated)
+
+
+def _small(n: str) -> bool:
+    value = float(n)
+    return value.is_integer() and 0 <= value <= 10
 
 
 def fact_reproduced(summary_text: str, fact: str) -> bool:

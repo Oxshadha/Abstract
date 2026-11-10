@@ -8,6 +8,7 @@ from harness.metrics import (
     field_coverage,
     hit_at_k,
     normalize,
+    numbers_grounded,
     quote_supported,
     reading_order_ok,
     reciprocal_rank,
@@ -17,6 +18,8 @@ from harness.parsers import ParsedDoc, parse_pdfium, token_tier
 
 def test_normalize_joins_hyphenated_breaks_and_ligatures() -> None:
     assert normalize("trans-\nformer ﬁne **tuning**") == "transformer fine tuning"
+    assert normalize("ar- chitecture") == "architecture"  # flattened line-break hyphen
+    assert normalize("EN-DE") == "en de"  # real hyphens between letters without space stay split
 
 
 def test_AC7_reading_order_passes_when_sentences_are_adjacent() -> None:
@@ -66,6 +69,13 @@ def test_AC5_fact_numbers_must_all_appear() -> None:
     assert not fact_reproduced("reduced by 1%", "reduced by 100%")  # regression: '100' != '1'
     assert fact_reproduced("weight noise with std 0.075", "weight noise [27] of std 0.075")
     assert fact_reproduced("label smoothing 0.1", "label smoothing [3, 28] of 0.1")
+
+
+def test_numbers_grounded_detects_invented_numbers() -> None:
+    source = "We report 28.4 BLEU and 41.8 BLEU after 3.5 days on 8 GPUs."
+    assert numbers_grounded("Reaches 28.4 and 41.8 BLEU.", source) == 1.0
+    assert numbers_grounded("Reaches 28.4 and 99.9 BLEU.", source) == 0.5
+    assert numbers_grounded("Uses 3 stages.", source) is None  # small counts ignored
 
 
 def test_AC6_quote_supported_tolerates_formatting_not_content() -> None:
