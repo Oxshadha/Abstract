@@ -1,0 +1,44 @@
+# OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Secrets & local config
+.env
+.env.*
+!.env.example
+*.pem
+*service-account*.json
+gcp-*.json
+
+# Client brief (not committed, see docs/decisions.md D59)
+Requirment.pdf
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Node / web
+node_modules/
+dist/
+build/
+.vite/
+coverage/
+*.tsbuildinfo
+playwright-report/
+test-results/
+
+# Eval artifacts (papers are downloaded by script, not committed)
+eval/corpus/pdfs/
+eval/runs/
+
+# Local data volumes
+infra/.data/
