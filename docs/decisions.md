@@ -123,6 +123,8 @@ The agent was right that dark mode needs lighter text variants: the original sha
 
 | D63 | **Incremental, feature-shaped commit history (owner request).** Commit after each acceptance criterion goes green, with its test and code in the same commit; every commit is a working state; feature branches merge to `main` with `--no-ff` so each spec is visible as a unit. Never commit a whole feature at the end split by folder. | The commit history is a graded deliverable (R9) and should show how the software was actually developed. |
 
+| D64 | **EDP-002 option A (owner approved):** keep PyMuPDF / pymupdf4llm as the fast-path parser **behind the `Parser` port**, document the AGPL-3.0 obligation (README licence note, risk R5), and measure a permissive baseline (pypdfium2, B') in the benchmark. Before any closed-source commercial launch: swap the adapter or buy a commercial licence. | Best quality and speed now; the port keeps the exit cheap; data shows the cost of switching. |
+
 ## Audit backfill (2026-11-10)
 These were agreed in conversation but not yet logged. Recorded now so the log is complete.
 

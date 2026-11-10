@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Awaiting owner decision |
+| **Status** | Approved by owner (2026-11-11), option A → recorded as **D64** |
 | **Raised during** | Spec 000 (benchmark), before experiment B |
 | **Affects** | D19 (parser strategy), D56 (library list), spec 004 |
 
