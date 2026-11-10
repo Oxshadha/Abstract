@@ -113,9 +113,10 @@ def golden_schema() -> dict[str, Any]:
 
 
 GOLDEN_PROMPT = """You prepare evaluation data for a research-paper assistant. From the document:
-1. facts: exactly 5 key quantitative facts (each containing at least one number exactly as
-   written, e.g. "EN-DE BLEU 28.4"), each tagged with the summary field it belongs to and the
-   page where it appears. Prefer results tables and headline numbers.
+1. facts: exactly 5 key quantitative facts as SHORT phrases (under 12 words) containing only
+   the key number(s) exactly as written, e.g. "EN-DE BLEU 28.4". No citation markers like [27],
+   no dataset version numbers unless they are the result. Tag each with its summary field and
+   the page where it appears. Prefer headline results.
 2. questions: exactly 8: 2 "specific" factual questions, 2 "table_figure" questions answerable
    only from a table or figure, 2 "whole_paper" questions (main contribution, overall
    limitation), and 2 "unanswerable" questions that sound plausible but the document does not

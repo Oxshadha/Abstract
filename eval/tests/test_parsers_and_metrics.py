@@ -64,6 +64,8 @@ def test_AC5_fact_numbers_must_all_appear() -> None:
     assert not fact_reproduced(summary, "no numbers here")
     assert fact_reproduced("accuracy 28.40%", "28.4")
     assert not fact_reproduced("reduced by 1%", "reduced by 100%")  # regression: '100' != '1'
+    assert fact_reproduced("weight noise with std 0.075", "weight noise [27] of std 0.075")
+    assert fact_reproduced("label smoothing 0.1", "label smoothing [3, 28] of 0.1")
 
 
 def test_AC6_quote_supported_tolerates_formatting_not_content() -> None:

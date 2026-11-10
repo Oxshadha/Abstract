@@ -1,0 +1,107 @@
+# Drafted automatically. Owner: check each item, fix if wrong, set verified: true.
+# Only verified items are scored by the benchmark.
+paper: specaugment
+drafted_by: gemini-3.1-pro-preview
+draft_cost_usd: 0.05606
+present_fields:
+  abstract: true
+  problem_statement: false
+  methodology: true
+  key_results: true
+  conclusion: true
+facts:
+- field: key_results
+  fact: On LibriSpeech, we achieve 6.8% WER on test-other without the use of a language
+    model, and 5.8% WER with shallow fusion with a language model.
+  page: 1
+  verified: false
+- field: key_results
+  fact: For Switchboard, we achieve 7.2%/14.6% on the Switchboard/CallHome portion
+    of the Hub5'00 test set without the use of a language model
+  page: 1
+  verified: false
+- field: methodology
+  fact: we turn on a variational weight noise [27] of standard deviation 0.075 at
+    step s noise and keep it constant throughout training.
+  page: 2
+  verified: false
+- field: methodology
+  fact: we introduce uniform label smoothing [28] with uncertainty 0.1
+  page: 2
+  verified: false
+- field: key_results
+  fact: The experiments were run with peak learning rate of 0.001 and batch size of
+    512, on 32 Google Cloud TPU chips for 7 days.
+  page: 3
+  verified: false
+questions:
+- kind: specific
+  question: What is the standard deviation of the variational weight noise introduced
+    during training?
+  answer: '0.075'
+  pages:
+  - 2
+  verified: false
+- kind: specific
+  question: What is the peak learning rate used to run the experiments on LibriSpeech
+    960h?
+  answer: '0.001'
+  pages:
+  - 3
+  verified: false
+- kind: table_figure
+  question: According to Table 1, what is the frequency mask parameter (F) for the
+    Switchboard mild (SM) augmentation policy?
+  answer: '15'
+  pages:
+  - 2
+  verified: false
+- kind: table_figure
+  question: Based on Table 4, what is the Word Error Rate (WER) on the Switchboard
+    (SWBD) dataset when using the SM policy without label smoothing?
+  answer: 9.5%
+  pages:
+  - 4
+  verified: false
+- kind: whole_paper
+  question: What is the main contribution of this paper?
+  answer: The introduction of SpecAugment, a simple and computationally cheap data
+    augmentation method for ASR that operates directly on the log mel spectrogram.
+  pages:
+  - 1
+  - 4
+  - 5
+  verified: false
+- kind: whole_paper
+  question: What is a main challenge introduced by using the SpecAugment method as
+    described in the paper?
+  answer: It converts the training process from an over-fitting problem to an under-fitting
+    problem, requiring larger networks and longer training schedules to alleviate.
+  pages:
+  - 4
+  - 5
+  verified: false
+- kind: unanswerable
+  question: What is the exact inference time reduction achieved by applying SpecAugment
+    compared to baseline models?
+  answer: Not answered in the document
+  pages: []
+  verified: false
+- kind: unanswerable
+  question: How does SpecAugment perform on the Chinese Mandarin Aishell corpus?
+  answer: Not answered in the document
+  pages: []
+  verified: false
+layout_probes:
+- page: 1
+  first: if it were an image, and does not
+  second: require any additional data. We are thus able
+  verified: false
+- page: 2
+  first: 2 SS 40 27 2 70 0.2 2
+  second: We use Listen, Attend and Spell (LAS) networks
+  verified: false
+- page: 3
+  first: LAS-6-1280 model, even without a language model. We
+  second: 'Table 2: LibriSpeech test WER (%) evaluated for'
+  verified: false

@@ -46,9 +46,15 @@ def numbers_in(text: str) -> set[str]:
     return {f"{float(n.replace(',', '.')):g}" for n in _NUMBER.findall(text)}
 
 
+_CITATION_MARKER = re.compile(r"\[\d+(?:\s*[,-]\s*\d+)*\]")
+
+
 def fact_reproduced(summary_text: str, fact: str) -> bool:
-    """Every number in the golden fact must appear in the summary (order-insensitive)."""
-    wanted = numbers_in(fact)
+    """Every number in the golden fact must appear in the summary (order-insensitive).
+
+    Bibliography markers such as [27] or [3, 5] are not facts and are ignored.
+    """
+    wanted = numbers_in(_CITATION_MARKER.sub(" ", fact))
     return bool(wanted) and wanted <= numbers_in(summary_text)
 
 
