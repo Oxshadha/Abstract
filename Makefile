@@ -4,7 +4,7 @@ API := cd apps/api &&
 WEB := cd apps/web &&
 
 .DEFAULT_GOAL := help
-.PHONY: help check-env dev down logs ps migrate test test-api test-web test-eval lint fmt api-client tokens eval eval-corpus install hooks
+.PHONY: help check-env dev down logs ps migrate test test-api test-web test-eval lint fmt api-client tokens eval eval-corpus eval-golden install hooks
 
 help: ## Show available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[1m%-12s\033[0m %s\n", $$1, $$2}'
@@ -67,6 +67,9 @@ tokens: ## Generate CSS/TS design tokens (spec 003)
 
 eval-corpus: ## Download and verify the benchmark corpus (PIN=1 records new checksums)
 	$(EVAL) python -m harness.corpus $(if $(PIN),--pin,)
+
+eval-golden: check-env ## Draft golden reference data with an LLM (costs about $1.50; owner verifies)
+	cd eval && uv run --project ../apps/api --group eval --env-file ../.env python -m harness.golden $(IDS)
 
 eval: ## Run the benchmark harness (spec 000; costs money)
 	@echo "Not implemented yet: spec 000"

@@ -1,0 +1,13 @@
+# Benchmark configuration (spec 000). Model IDs verified against OpenRouter's live catalogue
+# on 2026-11-11. Production models are chosen from these results (D53), not hard-coded here.
+models:
+  summarize: anthropic/claude-haiku-5.5    # same model for A/B/B'/C so only the pipeline varies
+  golden: anthropic/claude-sonnet-5.5      # drafts reference data (owner verifies it)
+embeddings:                                # experiment E
+  - { name: te3-small-512, model: openai/text-embedding-3-small, dimensions: 512 }
+  - { name: te3-small-1536, model: openai/text-embedding-3-small, dimensions: 1536 }
+  - { name: gemini-001-768, model: google/gemini-embedding-001, dimensions: 768 }
+pdf_engine: null        # null = model's native PDF input (experiment A)
+runs: 3                 # repetitions per paper for latency variance
+budget_usd: 5.0         # hard cap per full run (AC10); override with EVAL_MAX_USD
+golden_budget_usd: 3.0  # cap for drafting reference data
