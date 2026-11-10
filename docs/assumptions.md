@@ -55,3 +55,4 @@ Agents: add an entry **before** acting on a new assumption. When the owner confi
 | R2 | Vision and OCR costs grow on figure-heavy papers. | Selective vision, per-plan entitlement, cost logged per paper |
 | R3 | Single EC2 instance is a single point of failure. | Accepted for v1; documented path to ECS in roadmap |
 | R4 | LLM provider outage or rate limit. | Registry fallbacks, Vertex as second provider, retries, partial results |
+| R5 | PyMuPDF / pymupdf4llm are AGPL-3.0: a closed-source network service must offer its source or buy a commercial licence. | EDP-002; parser isolated behind the `Parser` port |
