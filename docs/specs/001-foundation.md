@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Approved (owner, 2026-11-11) |
+| **Status** | Implemented (2026-11-11, PR #1) |
 | **Week** | W1 (days 1–2) |
 | **Decisions** | D2, D9, D13, D14, D17, D29, D30, D31, D37, D47, D54, D56 |
 | **Requirements** | R6, R9, R10, N5 |
@@ -28,8 +28,8 @@ Anyone can clone the repo, run `cp .env.example .env && make dev`, and get the f
 - [x] **AC9**: The web app runs at `http://localhost:5173`, shows a placeholder page that calls `/api/v1/healthz` through the **generated OpenAPI client**, and displays the status. `make api-client` regenerates the client; CI fails if the generated client is stale.
 - [x] **AC10**: `make lint` runs ruff, ruff-format check, mypy `--strict`, eslint and `tsc --noEmit`, all passing on the skeleton.
 - [x] **AC11**: `make test` runs pytest (unit + one testcontainers integration test hitting real Postgres+pgvector) and Vitest, all passing.
-- [ ] **AC12** (pending: needs the GitHub repo to run): GitHub Actions on every push/PR runs lint → test → docker build (api and web images), with dependency caching. Total wall time on the skeleton < 8 min.
-- [ ] **AC13** (checker verified locally and in hooks; CI run pending GitHub repo): CI rejects commits whose messages don't follow Conventional Commits, or that contain `Co-Authored-By` trailers.
+- [x] **AC12** (verified on PR #1: 5 jobs green, about 2 min wall time): GitHub Actions on every push/PR runs lint → test → docker build (api and web images), with dependency caching. Total wall time on the skeleton < 8 min.
+- [x] **AC13** (verified on PR #1: commit-message job green): CI rejects commits whose messages don't follow Conventional Commits, or that contain `Co-Authored-By` trailers.
 - [x] **AC14**: The README has: what the app is, prerequisites (Docker, make; optional uv/pnpm for running outside Docker), a 3-step setup, how to run tests, and links to `docs/`.
 
 ## API contract
