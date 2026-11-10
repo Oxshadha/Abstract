@@ -15,6 +15,13 @@ Entry format:
 
 ---
 
+## 2026-11-11: Spec 000 harness complete; blocked on OpenRouter credits
+**Done:** EDP-002 approved (D64). Benchmark models chosen from OpenRouter's live catalogue: claude-haiku-5.5 for all summary experiments, claude-sonnet-5.5 for drafting golden data. Built: parser variants (B pymupdf4llm layout with per-page OCR, B-fast legacy, B' pypdfium2), scoring metrics, Quick Summary schema and shared prompts, budget guard, golden drafting (LLM facts/questions + geometry-derived layout probes), experiment runner with streaming timings, scoring and verdict report. Fake provider now returns schema-valid JSON so the whole harness runs offline in CI (30 eval tests).
+**Measured so far (no LLM needed):** all 3 to 43 page documents are under 60k tokens; only Llama 2 (77 pages, about 69k) is tier L (C1 holds). pymupdf4llm's built-in OCR heuristic OCR'd image-heavy digital pages (fixed: OCR only pages without a text layer). Layout parsing takes 2 to 25 s per document, dominated by table detection; plain text extraction takes under 0.5 s. This may justify summarizing from plain text first and running layout parsing in the background; to be confirmed by experiment B vs B' before any EDP.
+**Bugs caught:** number normalization ('100' read as '1'); mypy errors hidden by a pipe (amended before push; gate script now checks exit codes); missing PYTHONPATH for harness CLI; no max_tokens cap (OpenRouter reserved 65k output tokens per call).
+**Blocker:** OpenRouter balance is $0 (total credits 0, usage $0.045). Real runs (golden drafting about $1.50, full benchmark about $2.50) need credits.
+**Next:** owner adds credits (or picks an alternative) → draft golden data → owner verifies → run experiments → verdict.
+
 ## 2026-11-11: Spec 001 merged; spec 000 started (gateway + corpus)
 **Done:** PR #1 green on all 5 CI jobs (about 2 min) after fixing pnpm setup in the web job; merged to `main` with a merge commit. Spec 001 marked Implemented. Started `feat/000-benchmark`: OpenRouter adapter for the LLMGateway port (chat, streaming with final usage chunk, embeddings, multimodal file/image parts, JSON-schema output, retries, cost and cached-token tracking, `data_collection=deny`), contract-tested with a mocked transport. Fixed a logging bug (stdout bound at configure time). Corpus: 11 documents downloaded with pinned sha256 plus a synthetic scanned PDF; eval harness checks wired into CI.
 **Small decisions:** port extended additively (content parts, JSON schema, stream chunks with usage) within D10; eval runs in the API's environment via a `eval` dependency group; corpus tooling uses pypdfium2 (permissive).
