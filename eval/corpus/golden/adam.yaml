@@ -13,23 +13,23 @@ facts:
 - field: key_results
   fact: SFO is 5-10x slower per iteration compared to Adam
   page: 6
-  verified: false
+  verified: true
 - field: methodology
   fact: default stepsize alpha is 0.001
   page: 2
-  verified: false
+  verified: true
 - field: methodology
   fact: minibatch size of 128 was used
   page: 5
-  verified: false
+  verified: true
 - field: methodology
   fact: 50% dropout noise applied during training
   page: 5
-  verified: false
+  verified: true
 - field: methodology
   fact: two hidden layers with 1000 hidden units each
   page: 6
-  verified: false
+  verified: true
 questions:
 - kind: specific
   question: What are the recommended default values for the exponential decay rates
@@ -37,7 +37,7 @@ questions:
   answer: 0.9 and 0.999 respectively.
   pages:
   - 2
-  verified: false
+  verified: true
 - kind: specific
   question: What is the regret bound of Adam established in the convergence analysis?
   answer: O(sqrt(T))
@@ -50,7 +50,7 @@ questions:
   answer: AdaGrad
   pages:
   - 6
-  verified: false
+  verified: true
 - kind: table_figure
   question: According to Figure 4, how does learning a Variational AutoEncoder without
     bias-correction terms perform when beta_2 = 0.9999?
@@ -89,3 +89,9 @@ questions:
   pages: []
   verified: false
 layout_probes: []
+verification:
+  method: deterministic-text-v1
+  at: '2026-11-10'
+  needs_human:
+  - present_fields
+  - unanswerable questions

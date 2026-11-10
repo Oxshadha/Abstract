@@ -13,51 +13,51 @@ facts:
 - field: abstract
   fact: ensemble achieves 3.57% error on the ImageNet test set
   page: 1
-  verified: false
+  verified: true
 - field: abstract
   fact: 28% relative improvement on the COCO object detection dataset
   page: 1
-  verified: false
+  verified: true
 - field: key_results
   fact: ResNet-152 top-1 validation error 21.43
   page: 6
-  verified: false
+  verified: true
 - field: key_results
   fact: ResNet-101 COCO mAP@[.5, .95] 27.2
   page: 8
-  verified: false
+  verified: true
 - field: key_results
   fact: ResNet-110 CIFAR-10 error 6.43
   page: 7
-  verified: false
+  verified: true
 questions:
 - kind: specific
   question: What is the mini-batch size used for training models on the ImageNet dataset?
   answer: '256'
   pages:
   - 4
-  verified: false
+  verified: true
 - kind: specific
   question: What type of normalization is adopted right after each convolution and
     before activation?
   answer: Batch normalization (BN)
   pages:
   - 4
-  verified: false
+  verified: true
 - kind: table_figure
   question: According to Table 3, what is the top-5 error of ResNet-50 on ImageNet
     validation?
   answer: 6.71%
   pages:
   - 6
-  verified: false
+  verified: true
 - kind: table_figure
   question: Based on Figure 1, which network exhibits a higher training error on CIFAR-10,
     the 20-layer or 56-layer plain network?
   answer: The 56-layer plain network
   pages:
   - 1
-  verified: false
+  verified: true
 - kind: whole_paper
   question: What is the main contribution of this document?
   answer: Introducing a deep residual learning framework with identity shortcut connections
@@ -92,12 +92,18 @@ layout_probes:
 - page: 1
   first: tasks [8, 12, 7, 32, 27] have also
   second: Figure 1. Training error (left) and test error
-  verified: false
+  verified: true
 - page: 2
   first: Our ensemble has 3.57% top-5 error on the
   second: ImageNet test set, and won the 1st place
-  verified: false
+  verified: true
 - page: 3
   first: layers, F = W2σ(W1x) in which σ denotes
   second: ReLU [29] and the biases are omitted for
-  verified: false
+  verified: true
+verification:
+  method: deterministic-text-v1
+  at: '2026-11-10'
+  needs_human:
+  - present_fields
+  - unanswerable questions

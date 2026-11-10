@@ -13,23 +13,23 @@ facts:
 - field: key_results
   fact: RAG-Sequence achieves 44.5 Exact Match on NQ
   page: 6
-  verified: false
+  verified: true
 - field: methodology
   fact: BART-large is a pre-trained seq2seq transformer with 400M parameters
   page: 3
-  verified: false
+  verified: true
 - field: key_results
   fact: FEVER 3-way RAG scores are within 4.3% of state-of-the-art
   page: 6
-  verified: false
+  verified: true
 - field: key_results
   fact: RAG answers 70% correctly using 2016 index for 2016 world leaders
   page: 8
-  verified: false
+  verified: true
 - field: key_results
   fact: Top retrieved document from a gold article in 71% of cases
   page: 7
-  verified: false
+  verified: true
 questions:
 - kind: specific
   question: What dataset is used to initialize the CuratedTrec and WebQuestions models?
@@ -43,21 +43,21 @@ questions:
   answer: 21M documents
   pages:
   - 4
-  verified: false
+  verified: true
 - kind: table_figure
   question: According to Table 1, what is the exact match score of the RAG-Token model
     on WebQuestions?
   answer: '45.5'
   pages:
   - 6
-  verified: false
+  verified: true
 - kind: table_figure
   question: In Figure 2, which document has a high posterior when generating the phrase
     'A Farewell to Arms'?
   answer: Document 1
   pages:
   - 7
-  verified: false
+  verified: true
 - kind: whole_paper
   question: What is the primary contribution of the document?
   answer: Introducing Retrieval-Augmented Generation (RAG) models that combine pre-trained
@@ -65,7 +65,7 @@ questions:
   pages:
   - 1
   - 2
-  verified: false
+  verified: true
 - kind: whole_paper
   question: What overall limitation concerning external knowledge is mentioned by
     the authors?
@@ -87,3 +87,9 @@ questions:
   pages: []
   verified: false
 layout_probes: []
+verification:
+  method: deterministic-text-v1
+  at: '2026-11-10'
+  needs_human:
+  - present_fields
+  - unanswerable questions

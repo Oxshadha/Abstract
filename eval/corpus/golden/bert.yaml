@@ -13,48 +13,48 @@ facts:
 - field: abstract
   fact: pushing the GLUE score to 80.5%
   page: 1
-  verified: false
+  verified: true
 - field: methodology
   fact: Total Parameters=110M
   page: 3
-  verified: false
+  verified: true
 - field: methodology
   fact: mask 15% of all WordPiece tokens
   page: 4
-  verified: false
+  verified: true
 - field: key_results
   fact: achieves 97%-98% accuracy on NSP
   page: 4
-  verified: false
+  verified: true
 - field: key_results
   fact: SQuAD v2.0 Test F1 to 83.1
   page: 7
-  verified: false
+  verified: true
 questions:
 - kind: specific
   question: What is the vocabulary size for WordPiece embeddings used in BERT?
   answer: 30,000
   pages:
   - 4
-  verified: false
+  verified: true
 - kind: specific
   question: What dropout probability is used on all layers during pre-training?
   answer: '0.1'
   pages:
   - 13
-  verified: false
+  verified: true
 - kind: table_figure
   question: According to Table 1, what is the QQP score for BERTBASE?
   answer: '71.2'
   pages:
   - 6
-  verified: false
+  verified: true
 - kind: table_figure
   question: Based on Table 6, what is the LM perplexity for the 24-layer model?
   answer: '3.23'
   pages:
   - 9
-  verified: false
+  verified: true
 - kind: whole_paper
   question: What is the primary contribution of the paper?
   answer: Introducing BERT, a deeply bidirectional pre-trained language representation
@@ -84,12 +84,18 @@ layout_probes:
 - page: 1
   first: and De Meulder, 2003; Rajpurkar et al., 2016).
   second: There are two existing strategies for apply- ing
-  verified: false
+  verified: true
 - page: 2
   first: left and right context (Mikolov et al., 2013).
   second: These approaches have been generalized to coarser granularities,
-  verified: false
+  verified: true
 - page: 3
   first: ar- chitecture across different tasks. There is mini-
   second: Model Architecture BERT’s model architec- ture is a
-  verified: false
+  verified: true
+verification:
+  method: deterministic-text-v1
+  at: '2026-11-10'
+  needs_human:
+  - present_fields
+  - unanswerable questions

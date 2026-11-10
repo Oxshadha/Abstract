@@ -17,46 +17,46 @@ facts:
 - field: methodology
   fact: LaMDA models of 422M, 2B, 8B, 68B, and 137B parameters
   page: 4
-  verified: false
+  verified: true
 - field: key_results
   fact: StrategyQA 75.6%
   page: 7
-  verified: false
+  verified: true
 - field: key_results
   fact: sports understanding 95.4%
   page: 7
-  verified: false
+  verified: true
 - field: key_results
   fact: GSM8K solve rate 56.9%
   page: 21
-  verified: false
+  verified: true
 questions:
 - kind: specific
   question: How many large language models were evaluated in the experiments?
   answer: five
   pages:
   - 4
-  verified: false
+  verified: true
 - kind: specific
   question: What was the prior state-of-the-art accuracy on the StrategyQA benchmark?
   answer: 69.4%
   pages:
   - 7
-  verified: false
+  verified: true
 - kind: table_figure
   question: According to Figure 2, what is the solve rate of PaLM 540B with standard
     prompting on GSM8K?
   answer: 18%
   pages:
   - 2
-  verified: false
+  verified: true
 - kind: table_figure
   question: Based on Figure 9, how many semantic understanding errors did the 62B
     model make?
   answer: '20'
   pages:
   - 16
-  verified: false
+  verified: true
 - kind: whole_paper
   question: What is the main contribution of this paper?
   answer: Demonstrating that chain-of-thought prompting significantly improves the
@@ -88,12 +88,18 @@ layout_probes:
 - page: 1
   first: 6 more, how many apples do they have?
   second: 'Q: Roger has 5 tennis balls. He buys'
-  verified: false
+  verified: true
 - page: 4
   first: bar) 3. find(user) 4. put(energy bar) 5. done().
   second: 'Q: Sammy wanted to go to where the'
-  verified: false
+  verified: true
 - page: 17
   first: many people have all of the schools sent?
   second: The wire was 4 feet long. This means
-  verified: false
+  verified: true
+verification:
+  method: deterministic-text-v1
+  at: '2026-11-10'
+  needs_human:
+  - present_fields
+  - unanswerable questions

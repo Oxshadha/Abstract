@@ -13,23 +13,23 @@ facts:
 - field: key_results
   fact: 6.8% WER on test-other without the use of a language model
   page: 1
-  verified: false
+  verified: true
 - field: key_results
   fact: 2.8% Word Error Rate (WER) on the testclean set
   page: 1
-  verified: false
+  verified: true
 - field: methodology
   fact: vocabulary size 16k for LibriSpeech and 1k for Switchboard
   page: 2
-  verified: false
+  verified: true
 - field: methodology
   fact: variational weight noise of standard deviation 0.075
   page: 2
-  verified: false
+  verified: true
 - field: methodology
   fact: uniform label smoothing with uncertainty 0.1
   page: 2
-  verified: false
+  verified: true
 questions:
 - kind: specific
   question: What are the three kinds of deformations used in SpecAugment?
@@ -49,14 +49,14 @@ questions:
   answer: W is 40 and F is 15.
   pages:
   - 2
-  verified: false
+  verified: true
 - kind: table_figure
   question: In Table 6, what is the test-other WER when time warping is turned off
     (W=0)?
   answer: 10.1%
   pages:
   - 4
-  verified: false
+  verified: true
 - kind: whole_paper
   question: What is the main contribution of this paper?
   answer: The introduction of SpecAugment, a simple and computationally cheap data
@@ -88,12 +88,18 @@ layout_probes:
 - page: 1
   first: if it were an image, and does not
   second: require any additional data. We are thus able
-  verified: false
+  verified: true
 - page: 2
   first: 2 SS 40 27 2 70 0.2 2
   second: We use Listen, Attend and Spell (LAS) networks
-  verified: false
+  verified: true
 - page: 3
   first: LAS-6-1280 model, even without a language model. We
   second: 'Table 2: LibriSpeech test WER (%) evaluated for'
-  verified: false
+  verified: true
+verification:
+  method: deterministic-text-v1
+  at: '2026-11-10'
+  needs_human:
+  - present_fields
+  - unanswerable questions

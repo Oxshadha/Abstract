@@ -13,49 +13,49 @@ facts:
 - field: abstract
   fact: 1.6 billion words data set
   page: 1
-  verified: false
+  verified: true
 - field: key_results
   fact: Skip-gram + RNNLMs 58.9% accuracy
   page: 9
-  verified: false
+  verified: true
 - field: methodology
   fact: 8869 semantic and 10675 syntactic questions
   page: 6
-  verified: false
+  verified: true
 - field: key_results
   fact: Skip-gram semantic accuracy 50.0
   page: 8
-  verified: false
+  verified: true
 - field: conclusion
   fact: over 50% increase in Spearman's rank correlation
   page: 10
-  verified: false
+  verified: true
 questions:
 - kind: specific
   question: What adaptive learning rate procedure is used for parallel training?
   answer: Adagrad
   pages:
   - 4
-  verified: false
+  verified: true
 - kind: specific
   question: What is the formula for the training complexity of the Continuous Bag-of-Words
     Model?
   answer: Q = N x D + D x log2(V)
   pages:
   - 4
-  verified: false
+  verified: true
 - kind: table_figure
   question: According to Table 3, what is the Semantic Accuracy of the Skip-gram architecture?
   answer: 55%
   pages:
   - 7
-  verified: false
+  verified: true
 - kind: table_figure
   question: According to Table 1, what is Pair 2 for the Currency relationship?
   answer: Iran, rial
   pages:
   - 6
-  verified: false
+  verified: true
 - kind: whole_paper
   question: What is the main contribution of this paper?
   answer: The introduction of the CBOW and Skip-gram architectures for efficiently
@@ -70,7 +70,7 @@ questions:
   answer: The current models do not have any input information about word morphology.
   pages:
   - 6
-  verified: false
+  verified: true
 - kind: unanswerable
   question: What is the exact memory consumption in gigabytes for training the 1000-dimensional
     Skip-gram model?
@@ -83,3 +83,9 @@ questions:
   pages: []
   verified: false
 layout_probes: []
+verification:
+  method: deterministic-text-v1
+  at: '2026-11-10'
+  needs_human:
+  - present_fields
+  - unanswerable questions

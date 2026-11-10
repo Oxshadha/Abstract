@@ -13,23 +13,25 @@ facts:
 - field: conclusion
   fact: formal input review no later than 2028
   page: 3
-  verified: false
+  verified: true
 - field: problem_statement
   fact: National Artificial Intelligence Initiative Act of 2020
   page: 2
   verified: false
 - field: problem_statement
   fact: Public Law 116-283
-  page: 2
-  verified: false
+  page: 7
+  verified: true
+  page_corrected_from: 2
 - field: key_results
   fact: four specific functions to address risks
   page: 3
   verified: false
 - field: methodology
   fact: NIST Special Publication 1270
-  page: 18
-  verified: false
+  page: 23
+  verified: true
+  page_corrected_from: 18
 questions:
 - kind: specific
   question: What are the four specific functions comprising the Core of the AI RMF?
@@ -52,7 +54,7 @@ questions:
   pages:
   - 5
   - 12
-  verified: false
+  verified: true
 - kind: table_figure
   question: Based on Table 1, which subcategory ensures mechanisms are in place to
     inventory AI systems?
@@ -67,7 +69,7 @@ questions:
   pages:
   - 1
   - 2
-  verified: false
+  verified: true
 - kind: whole_paper
   question: What is a stated overall limitation of the Framework regarding acceptable
     risk levels?
@@ -88,3 +90,9 @@ questions:
   pages: []
   verified: false
 layout_probes: []
+verification:
+  method: deterministic-text-v1
+  at: '2026-11-10'
+  needs_human:
+  - present_fields
+  - unanswerable questions

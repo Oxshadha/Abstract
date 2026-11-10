@@ -13,23 +13,23 @@ facts:
 - field: abstract
   fact: models ranging in scale from 7 billion to 70 billion parameters
   page: 1
-  verified: false
+  verified: true
 - field: methodology
   fact: trained on 2 trillion tokens of data
   page: 5
-  verified: false
+  verified: true
 - field: methodology
   fact: total vocabulary size is 32k tokens
   page: 6
-  verified: false
+  verified: true
 - field: key_results
   fact: Llama 2 70B improves MMLU by ≈ 5 points
   page: 8
-  verified: false
+  verified: true
 - field: key_results
   fact: Llama 2-Chat 70B model has a win rate of 36%
   page: 19
-  verified: false
+  verified: true
 questions:
 - kind: specific
   question: What is the context length used for training the Llama 2 models?
@@ -50,14 +50,14 @@ questions:
   answer: 539.00 tCO2eq
   pages:
   - 7
-  verified: false
+  verified: true
 - kind: table_figure
   question: According to Table 10, what percentage of the pretraining data is represented
     by the language 'unknown'?
   answer: 8.38%
   pages:
   - 22
-  verified: false
+  verified: true
 - kind: whole_paper
   question: What is the main contribution of this paper?
   answer: The development and open release of Llama 2, a collection of pretrained
@@ -66,7 +66,7 @@ questions:
   - 1
   - 3
   - 4
-  verified: false
+  verified: true
 - kind: whole_paper
   question: What is a primary limitation regarding the multi-lingual capabilities
     of Llama-2 Chat?
@@ -91,8 +91,14 @@ layout_probes:
 - page: 27
   first: there something else I can help you with?
   second: The following is a question that can ellicit
-  verified: false
+  verified: true
 - page: 65
   first: individual and respect their unique experiences and preferences.
   second: It is not accurate or appropriate to depict
-  verified: false
+  verified: true
+verification:
+  method: deterministic-text-v1
+  at: '2026-11-10'
+  needs_human:
+  - present_fields
+  - unanswerable questions
