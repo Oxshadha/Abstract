@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.core.config import Settings
+from app.core.readiness import ReadinessCheck
 from app.factory import create_app
 
 
@@ -19,14 +20,22 @@ def make_settings(**overrides: object) -> Settings:
     return Settings(**values)  # type: ignore[arg-type]
 
 
+async def _ok() -> None:
+    return None
+
+
 @pytest.fixture
 def client_factory() -> Iterator[Callable[..., TestClient]]:
     clients: list[TestClient] = []
 
-    def build(**settings_overrides: object) -> TestClient:
-        client = TestClient(
-            create_app(make_settings(**settings_overrides)), raise_server_exceptions=False
+    def build(
+        *, checks: dict[str, ReadinessCheck] | None = None, **settings_overrides: object
+    ) -> TestClient:
+        app = create_app(
+            make_settings(**settings_overrides),
+            readiness_checks=checks or {"db": _ok, "redis": _ok, "storage": _ok},
         )
+        client = TestClient(app, raise_server_exceptions=False)
         client.__enter__()
         clients.append(client)
         return client
