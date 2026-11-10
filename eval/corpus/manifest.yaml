@@ -1,0 +1,65 @@
+# Benchmark corpus (spec 000). PDFs are downloaded, never committed.
+# sha256 is pinned on first download (`make eval-corpus PIN=1`) and verified on every run after.
+# Categories cover the layouts and lengths in spec 000; arXiv URLs are version-pinned.
+papers:
+- id: adam
+  title: 'Adam: A Method for Stochastic Optimization'
+  category: single-column, equations
+  url: https://arxiv.org/pdf/1412.6980v9
+  sha256: eab9c73ae2ceda884b94830bda99312254bac4806f6c9f045cbab90721ecda31
+- id: attention
+  title: Attention Is All You Need
+  category: single-column, tables
+  url: https://arxiv.org/pdf/1706.03762v7
+  sha256: bdfaa68d8984f0dc02beaca527b76f207d99b666d31d1da728ee0728182df697
+- id: rag
+  title: Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks
+  category: single-column, domain fit
+  url: https://arxiv.org/pdf/2005.11401v4
+  sha256: 23e3249e9a1e75418d82efecab0ea8c4d033b89c93742f63208d47ce01f21233
+- id: bert
+  title: 'BERT: Pre-training of Deep Bidirectional Transformers'
+  category: two-column with full-width title/abstract (mixed)
+  url: https://arxiv.org/pdf/1810.04805v2
+  sha256: 5692a5514787a8c6727b4ff3b726a3385798bc68e12138d1d4af83947e2acf6e
+- id: resnet
+  title: Deep Residual Learning for Image Recognition
+  category: two-column, figures spanning columns
+  url: https://arxiv.org/pdf/1512.03385v1
+  sha256: 1e0651b6810ecba34a3dbc5b5b0209226f889004607c1f203540a48d64e5a93a
+- id: lora
+  title: 'LoRA: Low-Rank Adaptation of Large Language Models'
+  category: numeric tables
+  url: https://arxiv.org/pdf/2106.09685v2
+  sha256: e9a0d3128767db616085dc0f4e6e455e672e89af823e8ed1282793682787395a
+- id: cot
+  title: Chain-of-Thought Prompting Elicits Reasoning in Large Language Models
+  category: figure-heavy, long
+  url: https://arxiv.org/pdf/2201.11903v6
+  sha256: 7d9f878c23b460e4566aa4ec9201b1abfb3b8faefb2b1356e411cb90fef72a12
+- id: llama2
+  title: 'Llama 2: Open Foundation and Fine-Tuned Chat Models'
+  category: very long (tier L)
+  url: https://arxiv.org/pdf/2307.09288v2
+  sha256: 1df284ce95f783002074bfe8f21d47c646b396ceb1736ea3ec0ea212fc070d91
+- id: specaugment
+  title: 'SpecAugment: A Simple Data Augmentation Method for ASR'
+  category: short (about 5 pages), two-column
+  url: https://arxiv.org/pdf/1904.08779v3
+  sha256: 2cf517ba93cebb372c87313308d4ea3b6d137cd6b17d0120bbb515c32394afd4
+- id: word2vec
+  title: Efficient Estimation of Word Representations in Vector Space
+  category: short classic
+  url: https://arxiv.org/pdf/1301.3781v3
+  sha256: a44d7e22d2005752271c9cc1929c6462d4c8270916b063977992a883e3a54362
+- id: nist-ai-rmf
+  title: NIST AI Risk Management Framework 1.0
+  category: non-paper report (doc_type robustness)
+  url: https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf
+  sha256: 7576edb531d9848825814ee88e28b1795d3a84b435b4b797d3670eafdc4a89f1
+synthetic:
+- id: resnet-scanned
+  source: resnet
+  kind: scanned
+  dpi: 150
+  category: scanned (no text layer)
