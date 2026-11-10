@@ -6,7 +6,7 @@ This is lightweight spec-driven development. Each feature gets a one-to-two page
 
 | # | Spec | Week | Status |
 |---|---|---|---|
-| 000 | [Benchmark harness & corpus (experiments A/B/C/E)](000-benchmark.md) | W1 | Approved |
+| 000 | [Benchmark harness & corpus (experiments A/B/C/E)](000-benchmark.md) | W1 | In progress |
 | 001 | [Foundation: monorepo, CI, docker-compose, config, logging](001-foundation.md) | W1 | Implemented |
 | 002 | Auth & tenancy: Clerk, orgs, policy service, RLS, audit log | W1 | Not started |
 | 003 | Design system: tokens pipeline, fonts, app shell, auth modal | W1 | Not started |

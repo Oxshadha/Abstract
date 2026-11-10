@@ -1,3 +1,4 @@
+import json
 import socket
 
 import pytest
@@ -27,8 +28,18 @@ async def test_AC8_fake_gateway_is_deterministic() -> None:
     second = await gateway.complete(task="answer", messages=messages)
     assert first.text == second.text
     assert first.usage.provider == "fake"
-    streamed = "".join([t async for t in gateway.stream(task="answer", messages=messages)])
-    assert streamed.strip() == first.text
+    chunks = [c async for c in gateway.stream(task="answer", messages=messages)]
+    assert "".join(c.text for c in chunks) == first.text
+    assert chunks[-1].usage is not None
+    assert chunks[-1].usage.provider == "fake"
+
+
+async def test_AC8_fake_returns_schema_shaped_json() -> None:
+    schema = {"type": "object", "properties": {"title": {}, "methodology": {}}}
+    result = await FakeLLMGateway().complete(
+        task="summarize", messages=[ChatMessage(role="user", content="x")], json_schema=schema
+    )
+    assert set(json.loads(result.text)) == {"title", "methodology"}
 
 
 async def test_AC8_fake_embeddings_are_stable_unit_vectors() -> None:
