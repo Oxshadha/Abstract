@@ -131,6 +131,8 @@ The agent was right that dark mode needs lighter text variants: the original sha
 
 | D67 | **Engineering practices are binding inputs to specs.** The gap analysis (`docs/engineering-practices.md`) is the checklist: each spec, when written, turns its mapped *v1 must* items into acceptance criteria; omissions need a recorded decision; the 14 "big change" items go through EDPs. Already closed: retry jitter + Retry-After (gap 3, commit 1ae2286). | Gaps get fixed by construction, not by memory. |
 
+| D68 | **Plain text first, layout in the background (owner approved 2026-11-11; refines D12 and D19, supersedes the "PyMuPDF layout on the fast path" part of D19).** Fast path = plain text extraction (pypdfium2, about 0.05 s) with per-page OCR only for pages without a text layer, feeding the first summary and an initial text-only chat index. The layout-aware parse (pymupdf4llm/Docling: tables, figures, reading order, exact citation positions) runs in the background and re-indexes, turning the summary from provisional to verified (D12 unchanged in spirit). Evidence (indicative run, `eval/reports/20261110-rescored.md`): first field p50 1.9 s plain text vs 3.8 s direct PDF vs 4.9 s layout (p95 25 s), numbers grounded 1.00 vs 0.99 vs 0.98, citations valid 0.90 vs 0.88 vs 0.84. To be re-confirmed by the verified 3-run benchmark; a contradiction there reopens it. | Fastest first content with equal or better quality; slow table detection no longer blocks users; licence-free fast path (pypdfium2 is permissive, D64). |
+
 ## Audit backfill (2026-11-10)
 These were agreed in conversation but not yet logged. Recorded now so the log is complete.
 
