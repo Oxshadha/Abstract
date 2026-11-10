@@ -8,12 +8,16 @@ target-version = "py312"
 select = ["E", "F", "W", "I", "B", "UP", "S", "ASYNC", "RUF", "SIM", "PT"]
 ignore = ["S101"]
 
+[tool.ruff.lint.isort]
+known-first-party = ["app", "harness"]
+
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["N802"]
 
 [tool.mypy]
 python_version = "3.12"
 strict = true
+plugins = ["pydantic.mypy"]
 mypy_path = ["../apps/api"]
 files = ["harness", "tests"]
 explicit_package_bases = true
