@@ -118,6 +118,13 @@ Small fixes, refactors and chores don't need a spec.
 
 ## Git
 - Branch per spec or feature: `feat/NNN-short-name`, `fix/...`, `chore/...`. Never commit straight to `main` once CI exists; merge via PR.
+- **Commit as you build, not at the end (D63).** The history must show the feature being developed:
+  - Work in small vertical steps, usually **one acceptance criterion (or one coherent part of it) per commit**: the test and the code that makes it pass go in the *same* commit.
+  - **Every commit is a working state**: lint, types and tests pass at that commit. No "WIP", no "fix typo in previous commit" noise (amend or fixup locally before pushing).
+  - Commit **immediately** after each step goes green, before starting the next one. Never write a whole feature and then split it by folder (`api`, `web`, `infra`) after the fact.
+  - Scope names the module/feature (`feat(papers): ...`), not the layer, unless the change really is layer-wide (`build`, `ci`).
+  - Order follows the build: scaffold, then the first AC, then the next ones, then wiring/docs. The body says *why* when it isn't obvious and references the AC (`Implements 004 AC3.`).
+  - Finish a spec with a PR from its branch, merged with a merge commit (`--no-ff`) so each feature stays visible as a unit in `main`'s history.
 - **Conventional Commits:** `feat(chat): stream answers over SSE`, `fix(parser): ...`, `docs: ...`, `test: ...`, `chore: ...`. Small, focused commits. The commit history is part of the deliverable.
 - **No `Co-Authored-By` trailers and no AI attribution lines** in commit messages or PR descriptions.
 - Never commit secrets, `.env`, service-account JSON or PDFs that aren't in `eval/` fixtures.

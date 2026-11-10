@@ -121,6 +121,8 @@ The agent was right that dark mode needs lighter text variants: the original sha
 | D61 | **Supersedes the local-storage part of D18: SeaweedFS 4.53 replaces MinIO** for local development (EDP-001, owner approved option A). MinIO stopped publishing images in Oct 2025 and was archived in Apr 2026. Production storage stays AWS S3; code only uses the `Storage` port. | Maintained, Apache-2.0, single container. |
 | D62 | **UI text and iconography rules (owner request):** no em or en dashes and no emojis in any user-facing text; icons (Lucide) instead of emojis. Enforced in CI for `apps/web/src`. | Consistent, professional typography and visual language. |
 
+| D63 | **Incremental, feature-shaped commit history (owner request).** Commit after each acceptance criterion goes green, with its test and code in the same commit; every commit is a working state; feature branches merge to `main` with `--no-ff` so each spec is visible as a unit. Never commit a whole feature at the end split by folder. | The commit history is a graded deliverable (R9) and should show how the software was actually developed. |
+
 ## Audit backfill (2026-11-10)
 These were agreed in conversation but not yet logged. Recorded now so the log is complete.
 
