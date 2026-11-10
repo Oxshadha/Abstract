@@ -15,6 +15,11 @@ Entry format:
 
 ---
 
+## 2026-11-11: Spec 001 history restructured; pushed to GitHub
+**Done:** Owner chose option A (D63): the unpushed bulk commits of spec 001 were rebuilt as 10 step-by-step commits in build order (settings, factory + logs + errors, readiness, migrations, worker, LLM gateway, web, compose stack, CI, docs). The quality gate (ruff, mypy --strict, pytest incl. real Postgres, web lint/types/tests/build) passed at every commit. The final tree matches the earlier work except that tests are split by concern (`test_settings`, `test_logging`, `test_llm_gateway`) with one extra test. Live-stack verification from the previous entry still applies. Remote `origin` = github.com/Oxshadha/Abstract (private); `main` and `feat/001-foundation` pushed. The old bulk commits remain only on the local branch `backup/001-bulk` (not pushed; safe to delete once the PR is merged).
+**Next:** open PR for 001 so CI runs on GitHub (AC12, AC13), merge with `--no-ff`, then start spec 000 with per-criterion commits.
+**Blockers:** GitHub CLI token on this Mac is invalid; owner needs to run `gh auth login` so PRs and CI results can be handled from the terminal.
+
 ## 2026-11-11: Spec 001 foundation built (AC1 pending Docker)
 **Done:** Built the monorepo skeleton on `feat/001-foundation`. **Backend:** typed settings, JSON logging, RFC 7807 errors, request-id middleware, health/readiness checks, Celery worker + ping, ports, fake LLM, S3 adapter, Alembic (`migrations/`, vector + pg_trgm). **Frontend:** Vite/React/TS/Tailwind v4/TanStack with a generated OpenAPI client. **Infra:** docker-compose, Makefile, `.env.example`, pre-commit, CI workflow, commit-message and UI-text checkers, README. Owner's Google service account and OpenRouter key are configured in the local `.env` (git-ignored; SA mounted as a read-only compose secret, kept out of images). **Results:** API 17/17 tests (incl. real Postgres+pgvector, halfvec verified), mypy --strict and ruff clean; web 5/5 tests, lint, typecheck and build clean.
 **Bugs caught:** the health fetch could throw on network failure; web tests passed vacuously because openapi-fetch captured `fetch` at import; the `alembic/` folder could shadow the alembic package (renamed to `migrations/`).
