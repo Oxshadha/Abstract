@@ -17,7 +17,9 @@ def configure_logging(level: str = "INFO") -> None:
     structlog.configure(
         processors=[*shared, structlog.processors.JSONRenderer()],
         wrapper_class=structlog.make_filtering_bound_logger(logging.getLevelName(level.upper())),
-        logger_factory=structlog.PrintLoggerFactory(file=sys.stdout),
+        # Resolve sys.stdout per logger (not at configure time) so redirected/closed streams
+        # (test capture, reloaded workers) are never written to.
+        logger_factory=lambda *_: structlog.PrintLogger(file=sys.stdout),
         cache_logger_on_first_use=False,
     )
     # Route stdlib loggers (uvicorn, celery, sqlalchemy) through the same JSON renderer.
