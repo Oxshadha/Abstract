@@ -1,0 +1,133 @@
+{
+  "components": {
+    "schemas": {
+      "Health": {
+        "properties": {
+          "status": {
+            "const": "ok",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "title": "Health",
+        "type": "object"
+      },
+      "Pong": {
+        "properties": {
+          "pong": {
+            "title": "Pong",
+            "type": "boolean"
+          },
+          "worker": {
+            "title": "Worker",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pong",
+          "worker"
+        ],
+        "title": "Pong",
+        "type": "object"
+      },
+      "Ready": {
+        "properties": {
+          "checks": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Checks",
+            "type": "object"
+          },
+          "status": {
+            "const": "ready",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "checks"
+        ],
+        "title": "Ready",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "title": "Abstract. API",
+    "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/api/v1/_debug/ping": {
+      "get": {
+        "operationId": "ping_worker_api_v1__debug_ping_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Pong"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Round-trip a task through the worker",
+        "tags": [
+          "debug"
+        ]
+      }
+    },
+    "/api/v1/healthz": {
+      "get": {
+        "operationId": "healthz_api_v1_healthz_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Liveness (no dependencies)",
+        "tags": [
+          "health"
+        ]
+      }
+    },
+    "/api/v1/readyz": {
+      "get": {
+        "operationId": "readyz_api_v1_readyz_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Ready"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "503": {
+            "description": "A dependency is unavailable (problem+json)"
+          }
+        },
+        "summary": "Readiness: database, redis and object storage reachable",
+        "tags": [
+          "health"
+        ]
+      }
+    }
+  }
+}
