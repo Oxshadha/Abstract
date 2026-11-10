@@ -34,12 +34,25 @@ async def test_AC8_fake_gateway_is_deterministic() -> None:
     assert chunks[-1].usage.provider == "fake"
 
 
-async def test_AC8_fake_returns_schema_shaped_json() -> None:
-    schema = {"type": "object", "properties": {"title": {}, "methodology": {}}}
+async def test_AC8_fake_returns_schema_valid_json() -> None:
+    schema = {
+        "type": "object",
+        "properties": {
+            "title": {"type": "string"},
+            "status": {"type": "string", "enum": ["found", "not_reported"]},
+            "evidence": {
+                "type": "array",
+                "items": {"type": "object", "properties": {"page": {"type": "integer"}}},
+            },
+        },
+    }
     result = await FakeLLMGateway().complete(
         task="summarize", messages=[ChatMessage(role="user", content="x")], json_schema=schema
     )
-    assert set(json.loads(result.text)) == {"title", "methodology"}
+    data = json.loads(result.text)
+    assert data["status"] == "found"
+    assert data["evidence"] == [{"page": 1}]
+    assert data["title"].startswith("fake:summarize:")
 
 
 async def test_AC8_fake_embeddings_are_stable_unit_vectors() -> None:
