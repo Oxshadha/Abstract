@@ -177,18 +177,34 @@ class VertexGateway:
     async def embed(self, *, task: str, texts: list[str], dimensions: int) -> Embeddings:
         started = time.perf_counter()
         spec = self.spec_for(task)
+        config = types.EmbedContentConfig(output_dimensionality=dimensions)
+
+        async def call(texts_batch: list[str]) -> list[list[float]]:
+            contents: list[Any] = list(texts_batch)  # SDK expects a wider (invariant) list type
+            response = await self._with_retries(
+                lambda: self._client.aio.models.embed_content(
+                    model=spec.id, contents=contents, config=config
+                )
+            )
+            return [list(e.values) for e in response.embeddings]
+
         vectors: list[list[float]] = []
+        limit = asyncio.Semaphore(8)
+
+        async def one(text: str) -> list[float]:
+            async with limit:
+                return (await call([text]))[0]
+
         # Vertex accepts a limited batch per call; stay well under it.
         for start in range(0, len(texts), 64):
             batch = texts[start : start + 64]
-            response = await self._with_retries(
-                lambda b=batch: self._client.aio.models.embed_content(
-                    model=spec.id,
-                    contents=b,
-                    config=types.EmbedContentConfig(output_dimensionality=dimensions),
-                )
-            )
-            vectors.extend(list(e.values) for e in response.embeddings)
+            result = await call(batch)
+            if len(result) != len(batch):
+                # Multimodal embedding models (e.g. gemini-embedding-2) merge a list of texts
+                # into ONE embedding. Never accept a count mismatch: embed each text instead.
+                log.warning("vertex_embed_batch_merged", model=spec.id, sent=len(batch))
+                result = list(await asyncio.gather(*(one(t) for t in batch)))
+            vectors.extend(result)
         est_tokens = sum(len(t) for t in texts) // 4  # Vertex reports characters, not tokens
         usage = Usage(
             provider=self.provider,

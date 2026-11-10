@@ -28,6 +28,7 @@ class StubModels:
     def __init__(self) -> None:
         self.calls: list[dict[str, Any]] = []
         self.fail_first_with: int | None = None
+        self.merge_batches = False
 
     async def generate_content(self, **kw: Any) -> Any:
         self.calls.append(kw)
@@ -48,8 +49,9 @@ class StubModels:
     async def embed_content(self, **kw: Any) -> Any:
         self.calls.append(kw)
         dims = kw["config"].output_dimensionality
+        count = 1 if self.merge_batches else len(kw["contents"])
         return SimpleNamespace(
-            embeddings=[SimpleNamespace(values=[0.1] * dims) for _ in kw["contents"]]
+            embeddings=[SimpleNamespace(values=[0.1] * dims) for _ in range(count)]
         )
 
 
@@ -103,6 +105,14 @@ async def test_embeddings_batch_and_dimensions() -> None:
     assert len(result.vectors) == 70
     assert len(result.vectors[0]) == 8
     assert len(stub.calls) == 2  # batched by 64
+
+
+async def test_embeddings_never_accept_a_merged_batch() -> None:
+    gw, stub = gateway()
+    stub.merge_batches = True  # like gemini-embedding-2: many texts in, one vector out
+    result = await gw.embed(task="embed", texts=["a", "b", "c"], dimensions=4)
+    assert len(result.vectors) == 3
+    assert len(stub.calls) == 1 + 3  # the merged batch, then one call per text
 
 
 async def test_retries_transient_error(monkeypatch: pytest.MonkeyPatch) -> None:
