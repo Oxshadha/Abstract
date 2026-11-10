@@ -125,6 +125,8 @@ The agent was right that dark mode needs lighter text variants: the original sha
 
 | D64 | **EDP-002 option A (owner approved):** keep PyMuPDF / pymupdf4llm as the fast-path parser **behind the `Parser` port**, document the AGPL-3.0 obligation (README licence note, risk R5), and measure a permissive baseline (pypdfium2, B') in the benchmark. Before any closed-source commercial launch: swap the adapter or buy a commercial licence. | Best quality and speed now; the port keeps the exit cheap; data shows the cost of switching. |
 
+| D65 | **EDP-003 option A (owner approved): layered, asynchronous upload security.** Sync checks in the request (type, size, encryption, pages); in parallel with the fast path, PDF active-content inspection (`pikepdf`) and an antivirus scan behind a `MalwareScanner` port (ClamAV locally and on EC2; GuardDuty Malware Protection for S3 documented for production scale); `papers.scan_status` (`pending, clean, infected, error`) gates serving and sharing the original PDF; infected files are quarantined and derived data deleted; parsing only in the sandboxed worker; pdf.js with scripting and eval disabled. No scanning step is shown to users. Feature flag `upload_av_scan`. | Enterprise pattern: protection without user-visible latency; the sandbox covers the realistic threat (parser exploits). |
+
 ## Audit backfill (2026-11-10)
 These were agreed in conversation but not yet logged. Recorded now so the log is complete.
 

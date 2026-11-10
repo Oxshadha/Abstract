@@ -10,7 +10,7 @@ This is lightweight spec-driven development. Each feature gets a one-to-two page
 | 001 | [Foundation: monorepo, CI, docker-compose, config, logging](001-foundation.md) | W1 | Implemented |
 | 002 | Auth & tenancy: Clerk, orgs, policy service, RLS, audit log | W1 | Not started |
 | 003 | Design system: tokens pipeline, fonts, app shell, auth modal | W1 | Not started |
-| 004 | Upload & fast-path ingestion: validation, S3, PyMuPDF layout, chunks, embeddings, job progress SSE | W1 | Not started |
+| 004 | Upload & fast-path ingestion: validation, async security scan (D65), S3, PyMuPDF layout, chunks, embeddings, job progress SSE | W1 | Not started |
 | 005 | LLM Gateway & Model Registry: OpenRouter, Vertex, fake providers, usage log | W1–W2 | Not started |
 | 006 | Summary templates & generation: Quick/Detailed, streaming, verification, gap-fill, versions | W2 | Not started |
 | 007 | Chat (RAG): conversations, rewrite, router, hybrid search, rerank, streaming | W2 | Not started |
