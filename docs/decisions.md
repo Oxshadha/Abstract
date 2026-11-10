@@ -129,6 +129,8 @@ The agent was right that dark mode needs lighter text variants: the original sha
 
 | D66 | **Design for scale, build for now (owner principle).** v1 builds only the **baseline seams** that make later scaling a configuration or infrastructure change, not a rewrite: stateless API, separate idempotent workers behind a queue, ports and adapters, feature flags, `org_id` + RLS, health and readiness checks, graceful shutdown, environment-based config, structured logs, CI, backups. **Deferred until real load justifies them**, each with a named trigger: autoscaling, Kubernetes, Terraform/IaC, read replicas, partitioning, blue/green deploys, multi-region, on-call rotation. **Effort goes to what users feel:** performance (perceived latency, streaming, caching) and UI/UX quality. | Avoids overbuilding for a user base that does not exist yet while keeping the exit cheap. |
 
+| D67 | **Engineering practices are binding inputs to specs.** The gap analysis (`docs/engineering-practices.md`) is the checklist: each spec, when written, turns its mapped *v1 must* items into acceptance criteria; omissions need a recorded decision; the 14 "big change" items go through EDPs. Already closed: retry jitter + Retry-After (gap 3, commit 1ae2286). | Gaps get fixed by construction, not by memory. |
+
 ## Audit backfill (2026-11-10)
 These were agreed in conversation but not yet logged. Recorded now so the log is complete.
 
