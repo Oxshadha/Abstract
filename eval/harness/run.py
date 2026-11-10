@@ -250,6 +250,11 @@ async def run_embeddings(
         task=config_entry["name"], texts=[q["question"] for q in questions], dimensions=dims
     )
     guard.record(q_vectors.usage)
+    if len(doc_vectors.vectors) != len(chunks) or len(q_vectors.vectors) != len(questions):
+        raise ValueError(
+            f"embedding count mismatch: {len(doc_vectors.vectors)} vectors for {len(chunks)} "
+            f"chunks, {len(q_vectors.vectors)} for {len(questions)} questions"
+        )
     hits, rr = [], []
     for question, qv in zip(questions, q_vectors.vectors, strict=True):
         ranked = sorted(
@@ -483,7 +488,15 @@ async def _main(
                     )
             if "E" in experiments:
                 for entry in embedding_entries(config):
-                    row = await run_embeddings(entry, paper, reference, golden, gateway, guard)
+                    try:
+                        row = await run_embeddings(entry, paper, reference, golden, gateway, guard)
+                    except BudgetExceededError:
+                        raise
+                    except Exception as exc:  # one failing config must not abort the run
+                        failure = {"embedding": entry["name"], "paper": paper, "error": repr(exc)}
+                        raw.write(json.dumps({"type": "embedding_error", **failure}) + "\n")
+                        print(f"  E      {paper:<14} {entry['name']}: FAILED {exc!r}")
+                        continue
                     if row:
                         embedding_rows.append(row)
                         raw.write(json.dumps({"type": "embedding", **row}) + "\n")
