@@ -448,9 +448,10 @@ async def _main(
     run_dir = RUNS_DIR / stamp
     run_dir.mkdir(parents=True, exist_ok=True)
     raw = (run_dir / "results.jsonl").open("w")
-    papers = [p["id"] for p in load_manifest()["papers"]] + [
-        s["id"] for s in load_manifest().get("synthetic", [])
-    ]
+    manifest = load_manifest()
+    # Synthetic documents (e.g. the scanned ResNet) are scored against their source's golden data.
+    golden_source = {s["id"]: s["source"] for s in manifest.get("synthetic", [])}
+    papers = [p["id"] for p in manifest["papers"]] + list(golden_source)
     papers = [p for p in papers if not ids or p in ids]
     results: list[SummaryResult] = []
     reading: dict[str, dict[str, float | None]] = {}
@@ -458,7 +459,7 @@ async def _main(
     try:
         for paper in papers:
             pdf = PDF_DIR / f"{paper}.pdf"
-            golden = load_golden(paper, include_unverified)
+            golden = load_golden(golden_source.get(paper, paper), include_unverified)
             reference = parse_pymupdf(pdf)
             for parser in {
                 SUMMARY_EXPERIMENTS[e] for e in experiments if SUMMARY_EXPERIMENTS.get(e)
