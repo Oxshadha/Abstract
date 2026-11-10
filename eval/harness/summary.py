@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 from app.ports.llm import ChatMessage, FilePart, TextPart
 
+SUMMARY_MAX_TOKENS = 4096  # explicit cap (see GOLDEN_MAX_TOKENS)
 FIELDS = ("abstract", "problem_statement", "methodology", "key_results", "conclusion")
 
 

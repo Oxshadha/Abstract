@@ -46,7 +46,7 @@ test-api:
 test-web:
 	$(WEB) pnpm test
 
-EVAL := cd eval && uv run --project ../apps/api --group eval
+EVAL := cd eval && PYTHONPATH=../apps/api uv run --project ../apps/api --group eval
 test-eval:
 	$(EVAL) pytest
 
@@ -69,7 +69,7 @@ eval-corpus: ## Download and verify the benchmark corpus (PIN=1 records new chec
 	$(EVAL) python -m harness.corpus $(if $(PIN),--pin,)
 
 eval-golden: check-env ## Draft golden reference data with an LLM (costs about $1.50; owner verifies)
-	cd eval && uv run --project ../apps/api --group eval --env-file ../.env python -m harness.golden $(IDS)
+	cd eval && PYTHONPATH=../apps/api uv run --project ../apps/api --group eval --env-file ../.env python -m harness.golden $(IDS)
 
 eval: ## Run the benchmark harness (spec 000; costs money)
 	@echo "Not implemented yet: spec 000"

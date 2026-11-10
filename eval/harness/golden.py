@@ -25,6 +25,8 @@ EVAL_DIR = Path(__file__).resolve().parents[1]
 GOLDEN_DIR = EVAL_DIR / "corpus" / "golden"
 CONFIG = EVAL_DIR / "config.yaml"
 QUESTION_KINDS = ("specific", "table_figure", "whole_paper", "unanswerable")
+# Explicit output caps: without them OpenRouter reserves budget for the model maximum.
+GOLDEN_MAX_TOKENS = 8000
 
 # ---------- layout probes from PDF geometry ----------
 
@@ -137,7 +139,10 @@ async def draft_one(
     parsed = parse_pymupdf(pdf_path)
     guard.check()
     result = await gateway.complete(
-        task="golden", messages=golden_messages(parsed.text), json_schema=golden_schema()
+        task="golden",
+        messages=golden_messages(parsed.text),
+        json_schema=golden_schema(),
+        max_tokens=GOLDEN_MAX_TOKENS,
     )
     guard.record(result.usage)
     data: dict[str, Any] = json.loads(result.text)
