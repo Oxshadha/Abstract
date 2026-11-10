@@ -122,6 +122,7 @@ def score_summary(
         "field_recall": None,
         "false_found": None,
         "numeric_accuracy": None,
+        "numbers_grounded": metrics.numbers_grounded(parsed.all_text(), reference.text),
     }
     if golden:
         if golden.get("present_fields"):
@@ -270,7 +271,7 @@ async def run_embeddings(
         "questions": len(questions),
         "hit_at_5": sum(hits) / len(hits),
         "mrr": sum(rr) / len(rr),
-        "bytes_per_chunk": dims * (2 if dims <= 512 else 4),  # halfvec@512 per D24, else float32
+        "bytes_per_chunk": dims * 2,  # halfvec: 2 bytes per dimension (D24)
         "cost_usd": doc_vectors.usage.cost_usd + q_vectors.usage.cost_usd,
     }
 
@@ -311,8 +312,9 @@ def build_report(
     lines += [f"Total spend: **${spent:.4f}**", "", "## Summary experiments", ""]
     lines += [
         "| Exp | Runs ok | Parse p50 | TTFT p50 | First field p50 / p95 | Total p50 / p95 "
-        "| Cost / paper | Field recall | False found | Numeric acc | Citations valid |",
-        "|---|---|---|---|---|---|---|---|---|---|---|",
+        "| Cost / paper | Field recall | False found | Facts covered | Numbers grounded "
+        "| Citations valid |",
+        "|---|---|---|---|---|---|---|---|---|---|---|---|",
     ]
     by_exp: dict[str, list[SummaryResult]] = {}
     for r in results:
@@ -332,6 +334,7 @@ def build_report(
             f"| {_fmt(_mean([r.scores.get('field_recall') for r in ok]))} "
             f"| {_fmt(_mean([r.scores.get('false_found') for r in ok]))} "
             f"| {_fmt(_mean([r.scores.get('numeric_accuracy') for r in ok]))} "
+            f"| {_fmt(_mean([r.scores.get('numbers_grounded') for r in ok]))} "
             f"| {_fmt(_mean([r.scores.get('citation_valid') for r in ok]))} |"
         )
     lines += ["", "## Per paper (median over runs)", ""]
@@ -399,15 +402,19 @@ def verdict(
     def acc(exp: str) -> float | None:
         return _mean([r.scores.get("numeric_accuracy") for r in by_exp.get(exp, []) if r.ok])
 
-    if "A" in by_exp and "B" in by_exp:
-        a, b = med("A", "ttff_s"), med("B", "ttff_s")
+    text_exps = [e for e in ("B", "B'", "B-fast") if e in by_exp]
+    if "A" in by_exp and text_exps:
+        best = min(text_exps, key=lambda e: med(e, "ttff_s") or float("inf"))
+        a, t = med("A", "ttff_s"), med(best, "ttff_s")
+        faster = a is not None and t is not None and t <= a
         out.append(
-            f"- **D12 (two-path pipeline):** first field A {_fmt(a, 's')} vs B {_fmt(b, 's')}; "
-            f"numeric accuracy A {_fmt(acc('A'))} vs B {_fmt(acc('B'))}. "
+            f"- **D12 (two-path pipeline):** first field: direct PDF (A) {_fmt(a, 's')}, best text "
+            f"pipeline ({best}) {_fmt(t, 's')}. "
             + (
-                "Confirmed: parsing our own text is not slower to first content."
-                if a is not None and b is not None and b <= a * 1.25
-                else "Review: direct PDF is clearly faster to first content; EDP needed."
+                f"Our own extraction reaches first content sooner via {best}; "
+                "compare its quality columns before changing the fast path."
+                if faster
+                else "Direct PDF is faster to first content; an EDP is needed."
             )
         )
     if "B" in by_exp and "B'" in by_exp:
@@ -517,13 +524,55 @@ async def _main(
     return 0
 
 
+def rescore(run_dir: Path, *, include_unverified: bool) -> int:
+    """Re-score saved summaries against current golden data and metrics. Free: no LLM calls."""
+    manifest = load_manifest()
+    golden_source = {s["id"]: s["source"] for s in manifest.get("synthetic", [])}
+    rows = [json.loads(line) for line in (run_dir / "results.jsonl").open()]
+    results: list[SummaryResult] = []
+    references: dict[str, ParsedDoc] = {}
+    reading: dict[str, dict[str, float | None]] = {}
+    for row in rows:
+        if "experiment" not in row:
+            continue
+        result = SummaryResult(**row)
+        paper = result.paper
+        golden = load_golden(golden_source.get(paper, paper), include_unverified)
+        if paper not in references:
+            pdf = PDF_DIR / f"{paper}.pdf"
+            references[paper] = parse_pymupdf(pdf)
+            for parser_name in {v for v in SUMMARY_EXPERIMENTS.values() if v}:
+                reading.setdefault(parser_name, {})[paper] = reading_order_score(
+                    PARSERS[parser_name](pdf), golden
+                )
+        if result.ok and result.summary:
+            result.scores = score_summary(result.summary, golden, references[paper])
+        results.append(result)
+    embeddings = [r for r in rows if r.get("type") == "embedding"]
+    dims = {e["name"]: int(e["dimensions"]) for e in embedding_entries(load_config())}
+    for e in embeddings:  # recompute with the current storage formula (halfvec)
+        e["bytes_per_chunk"] = dims.get(e["embedding"], 0) * 2
+    spent = sum(r.cost_usd for r in results) + sum(e.get("cost_usd", 0.0) for e in embeddings)
+    report = build_report(results, reading, embeddings, indicative=include_unverified, spent=spent)
+    REPORTS_DIR.mkdir(exist_ok=True)
+    path = REPORTS_DIR / f"{run_dir.name[:8]}-rescored.md"
+    path.write_text(report)
+    print(f"Rescored report: {path}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Run benchmark experiments")
     parser.add_argument("--exp", default="all", help="A, B, B', B-fast, E or all (comma separated)")
     parser.add_argument("--ids", nargs="*", help="paper ids (default: all)")
     parser.add_argument("--runs", type=int, help="override runs per paper")
     parser.add_argument("--include-unverified", action="store_true")
+    parser.add_argument(
+        "--rescore", metavar="RUN_DIR", help="recompute scores/report from saved results (no LLM)"
+    )
     args = parser.parse_args(argv)
+    if args.rescore:
+        return rescore(Path(args.rescore), include_unverified=args.include_unverified)
     exps = (
         [*SUMMARY_EXPERIMENTS, "E"]
         if args.exp == "all"
