@@ -4,7 +4,7 @@ API := cd apps/api &&
 WEB := cd apps/web &&
 
 .DEFAULT_GOAL := help
-.PHONY: help check-env dev down logs ps migrate test test-api test-web test-eval lint fmt api-client tokens eval eval-corpus eval-golden install hooks
+.PHONY: help check-env dev down logs ps migrate test test-api test-web test-eval lint fmt api-client tokens eval eval-corpus eval-golden eval-verify install hooks
 
 help: ## Show available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[1m%-12s\033[0m %s\n", $$1, $$2}'
@@ -70,6 +70,9 @@ eval-corpus: ## Download and verify the benchmark corpus (PIN=1 records new chec
 
 eval-golden: check-env ## Draft golden reference data with an LLM (costs about $1.50; owner verifies)
 	cd eval && PYTHONPATH=../apps/api uv run --project ../apps/api --group eval --env-file ../.env python -m harness.golden $(IDS)
+
+eval-verify: ## Verify golden data against PDF text (deterministic; marks only provable items)
+	$(EVAL) python -m harness.verify $(IDS)
 
 eval: check-env ## Run benchmark experiments (EXP=all|A|B|B'|B-fast|E, IDS=..., UNVERIFIED=1; costs money)
 	cd eval && PYTHONPATH=../apps/api uv run --project ../apps/api --group eval --env-file ../.env \

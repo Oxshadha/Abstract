@@ -10,7 +10,7 @@ from rapidfuzz import fuzz
 # Line-break hyphenation: "trans-\nformer" or, once line breaks are flattened, "ar- chitecture".
 _HYPHEN_BREAK = re.compile(r"([a-z])-\s+([a-z])")
 _NON_WORD = re.compile(r"[^0-9a-z%.]+")
-_CITATION_MARKER = re.compile(r"\[\d+(?:\s*[,-]\s*\d+)*\]")
+CITATION_MARKER = re.compile(r"\[\d+(?:\s*[,-]\s*\d+)*\]")
 _NUMBER = re.compile(r"-?\d+(?:[.,]\d+)?")
 
 
@@ -53,7 +53,7 @@ def numbers_grounded(summary_text: str, source_text: str) -> float | None:
 
     Small integers (0 to 10) are ignored: they are usually list counts or ordinals in prose.
     """
-    stated = {n for n in numbers_in(_CITATION_MARKER.sub(" ", summary_text)) if not _small(n)}
+    stated = {n for n in numbers_in(CITATION_MARKER.sub(" ", summary_text)) if not _small(n)}
     if not stated:
         return None
     source = numbers_in(source_text)
@@ -70,7 +70,7 @@ def fact_reproduced(summary_text: str, fact: str) -> bool:
 
     Bibliography markers such as [27] or [3, 5] are not facts and are ignored.
     """
-    wanted = numbers_in(_CITATION_MARKER.sub(" ", fact))
+    wanted = numbers_in(CITATION_MARKER.sub(" ", fact))
     return bool(wanted) and wanted <= numbers_in(summary_text)
 
 

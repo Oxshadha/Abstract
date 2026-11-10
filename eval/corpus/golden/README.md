@@ -1,4 +1,15 @@
-# Verifying golden data (about 10 minutes per paper)
+# Verifying golden data
+
+## Automated verification (`make eval-verify`)
+The owner delegated verification (2026-11-11). `harness/verify.py` marks an item `verified: true`
+only when the PDF text proves it (method `deterministic-text-v1`):
+facts need every number on the cited page (unambiguous page mix-ups are corrected and recorded
+as `page_corrected_from`); answerable questions need their numbers or text on a cited page;
+layout probes need both pieces on their page. Page text combines two independent extractors so no
+parser is favoured. **Left for a human:** unanswerable questions and `present_fields` (absence
+cannot be proven from text). Everything below still applies to those items.
+
+# Manual verification (about 10 minutes per paper)
 
 The benchmark only scores items you have verified. Each `<paper>.yaml` was drafted by an LLM
 and must be checked against the PDF in `eval/corpus/pdfs/<paper>.pdf`.
