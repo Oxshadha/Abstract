@@ -71,5 +71,6 @@ eval-corpus: ## Download and verify the benchmark corpus (PIN=1 records new chec
 eval-golden: check-env ## Draft golden reference data with an LLM (costs about $1.50; owner verifies)
 	cd eval && PYTHONPATH=../apps/api uv run --project ../apps/api --group eval --env-file ../.env python -m harness.golden $(IDS)
 
-eval: ## Run the benchmark harness (spec 000; costs money)
-	@echo "Not implemented yet: spec 000"
+eval: check-env ## Run benchmark experiments (EXP=all|A|B|B'|B-fast|E, IDS=..., UNVERIFIED=1; costs money)
+	cd eval && PYTHONPATH=../apps/api uv run --project ../apps/api --group eval --env-file ../.env \
+		python -m harness.run --exp "$(or $(EXP),all)" $(if $(IDS),--ids $(IDS),) $(if $(UNVERIFIED),--include-unverified,) $(if $(RUNS),--runs $(RUNS),)

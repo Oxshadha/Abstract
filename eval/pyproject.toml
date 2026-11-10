@@ -36,5 +36,5 @@ filterwarnings = ["ignore:builtin type swig:DeprecationWarning"]
 
 [[tool.mypy.overrides]]
 # PyMuPDF's bindings are only partially typed; allow calling them from these modules.
-module = ["harness.golden", "tests.test_golden"]
+module = ["harness.golden", "tests.test_golden", "tests.test_run"]
 disallow_untyped_calls = false
