@@ -37,3 +37,15 @@ def test_AC2_readyz_503_names_failing_dependency(
     assert body["detail"] == "Unavailable: db"
     assert body["checks"]["db"] == "error: ConnectionError"
     assert body["checks"]["redis"] == "ok"
+
+
+def test_AC4_debug_routes_not_mounted_in_production(
+    client_factory: Callable[..., TestClient],
+) -> None:
+    assert (
+        client_factory(env="development")
+        .get("/api/v1/openapi.json")
+        .json()["paths"]
+        .get("/api/v1/_debug/ping")
+    )
+    assert client_factory(env="production").get("/api/v1/_debug/ping").status_code == 404

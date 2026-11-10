@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from redis.asyncio import Redis
 
 from app.adapters.storage.s3 import S3Storage
-from app.api.v1 import health
+from app.api.v1 import debug, health
 from app.core.config import Settings, get_settings
 from app.core.db import build_engine, ping_db
 from app.core.errors import install_error_handlers
@@ -83,4 +83,6 @@ def create_app(
     install_error_handlers(app, production=settings.is_production)
 
     app.include_router(health.router, prefix=API_PREFIX)
+    if not settings.is_production:
+        app.include_router(debug.router, prefix=API_PREFIX)
     return app
