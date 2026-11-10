@@ -1,0 +1,67 @@
+[project]
+name = "abstract-api"
+version = "0.1.0"
+description = "Abstract. research-paper assistant API"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "alembic>=1.20.1",
+    "asyncpg>=0.32.0",
+    "boto3>=1.43.127",
+    "celery[redis]>=5.7.0",
+    "fastapi>=0.162.4",
+    "httpx>=0.28.1",
+    "pydantic>=2",
+    "pydantic-settings>=2.16.2",
+    "redis>=8.1.0",
+    "sqlalchemy[asyncio]>=2",
+    "structlog>=26.1.0",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[dependency-groups]
+dev = [
+    "httpx2>=2.16.0",
+    "mypy>=2.4.1",
+    "pre-commit>=4.7.0",
+    "pytest>=9.2.0",
+    "pytest-asyncio>=1.4.1.post1",
+    "pytest-socket>=0.8.1",
+    "ruff>=0.17.4",
+    "testcontainers[postgres]>=4.15.0",
+]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "ASYNC", "RUF", "SIM", "PT", "N"]
+ignore = ["S101"]  # assert is fine in tests
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["S105", "S106", "N802"]  # test_AC<n>_... names map to spec criteria
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+files = ["app", "tests"]
+
+[[tool.mypy.overrides]]
+module = ["celery.*", "testcontainers.*", "boto3.*", "botocore.*", "pytest_socket.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_decorators = false
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "-ra --disable-socket --allow-unix-socket"
+markers = ["integration: needs Docker (testcontainers)"]
+filterwarnings = ["ignore:A test tried to use socket:UserWarning"]

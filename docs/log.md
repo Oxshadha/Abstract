@@ -15,6 +15,20 @@ Entry format:
 
 ---
 
+## 2026-11-11: Spec 001 history restructured; pushed to GitHub
+**Done:** Owner chose option A (D63): the unpushed bulk commits of spec 001 were rebuilt as 10 step-by-step commits in build order (settings, factory + logs + errors, readiness, migrations, worker, LLM gateway, web, compose stack, CI, docs). The quality gate (ruff, mypy --strict, pytest incl. real Postgres, web lint/types/tests/build) passed at every commit. The final tree matches the earlier work except that tests are split by concern (`test_settings`, `test_logging`, `test_llm_gateway`) with one extra test. Live-stack verification from the previous entry still applies. Remote `origin` = github.com/Oxshadha/Abstract (private); `main` and `feat/001-foundation` pushed. The old bulk commits remain only on the local branch `backup/001-bulk` (not pushed; safe to delete once the PR is merged).
+**Next:** open PR for 001 so CI runs on GitHub (AC12, AC13), merge with `--no-ff`, then start spec 000 with per-criterion commits.
+**Blockers:** GitHub CLI token on this Mac is invalid; owner needs to run `gh auth login` so PRs and CI results can be handled from the terminal.
+
+## 2026-11-11: Spec 001 foundation built (AC1 pending Docker)
+**Done:** Built the monorepo skeleton on `feat/001-foundation`. **Backend:** typed settings, JSON logging, RFC 7807 errors, request-id middleware, health/readiness checks, Celery worker + ping, ports, fake LLM, S3 adapter, Alembic (`migrations/`, vector + pg_trgm). **Frontend:** Vite/React/TS/Tailwind v4/TanStack with a generated OpenAPI client. **Infra:** docker-compose, Makefile, `.env.example`, pre-commit, CI workflow, commit-message and UI-text checkers, README. Owner's Google service account and OpenRouter key are configured in the local `.env` (git-ignored; SA mounted as a read-only compose secret, kept out of images). **Results:** API 17/17 tests (incl. real Postgres+pgvector, halfvec verified), mypy --strict and ruff clean; web 5/5 tests, lint, typecheck and build clean.
+**Bugs caught:** the health fetch could throw on network failure; web tests passed vacuously because openapi-fetch captured `fetch` at import; the `alembic/` folder could shadow the alembic package (renamed to `migrations/`).
+**Small decisions (autonomous):** TypeScript pinned to 6.0.x (typescript-eslint supports < 6.1, so TS 7 would break linting); Node 22 LTS (installed) instead of the spec's 24; testcontainers community module; httpx2 for the Starlette TestClient.
+**Decisions:** D60 (responsive workspace: desktop 3 panels, tablet 2, phone bottom tabs), D61 (SeaweedFS replaces MinIO, EDP-001 approved), D62 (no em/en dashes or emojis in UI; icons instead).   **Specs:** 000, 001 approved.
+**Artifacts:** `apps/api/**`, `apps/web/**`, `infra/**`, `Makefile`, `.github/workflows/ci.yml`, `scripts/*`, `README.md`, `docs/proposals/EDP-001-local-s3.md`
+**Next:** verify AC1 (`make dev`) and AC4 (worker ping) once Docker is healthy, then AC12/AC13 on GitHub; then spec 000 harness.
+**Blockers:** disk was 100% full (now 4.8 GB free, 98% used); Docker Desktop hung and must be restarted by the owner. GitHub repo URL still needed (B6).
+
 ## 2026-11-11: Design confirmed; first commits; specs 000 & 001 drafted
 **Done:** Owner confirmed the design and assumptions A1, A2, A4, A5, A6, A7. Added change control to AGENTS.md (big changes go to the owner as an Engineering Decision Proposal; small ones are decided autonomously and logged). Kept the client brief PDF out of git and transcribed it to `docs/requirements.md` with R/N IDs traced to specs. Made the first 5 commits on `main` (gitignore, research+requirements, decision docs, agent rules+specs, UI assets), with no co-author trailers. Drafted spec 001 (foundation, 14 ACs) and spec 000 (benchmark: 12-paper corpus, experiments A/B/C/E, 12 ACs).
 **Decisions:** D58 (change control), D59 (brief not committed).   **Assumptions:** A1–A7 confirmed; C9 added.   **Specs:** 000, 001 → Draft.

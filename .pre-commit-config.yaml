@@ -1,0 +1,26 @@
+# Install with: make hooks
+repos:
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff (api)
+        entry: bash -c 'cd apps/api && uv run ruff check --fix . && uv run ruff format .'
+        language: system
+        files: ^apps/api/.*\.py$
+        pass_filenames: false
+      - id: eslint
+        name: eslint (web)
+        entry: bash -c 'cd apps/web && pnpm -s lint'
+        language: system
+        files: ^apps/web/src/.*\.(ts|tsx)$
+        pass_filenames: false
+      - id: no-secret-files
+        name: block service-account / .env / key files
+        entry: "bash -c 'echo Refusing to commit secret files - $*; exit 1' --"
+        language: system
+        files: (service-account.*\.json$|(^|/)\.env$|\.pem$)
+      - id: commit-msg
+        name: conventional commit, no co-author trailers
+        entry: scripts/check-commit-msg.sh
+        language: script
+        stages: [commit-msg]

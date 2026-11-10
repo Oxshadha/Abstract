@@ -117,6 +117,12 @@ The agent was right that dark mode needs lighter text variants: the original sha
 | D58 | **Change control:** agents act autonomously on settled decisions and small choices (logged). **Big architectural or engineering changes** (superseding a D#, new or removed services or providers, tenancy, auth or data handling, pipeline strategy, UX flows that deviate from mockups or specs, scope, recurring cost, Approved acceptance criteria) are raised as an **Engineering Decision Proposal** and need owner approval first. The full rule is in `AGENTS.md`. | Owner wants autonomy for routine work and a design discussion for anything structural. |
 | D59 | **The client brief (`Requirment.pdf`) is not committed** (a client's document in a possibly public repo). Its requirements are transcribed into `docs/requirements.md` with IDs (R1…) and traced to specs. | Confidentiality by default. Gives traceability from requirement → spec → test. Owner can choose to commit the PDF. |
 
+| D60 | **Responsive Workspace (owner request, refines D27).** **Desktop ≥ 1280px:** three resizable panels side by side: Paper, Summary, Ask Abstract (as in the mockup). **Tablet 768 to 1279px:** Paper on the left, Summary and Ask Abstract as tabs on the right. **Phone < 768px:** one panel at a time, switched by a **bottom tab bar (Paper, Summary, Chat)** with icons and labels; the chat input sticks above the keyboard; tapping a citation switches to the Paper tab, scrolls to the page and highlights the sentence; a "back to answer" chip returns. Each tab keeps its scroll position and state when switching. Library, upload stepper, templates and builder also get mobile layouts (builder uses drag handles that work with touch, plus up/down buttons). Sidebar becomes a slide-over drawer on mobile. | Feasible with no architecture change: one component tree, CSS breakpoints plus a small layout hook. Same pattern as mobile NotebookLM. |
+| D61 | **Supersedes the local-storage part of D18: SeaweedFS 4.53 replaces MinIO** for local development (EDP-001, owner approved option A). MinIO stopped publishing images in Oct 2025 and was archived in Apr 2026. Production storage stays AWS S3; code only uses the `Storage` port. | Maintained, Apache-2.0, single container. |
+| D62 | **UI text and iconography rules (owner request):** no em or en dashes and no emojis in any user-facing text; icons (Lucide) instead of emojis. Enforced in CI for `apps/web/src`. | Consistent, professional typography and visual language. |
+
+| D63 | **Incremental, feature-shaped commit history (owner request).** Commit after each acceptance criterion goes green, with its test and code in the same commit; every commit is a working state; feature branches merge to `main` with `--no-ff` so each spec is visible as a unit. Never commit a whole feature at the end split by folder. | The commit history is a graded deliverable (R9) and should show how the software was actually developed. |
+
 ## Audit backfill (2026-11-10)
 These were agreed in conversation but not yet logged. Recorded now so the log is complete.
 
@@ -142,6 +148,7 @@ These were agreed in conversation but not yet logged. Recorded now so the log is
 | LangChain / LlamaIndex | Option in `research.md` | Hand-written pipeline (D9) |
 | Next.js | Mentioned in pasted research | React + Vite SPA (D17) |
 | Full-page-only auth | Mockups | Modal first + fallback routes (D45) |
+| MinIO (local S3) | D18 | SeaweedFS 4.53 (D61): MinIO images discontinued |
 
 ---
 

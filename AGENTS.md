@@ -98,6 +98,9 @@ make api-client # regenerate the TS client from FastAPI's OpenAPI schema
 - Colours, fonts, radius, spacing and shadows come **only from tokens** (CSS variables / Tailwind theme). No hex values or font names in components.
 - **Colour discipline:** the UI is monochrome. Semantic colours (success, warning, error, info) appear only in status pills, form errors, toasts and the citation highlight. Pending/processing states are neutral grey. Never colour buttons, links, icons or headings.
 - Fonts: Google Sans Flex = headings, Google Sans = UI, Nunito Sans = reading text.
+- **No em dashes (U+2014) or en dashes (U+2013) in any user-facing text** (UI copy, labels, placeholders, toasts, error messages, generated-summary rendering). Use a comma, colon, period or plain hyphen instead. Ranges use "to" ("pages 2 to 5") or a hyphen ("p. 2-5"). CI greps `apps/web/src` for them.
+- **No emojis in the UI.** Use icons from the icon set (Lucide, matching the mockups), always with an accessible label or `aria-hidden` when decorative.
+- **Mobile-first and responsive** (D60). Every screen must work from 360px wide upward with no horizontal scroll and touch targets of at least 44px. The Workspace follows the responsive layout in D60.
 - WCAG 2.1 AA: keyboard reachable, visible focus, ARIA live regions for streaming text.
 
 ## Testing rules
@@ -115,6 +118,13 @@ Small fixes, refactors and chores don't need a spec.
 
 ## Git
 - Branch per spec or feature: `feat/NNN-short-name`, `fix/...`, `chore/...`. Never commit straight to `main` once CI exists; merge via PR.
+- **Commit as you build, not at the end (D63).** The history must show the feature being developed:
+  - Work in small vertical steps, usually **one acceptance criterion (or one coherent part of it) per commit**: the test and the code that makes it pass go in the *same* commit.
+  - **Every commit is a working state**: lint, types and tests pass at that commit. No "WIP", no "fix typo in previous commit" noise (amend or fixup locally before pushing).
+  - Commit **immediately** after each step goes green, before starting the next one. Never write a whole feature and then split it by folder (`api`, `web`, `infra`) after the fact.
+  - Scope names the module/feature (`feat(papers): ...`), not the layer, unless the change really is layer-wide (`build`, `ci`).
+  - Order follows the build: scaffold, then the first AC, then the next ones, then wiring/docs. The body says *why* when it isn't obvious and references the AC (`Implements 004 AC3.`).
+  - Finish a spec with a PR from its branch, merged with a merge commit (`--no-ff`) so each feature stays visible as a unit in `main`'s history.
 - **Conventional Commits:** `feat(chat): stream answers over SSE`, `fix(parser): ...`, `docs: ...`, `test: ...`, `chore: ...`. Small, focused commits. The commit history is part of the deliverable.
 - **No `Co-Authored-By` trailers and no AI attribution lines** in commit messages or PR descriptions.
 - Never commit secrets, `.env`, service-account JSON or PDFs that aren't in `eval/` fixtures.

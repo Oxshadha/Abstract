@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft |
+| **Status** | Approved (owner, 2026-11-11) |
 | **Week** | W1 (3-day timebox, after 001's skeleton exists) |
 | **Decisions** | D12, D19, D20, D21, D24, D53 |
 | **Assumptions tested** | C1, C2, C3, C4, C5, C6 |
