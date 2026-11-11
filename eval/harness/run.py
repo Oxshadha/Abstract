@@ -478,8 +478,14 @@ async def _main(
                 SUMMARY_EXPERIMENTS[e] for e in experiments if SUMMARY_EXPERIMENTS.get(e)
             }:
                 assert parser is not None
+                try:
+                    parsed_for_probe = PARSERS[parser](pdf)
+                except Exception as exc:  # one parser failing must not abort the run
+                    print(f"  probe  {paper:<14} {parser}: FAILED {exc!r}"[:200])
+                    reading.setdefault(parser, {})[paper] = None
+                    continue
                 reading.setdefault(parser, {})[paper] = reading_order_score(
-                    PARSERS[parser](pdf), golden
+                    parsed_for_probe, golden
                 )
             for exp in [e for e in experiments if e in SUMMARY_EXPERIMENTS]:
                 for run in range(1, runs + 1):
@@ -543,8 +549,14 @@ def rescore(run_dirs: list[Path], *, include_unverified: bool) -> int:
             pdf = PDF_DIR / f"{paper}.pdf"
             references[paper] = parse_pymupdf(pdf)
             for parser_name in {v for v in SUMMARY_EXPERIMENTS.values() if v}:
+                try:
+                    parsed_for_probe = PARSERS[parser_name](pdf)
+                except Exception as exc:  # recorded as n/a, never aborts the report
+                    print(f"  probe  {paper:<14} {parser_name}: FAILED {exc!r}"[:200])
+                    reading.setdefault(parser_name, {})[paper] = None
+                    continue
                 reading.setdefault(parser_name, {})[paper] = reading_order_score(
-                    PARSERS[parser_name](pdf), golden
+                    parsed_for_probe, golden
                 )
         if result.ok and result.summary:
             result.scores = score_summary(result.summary, golden, references[paper])

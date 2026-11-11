@@ -125,7 +125,8 @@ def _docling_converter(ocr: bool) -> Any:
     options.generate_picture_images = False
     options.do_picture_description = False
     if ocr:
-        options.ocr_options = TesseractCliOcrOptions()
+        # Docling's default languages include fr/de/es; use only installed traineddata.
+        options.ocr_options = TesseractCliOcrOptions(lang=["eng"])
     return DocumentConverter(
         format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=options)}
     )
