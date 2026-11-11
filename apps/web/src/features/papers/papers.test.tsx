@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { setAuthState } from "@/auth/state";
@@ -47,6 +47,52 @@ beforeEach(() => {
   vi.mocked(listPapers).mockResolvedValue({ items: [], next_cursor: null });
 });
 
+describe("AC14: Library list", () => {
+  it("lists papers with status pills, pages, size and time", async () => {
+    vi.mocked(listPapers).mockResolvedValue({
+      items: [
+        paper(),
+        paper({ id: "p2", title: "LLM Agents", status: "processing", text_status: "pending" }),
+        paper({ id: "p3", title: "Broken", status: "failed", error_message: "This PDF is damaged and cannot be read." }),
+      ],
+      next_cursor: null,
+    });
+    await renderAt("/app/library");
+    const list = await screen.findByRole("list", { name: "Recent papers" });
+    const rows = within(list).getAllByRole("listitem");
+    expect(rows).toHaveLength(3);
+    expect(within(rows[0] as HTMLElement).getByText("Ready")).toBeInTheDocument();
+    expect(within(rows[0] as HTMLElement).getByText("15 pages · 2.1 MB")).toBeInTheDocument();
+    expect(within(rows[0] as HTMLElement).getByText("2h ago")).toBeInTheDocument();
+    expect(within(rows[1] as HTMLElement).getByText("Processing")).toBeInTheDocument();
+    expect(within(rows[2] as HTMLElement).getByText("Failed")).toBeInTheDocument();
+    expect(within(rows[2] as HTMLElement).getByText(/damaged/)).toBeInTheDocument();
+  });
+
+  it("pages with a cursor", async () => {
+    vi.mocked(listPapers)
+      .mockResolvedValueOnce({ items: [paper()], next_cursor: "c1" })
+      .mockResolvedValueOnce({ items: [paper({ id: "p9", title: "Older paper" })], next_cursor: null });
+    await renderAt("/app/library");
+    fireEvent.click(await screen.findByRole("button", { name: "Show more" }));
+    expect(await screen.findByText("Older paper")).toBeInTheDocument();
+    expect(vi.mocked(listPapers).mock.calls.map((c) => c[0])).toEqual([null, "c1"]);
+    expect(screen.queryByRole("button", { name: "Show more" })).not.toBeInTheDocument();
+  });
+
+  it("shows skeletons while loading and an empty state", async () => {
+    let resolve: (v: { items: never[]; next_cursor: null }) => void = () => undefined;
+    vi.mocked(listPapers).mockReturnValue(new Promise((r) => (resolve = r)));
+    await renderAt("/app/library");
+    expect(await screen.findByRole("status", { name: "Loading your papers" })).toBeInTheDocument();
+    await act(async () => {
+      resolve({ items: [], next_cursor: null });
+      await Promise.resolve();
+    });
+    expect(await screen.findByText("No papers yet")).toBeInTheDocument();
+  });
+});
+
 describe("AC12: processing page", () => {
   it("shows the mockup steps and enables the workspace once chat is available", async () => {
     vi.mocked(getPaper).mockResolvedValue(paper({ status: "processing" }));
@@ -85,7 +131,7 @@ describe("AC12: processing page", () => {
 });
 
 describe("AC15 (003): new screens have no serious accessibility violations", () => {
-  it.each(["/app/papers/p1/processing"])("%s", async (path) => {
+  it.each(["/app/library", "/app/papers/p1/processing"])("%s", async (path) => {
     vi.mocked(listPapers).mockResolvedValue({ items: [paper(), paper({ id: "p2", status: "processing" })], next_cursor: null });
     vi.mocked(getPaper).mockResolvedValue(paper({ status: "processing" }));
     vi.mocked(getStatus).mockResolvedValue(status());
