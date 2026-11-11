@@ -18,6 +18,7 @@ from app.core.db import build_engine, build_sessionmaker, ping_db
 from app.core.errors import install_error_handlers
 from app.core.logging import configure_logging, get_logger
 from app.core.middleware import RequestContextMiddleware
+from app.core.ratelimit import CounterStore, RedisCounterStore
 from app.core.readiness import ReadinessCheck
 from app.modules.identity import router as identity_router
 from app.ports.auth import AuthProvider
@@ -31,6 +32,7 @@ def create_app(
     *,
     readiness_checks: dict[str, ReadinessCheck] | None = None,
     auth_provider: AuthProvider | None = None,
+    rate_store: CounterStore | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
     configure_logging(settings.log_level)
@@ -54,6 +56,7 @@ def create_app(
         app.state.engine = engine
         app.state.sessionmaker = build_sessionmaker(engine)
         app.state.redis = redis
+        app.state.rate_store = rate_store or RedisCounterStore(redis)
         app.state.storage = storage
         app.state.readiness_checks = (
             readiness_checks
@@ -85,6 +88,7 @@ def create_app(
     )
     app.add_middleware(RequestContextMiddleware)
     app.state.auth = auth
+    app.state.settings = settings
     install_error_handlers(app, production=settings.is_production)
 
     app.include_router(health.router, prefix=API_PREFIX)

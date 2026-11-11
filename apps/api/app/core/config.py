@@ -41,6 +41,11 @@ class Settings(BaseSettings):
     gcp_project_id: str | None = None
     gcp_location: str = "us-central1"
 
+    # Baseline rate limits per minute by route group (spec 002 AC15; plans in spec 012).
+    rate_limits: dict[str, int] = Field(
+        default_factory=lambda: {"auth": 30, "read": 300, "write": 60}
+    )
+
     # Authentication (spec 002, D70). "auto": Clerk when configured, otherwise the dev
     # adapter in development/test. Production must use Clerk.
     auth_provider: Literal["auto", "clerk", "dev"] = "auto"

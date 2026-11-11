@@ -4,9 +4,10 @@ from fastapi import APIRouter, Depends
 
 from app.core.context import Context
 from app.core.policy import require
+from app.core.ratelimit import user_rate_limit
 from app.modules.identity.schemas import Me, MeOrg, MeUser
 
-router = APIRouter(tags=["identity"])
+router = APIRouter(tags=["identity"], dependencies=[Depends(user_rate_limit("read"))])
 
 
 @router.get("/me", response_model=Me, summary="The signed-in user and their active organization")

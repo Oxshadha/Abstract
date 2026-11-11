@@ -27,6 +27,7 @@ class ProblemError(Exception):
         *,
         title: str | None = None,
         extra: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
     ) -> None:
         super().__init__(detail)
         self.status = status
@@ -34,6 +35,7 @@ class ProblemError(Exception):
         self.detail = detail
         self.title = title or HTTPStatus(status).phrase
         self.extra = extra or {}
+        self.headers = headers or {}
 
 
 def current_request_id() -> str | None:
@@ -48,6 +50,7 @@ def problem_response(
     slug: str | None = None,
     title: str | None = None,
     extra: dict[str, Any] | None = None,
+    headers: dict[str, str] | None = None,
 ) -> JSONResponse:
     request_id = current_request_id()
     body: dict[str, Any] = {
@@ -58,15 +61,22 @@ def problem_response(
         "request_id": request_id,
         **(extra or {}),
     }
-    headers = {"x-request-id": request_id} if request_id else None
-    return JSONResponse(body, status_code=status, media_type=PROBLEM_MEDIA_TYPE, headers=headers)
+    all_headers = {**(headers or {}), **({"x-request-id": request_id} if request_id else {})}
+    return JSONResponse(
+        body, status_code=status, media_type=PROBLEM_MEDIA_TYPE, headers=all_headers or None
+    )
 
 
 def install_error_handlers(app: FastAPI, *, production: bool) -> None:
     async def on_problem(_: Request, exc: Exception) -> JSONResponse:
         assert isinstance(exc, ProblemError)
         return problem_response(
-            exc.status, detail=exc.detail, slug=exc.slug, title=exc.title, extra=exc.extra
+            exc.status,
+            detail=exc.detail,
+            slug=exc.slug,
+            title=exc.title,
+            extra=exc.extra,
+            headers=exc.headers,
         )
 
     async def on_http(_: Request, exc: Exception) -> JSONResponse:

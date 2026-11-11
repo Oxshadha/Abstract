@@ -1,9 +1,11 @@
 """Dev-only token endpoint (D70). Mounted only when the dev auth adapter is active."""
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/dev", tags=["dev"])
+from app.core.ratelimit import rate_limit
+
+router = APIRouter(prefix="/dev", tags=["dev"], dependencies=[Depends(rate_limit("auth"))])
 
 
 class DevToken(BaseModel):

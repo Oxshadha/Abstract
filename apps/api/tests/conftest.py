@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.core.config import Settings
+from app.core.ratelimit import MemoryCounterStore
 from app.core.readiness import ReadinessCheck
 from app.factory import create_app
 
@@ -34,6 +35,7 @@ def client_factory() -> Iterator[Callable[..., TestClient]]:
         app = create_app(
             make_settings(**settings_overrides),
             readiness_checks=checks or {"db": _ok, "redis": _ok, "storage": _ok},
+            rate_store=MemoryCounterStore(),
         )
         client = TestClient(app, raise_server_exceptions=False)
         client.__enter__()
