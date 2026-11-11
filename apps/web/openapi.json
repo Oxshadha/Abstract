@@ -303,6 +303,25 @@
         "title": "FieldOut",
         "type": "object"
       },
+      "FileUrl": {
+        "properties": {
+          "expires_at": {
+            "format": "date-time",
+            "title": "Expires At",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "url",
+          "expires_at"
+        ],
+        "title": "FileUrl",
+        "type": "object"
+      },
       "FinalizeRequest": {
         "additionalProperties": false,
         "properties": {
@@ -702,6 +721,45 @@
           "model"
         ],
         "title": "ModelRoute",
+        "type": "object"
+      },
+      "PageSize": {
+        "properties": {
+          "height": {
+            "title": "Height",
+            "type": "number"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          },
+          "width": {
+            "title": "Width",
+            "type": "number"
+          }
+        },
+        "required": [
+          "page",
+          "width",
+          "height"
+        ],
+        "title": "PageSize",
+        "type": "object"
+      },
+      "PageSizes": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PageSize"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "PageSizes",
         "type": "object"
       },
       "PaperOut": {
@@ -2624,6 +2682,95 @@
           }
         },
         "summary": "Redirect to a short-lived link to the sanitized PDF (the original is never served)",
+        "tags": [
+          "papers"
+        ]
+      }
+    },
+    "/api/v1/papers/{paper_id}/file-url": {
+      "get": {
+        "operationId": "get_file_url_api_v1_papers__paper_id__file_url_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileUrl"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "description": "Not sanitized yet"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "A 5-minute link to the sanitized PDF for the viewer (supports range requests)",
+        "tags": [
+          "papers"
+        ]
+      }
+    },
+    "/api/v1/papers/{paper_id}/pages": {
+      "get": {
+        "operationId": "get_pages_api_v1_papers__paper_id__pages_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PageSizes"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Page sizes in PDF points, so the viewer can lay out every page before rendering",
         "tags": [
           "papers"
         ]

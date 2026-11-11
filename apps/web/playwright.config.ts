@@ -15,7 +15,12 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   projects: [
+    // Every mainstream engine: Chromium (Chrome, Edge), WebKit (Safari, every iPhone browser)
+    // and Gecko (Firefox). pdf.js once broke in Safari only, unseen by a Chromium-only run.
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
     { name: "mobile", use: { ...devices["Pixel 7"] } },
+    { name: "desktop-safari", use: { ...devices["Desktop Safari"] } },
+    { name: "mobile-safari", use: { ...devices["iPhone 14"] } },
+    { name: "desktop-firefox", use: { ...devices["Desktop Firefox"] } },
   ],
 });

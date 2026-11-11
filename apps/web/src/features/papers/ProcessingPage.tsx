@@ -1,6 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
+
+const PdfPreview = lazy(() => import("@/features/viewer/PdfPreview"));
 import { Check, ChevronLeft, Circle, ExternalLink, FileText, Layers, Loader2, X } from "lucide-react";
 
 import { Loading, SummaryCardSkeleton } from "@/components/feedback/Skeleton";
@@ -185,9 +187,11 @@ function Processing({ paperId }: { paperId: string }) {
               </p>
             </div>
           </div>
-          <p className="mt-4 rounded-lg bg-muted p-4 text-sm text-text-secondary">
-            The page preview opens in the workspace.
-          </p>
+          <div className="mt-4">
+            <Suspense fallback={null}>
+              <PdfPreview paperId={paperId} width={420} />
+            </Suspense>
+          </div>
         </section>
 
         <section aria-labelledby="progress-heading" className="rounded-xl border border-border bg-surface p-4 shadow-card md:p-6">

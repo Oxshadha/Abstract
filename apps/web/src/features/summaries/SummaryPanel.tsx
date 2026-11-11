@@ -4,8 +4,6 @@ import {
   AlertCircle,
   BarChart3,
   BookOpen,
-  Check,
-  ChevronDown,
   Compass,
   Database,
   FileText,
@@ -13,6 +11,7 @@ import {
   Gauge,
   Layers,
   Pencil,
+  Plus,
   RotateCcw,
   Search,
   Settings,
@@ -22,6 +21,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 
 import { SummaryCardSkeleton } from "@/components/feedback/Skeleton";
+import { Select } from "@/components/menu/Select";
 import { StatusPill } from "@/components/status/StatusPill";
 
 import {
@@ -36,6 +36,8 @@ import {
   type Summary,
   type SummaryField,
 } from "./api";
+import { useCitations } from "@/features/viewer/citations";
+
 import { Markdown } from "./Markdown";
 import { pageLabel } from "./pages";
 import { useSummary } from "./useSummary";
@@ -56,6 +58,8 @@ const ICONS: Record<string, LucideIcon> = {
 function FieldCard({ field }: { field: SummaryField }) {
   const Icon = ICONS[field.key] ?? FileText;
   const [open, setOpen] = useState(false);
+  const viewer = useCitations();
+  const firstEvidence = field.evidence.find((e) => e.page != null && e.verified) ?? field.evidence.find((e) => e.page != null);
   const pages = field.evidence.map((e) => e.page).filter((p): p is number => p != null);
   return (
     <article className="border-b border-border pb-5 last:border-b-0">
@@ -81,6 +85,8 @@ function FieldCard({ field }: { field: SummaryField }) {
           aria-expanded={open}
           onClick={() => {
             setOpen(!open);
+            // Spec 008 AC4: open the cited page with the sentence highlighted.
+            if (!open && firstEvidence?.page != null) viewer?.open(firstEvidence.page, firstEvidence.quote);
           }}
           className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-md border border-border px-2.5 text-sm hover:bg-muted"
         >
@@ -93,9 +99,14 @@ function FieldCard({ field }: { field: SummaryField }) {
           {field.evidence.map((e, i) => (
             <li key={i} className="rounded-md bg-muted p-2.5 text-sm">
               <q className="font-reading">{e.quote}</q>
-              <span className="mt-1 block text-text-secondary">
+              <span className="mt-1 flex flex-wrap items-center gap-x-2 text-text-secondary">
                 {e.page != null ? `Page ${String(e.page)}` : "Page unknown"}
                 {e.verified ? " · found in the paper" : " · not found word for word"}
+                {viewer && e.page != null && (
+                  <button type="button" onClick={() => { viewer.open(e.page ?? 1, e.quote); }} className="min-h-9 underline">
+                    Show in paper
+                  </button>
+                )}
               </span>
             </li>
           ))}
@@ -172,59 +183,25 @@ function TemplateSwitcher({
   onChoose: (templateId: string) => void;
 }) {
   const templates = useQuery({ queryKey: summaryKeys.templates, queryFn: listTemplates });
-  const [open, setOpen] = useState(false);
-  const name = templates.data?.find((t) => t.id === current)?.name ?? "Quick Summary";
   return (
-    <div className="relative">
-      <button
-        type="button"
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        onClick={() => {
-          setOpen(!open);
-        }}
-        className="inline-flex min-h-11 min-w-0 items-center gap-2 rounded-md border border-border px-3 hover:bg-muted"
-      >
-        <Layers aria-hidden className="size-4 shrink-0" />
-        <span className="truncate whitespace-nowrap">{name}</span>
-        <ChevronDown aria-hidden className="size-4" />
-      </button>
-      {open && (
-        <ul
-          role="listbox"
-          aria-label="Summary template"
-          className="absolute right-0 z-20 mt-1 w-72 rounded-lg border border-border bg-surface p-1 shadow-overlay"
-        >
-          {(templates.data ?? []).map((t) => (
-            <li key={t.id} role="option" aria-selected={t.id === current}>
-              <button
-                type="button"
-                onClick={() => {
-                  setOpen(false);
-                  onChoose(t.id);
-                }}
-                className="flex w-full items-start gap-2 rounded-md p-2 text-left hover:bg-muted"
-              >
-                <Check aria-hidden className={`mt-0.5 size-4 ${t.id === current ? "" : "invisible"}`} />
-                <span>
-                  <span className="block font-medium">{t.name}</span>
-                  <span className="block text-sm text-text-secondary">{t.description}</span>
-                </span>
-              </button>
-            </li>
-          ))}
-          <li role="option" aria-selected={false}>
-            <Link to="/app/templates" className="flex w-full items-start gap-2 rounded-md p-2 hover:bg-muted">
-              <Check aria-hidden className="invisible mt-0.5 size-4" />
-              <span>
-                <span className="block font-medium">Custom Template</span>
-                <span className="block text-sm text-text-secondary">Create and manage your own summary structure.</span>
-              </span>
-            </Link>
-          </li>
-        </ul>
-      )}
-    </div>
+    <Select
+      label="Summary template"
+      value={current ?? ""}
+      placeholder="Quick Summary"
+      icon={<Layers aria-hidden className="size-4 shrink-0" />}
+      options={(templates.data ?? []).map((t) => ({ value: t.id, label: t.name, description: t.description }))}
+      onChange={onChoose}
+      width="w-72"
+      footer={
+        <Link to="/app/templates" className="mt-1 flex min-h-11 items-start gap-2 rounded-md border-t border-border p-2 text-sm hover:bg-muted">
+          <Plus aria-hidden className="mt-0.5 size-4 shrink-0" />
+          <span>
+            <span className="block font-medium">Custom Template</span>
+            <span className="block text-text-secondary">Create and manage your own summary structure.</span>
+          </span>
+        </Link>
+      }
+    />
   );
 }
 

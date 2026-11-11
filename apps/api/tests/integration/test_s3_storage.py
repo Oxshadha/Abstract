@@ -136,3 +136,8 @@ async def test_AC2_bucket_allows_browser_uploads_from_the_web_origin(storage: S3
     rules = storage._client.get_bucket_cors(Bucket="test-uploads")["CORSRules"]
     assert "POST" in rules[0]["AllowedMethods"]
     assert rules[0]["AllowedOrigins"] == ["http://localhost:5173"]
+
+
+async def test_AC2_bucket_exposes_range_headers_for_the_viewer(storage: S3Storage) -> None:
+    rule = storage._client.get_bucket_cors(Bucket="test-uploads")["CORSRules"][0]
+    assert {"Accept-Ranges", "Content-Range", "Content-Length"} <= set(rule["ExposeHeaders"])
