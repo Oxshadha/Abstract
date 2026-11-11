@@ -96,6 +96,9 @@ async def clerk_webhook(request: Request) -> Received:
     event_type = str(event.get("type", ""))
     data: dict[str, Any] = event.get("data") or {}
     enqueue: Callable[[str, dict[str, Any]], None] = request.app.state.enqueue
+    # Jobs are queued only AFTER the transaction commits, so a rollback can never leave a job
+    # behind for changes that did not happen (a durable outbox arrives with spec 004).
+    after_commit: list[tuple[str, dict[str, Any]]] = []
 
     async with request.app.state.sessionmaker() as session, session.begin():
         first_time = (
@@ -142,6 +145,8 @@ async def clerk_webhook(request: Request) -> Received:
                         ),
                         {"o": user.personal_org_id, "u": user.id, "r": str(user.id)},
                     )
-                enqueue("app.worker.tasks.delete_account", {"user_id": str(user.id)})
+                after_commit.append(("app.worker.tasks.delete_account", {"user_id": str(user.id)}))
+    for task, kwargs in after_commit:
+        enqueue(task, kwargs)
     log.info("webhook_processed", event_type=event_type)
     return Received(received=True)
