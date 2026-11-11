@@ -23,7 +23,8 @@ RULES = [
     ("font family outside tokens (003 AC2)", re.compile(
         r"font-family\s*:(?!\s*var\()|fontFamily\s*:\s*[\"'`]")),
 ]
-GENERATED = {"tokens.css", "theme.css", "tokens.ts"}
+# Generated token files, and the @font-face definitions (declaring a font is not using one).
+GENERATED = {"tokens.css", "theme.css", "tokens.ts", "fonts.css"}
 EXTS = {".ts", ".tsx", ".css", ".json", ".html"}
 
 
