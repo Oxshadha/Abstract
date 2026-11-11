@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft |
+| **Status** | Approved (owner, 2026-11-11): Sentry now (DSNs pending from owner), routes confirmed |
 | **Week** | W2 |
 | **Decisions** | D17, D27, D33, D34, D35, D42, D43, D44, D45, D60, D62, D66, D67 |
 | **Requirements** | R4, N7 |
@@ -55,5 +55,5 @@ Entry JS ≤ 200 KB gzip; LCP ≤ 2.5 s p75 on the Library route; fonts preloade
 Unit and component tests (Vitest + RTL) for theme, shell responsiveness (viewport mocks), auth gating, error boundaries, offline banner; axe checks; CI checks for stale tokens, raw colours and bundle size.
 
 ## Open questions (owner)
-- **Q1:** Sentry project: do you want error monitoring now (free tier; you would create a project and give the DSN) or later? Everything works without it.
-- **Q2:** Confirm the Workspace route shape `/app/papers/$paperId` and that the landing page stays at `/` (spec 016).
+- **Q1 (answered):** Sentry now. Wired for web and API, disabled until the owner provides DSNs.
+- **Q2 (answered):** `/app/papers/$paperId` confirmed; landing page at `/` (spec 016).

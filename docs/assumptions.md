@@ -24,6 +24,7 @@ Agents: add an entry **before** acting on a new assumption. When the owner confi
 | B3 | Supported browsers: current evergreen Chrome, Edge, Firefox, Safari. Responsive down to phone width (panels become tabs). | Assumed | Frontend |
 | B4 | "Research paper" includes reports and articles (mockup filter: Papers/Reports/Articles). Non-papers are summarized as well as possible, with a notice. | Assumed | Spec 006 |
 | B5 | The brief's "AI assistance is an advantage" is satisfied by documenting the AI-assisted workflow (AGENTS.md, specs, Claude Code) in the README. | Assumed | Spec 017 / README |
+| B7 | Owner creates Sentry projects (React + FastAPI) and provides two DSNs, an auth token (project:releases) and the org slug; until then Sentry stays disabled (spec 003 AC12, D37). | Open | Spec 003, 017 |
 | B6 | The GitHub repository URL hasn't been provided; nothing is pushed until it is. | Open | Delivery |
 
 ## C. Technical assumptions (to be proved by the W1 benchmark or tests)
