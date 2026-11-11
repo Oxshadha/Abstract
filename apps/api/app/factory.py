@@ -22,6 +22,7 @@ from app.core.logging import configure_logging, get_logger
 from app.core.middleware import RequestContextMiddleware
 from app.core.ratelimit import CounterStore, RedisCounterStore
 from app.core.readiness import ReadinessCheck
+from app.modules.admin import router as admin_router
 from app.modules.identity import router as identity_router
 from app.modules.identity import webhooks as identity_webhooks
 from app.ports.auth import AuthProvider
@@ -108,6 +109,7 @@ def create_app(
     app.include_router(health.router, prefix=API_PREFIX)
     app.include_router(identity_router.router, prefix=API_PREFIX)
     app.include_router(identity_webhooks.router, prefix=API_PREFIX)
+    app.include_router(admin_router.router, prefix=API_PREFIX)
     if not settings.is_production:
         app.include_router(debug.router, prefix=API_PREFIX)
     if auth.name == "dev":
