@@ -129,15 +129,21 @@ async def store_chunks(
     vectors: list[str],
     model: str,
 ) -> None:
+    """Replace the paper's chunks; each records its embedding model and size (AC9 of 005),
+    and the paper records which embedding model its vectors use (re-indexing, 005 AC12)."""
     await session.execute(text("DELETE FROM chunks WHERE paper_id = :p"), {"p": paper_id})
     if not chunks:
         return
     await session.execute(
+        text("UPDATE papers SET embedding_model = :model WHERE id = :p"),
+        {"model": model, "p": paper_id},
+    )
+    await session.execute(
         text(
             "INSERT INTO chunks (org_id, paper_id, ordinal, page_start, page_end, section_path,"
-            " text, token_count, embedding, embedding_model) VALUES (:org, :paper, :ordinal,"
-            " :page_start, :page_end, :section, :text, :tokens, CAST(:embedding AS halfvec),"
-            " :model)"
+            " text, token_count, embedding, embedding_model, embedding_dims) VALUES (:org,"
+            " :paper, :ordinal, :page_start, :page_end, :section, :text, :tokens,"
+            " CAST(:embedding AS halfvec), :model, :dims)"
         ),
         [
             {
@@ -151,6 +157,7 @@ async def store_chunks(
                 "tokens": c.token_count,
                 "embedding": vector,
                 "model": model,
+                "dims": vector.count(",") + 1,
             }
             for c, vector in zip(chunks, vectors, strict=True)
         ],
