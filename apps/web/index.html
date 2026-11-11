@@ -5,6 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/abstract-icon-light.svg" />
     <title>Abstract.</title>
+    <script>
+      // Apply the saved theme before first paint (spec 003 AC3). Mirrors src/theme/theme.ts.
+      try {
+        var t = localStorage.getItem("abstract.theme");
+        if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>
