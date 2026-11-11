@@ -21,6 +21,8 @@ class PageText:
     page_no: int
     text: str
     has_text_layer: bool
+    width: float = 0.0  # PDF points, as displayed (rotation applied)
+    height: float = 0.0
 
 
 @dataclass(frozen=True)
@@ -81,6 +83,7 @@ def extract_text(data: bytes) -> ExtractedPdf:
         pages: list[PageText] = []
         for index in range(len(pdf)):
             page = pdf[index]
+            width, height = page.get_size()
             try:
                 textpage = page.get_textpage()
                 try:
@@ -90,7 +93,24 @@ def extract_text(data: bytes) -> ExtractedPdf:
             finally:
                 page.close()
             visible = sum(1 for c in text if not c.isspace())
-            pages.append(PageText(index + 1, text, visible >= MIN_TEXT_CHARS))
+            pages.append(PageText(index + 1, text, visible >= MIN_TEXT_CHARS, width, height))
         return ExtractedPdf(pages=pages, title=_metadata_title(pdf) or title_from_text(pages))
+    finally:
+        pdf.close()
+
+
+def page_sizes(data: bytes) -> dict[int, tuple[float, float]]:
+    """Page number to (width, height) in PDF points, without extracting text."""
+    pdf = pdfium.PdfDocument(data)
+    try:
+        sizes: dict[int, tuple[float, float]] = {}
+        for index in range(len(pdf)):
+            page = pdf[index]
+            try:
+                width, height = page.get_size()
+            finally:
+                page.close()
+            sizes[index + 1] = (float(width), float(height))
+        return sizes
     finally:
         pdf.close()

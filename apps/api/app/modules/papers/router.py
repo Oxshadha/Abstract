@@ -1,3 +1,5 @@
+import asyncio
+from datetime import UTC, datetime, timedelta
 from typing import Annotated
 from uuid import UUID
 
@@ -5,6 +7,7 @@ from fastapi import APIRouter, Depends, Header, Query, Request, Response
 from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
 from sqlalchemy import text
 
+from app.adapters.pdf.text import page_sizes
 from app.core import idempotency
 from app.core.context import Context
 from app.core.errors import ProblemError
@@ -13,8 +16,11 @@ from app.core.ratelimit import user_rate_limit
 from app.modules.identity.service import RequestContext
 from app.modules.papers import deletion, events, finalize, queries, service
 from app.modules.papers.schemas import (
+    FileUrl,
     FinalizeRequest,
     FinalizeResponse,
+    PageSize,
+    PageSizes,
     PaperOut,
     PaperPage,
     PaperStatus,
@@ -205,3 +211,67 @@ async def delete_paper(
             request.app.state.storage, paper.org_id, paper.paper_id, paper.quarantine_key
         )
     return Response(status_code=204)
+
+
+async def _sanitized_key(ctx: Context, paper_id: UUID) -> str:
+    row = (
+        await ctx.session.execute(
+            text("SELECT storage_key FROM papers WHERE id = :id AND owner_id = :owner"),
+            {"id": paper_id, "owner": ctx.identity.user_id},
+        )
+    ).first()
+    if row is None:
+        raise ProblemError(404, "paper-not-found", "This paper was not found.")
+    if row.storage_key is None:
+        raise ProblemError(409, "not-ready", "This PDF is still being prepared.")
+    key: str = row.storage_key
+    return key
+
+
+@router.get(
+    "/{paper_id}/file-url",
+    response_model=FileUrl,
+    summary="A 5-minute link to the sanitized PDF for the viewer (supports range requests)",
+    responses={409: {"description": "Not sanitized yet"}},
+    dependencies=[Depends(user_rate_limit("read"))],
+)
+async def get_file_url(
+    paper_id: UUID, request: Request, ctx: Annotated[Context, Depends(require("paper.read"))]
+) -> FileUrl:
+    key = await _sanitized_key(ctx, paper_id)
+    ttl = 300
+    url = await request.app.state.storage.presigned_get_url(key, expires_seconds=ttl)
+    return FileUrl(url=url, expires_at=datetime.now(UTC) + timedelta(seconds=ttl))
+
+
+@router.get(
+    "/{paper_id}/pages",
+    response_model=PageSizes,
+    summary="Page sizes in PDF points, so the viewer can lay out every page before rendering",
+    dependencies=[Depends(user_rate_limit("read"))],
+)
+async def get_pages(
+    paper_id: UUID, request: Request, ctx: Annotated[Context, Depends(require("paper.read"))]
+) -> PageSizes:
+    key = await _sanitized_key(ctx, paper_id)
+    rows = (
+        await ctx.session.execute(
+            text(
+                "SELECT page_no, width, height FROM paper_pages WHERE paper_id = :p"
+                " ORDER BY page_no"
+            ),
+            {"p": paper_id},
+        )
+    ).all()
+    if rows and all(r.width for r in rows):
+        return PageSizes(
+            items=[PageSize(page=r.page_no, width=r.width, height=r.height) for r in rows]
+        )
+    # Papers ingested before sizes were stored: measure once and keep the result (AC3).
+    data = await request.app.state.storage.get_bytes(key)
+    sizes = await asyncio.to_thread(page_sizes, data)
+    await ctx.session.execute(
+        text("UPDATE paper_pages SET width = :w, height = :h WHERE paper_id = :p AND page_no = :n"),
+        [{"w": w, "h": h, "p": paper_id, "n": n} for n, (w, h) in sizes.items()],
+    )
+    return PageSizes(items=[PageSize(page=n, width=w, height=h) for n, (w, h) in sizes.items()])
