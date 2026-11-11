@@ -5,6 +5,7 @@ import { useState, type SubmitEvent } from "react";
 
 import { Dialog, buttonPrimary, buttonSecondary, inputClass } from "@/components/dialog/Dialog";
 import { Menu } from "@/components/menu/Menu";
+import { FieldError } from "@/components/status/FieldError";
 
 import { libraryKeys, listCollections, type Collection } from "./api";
 import { useCollectionActions } from "./mutations";
@@ -106,7 +107,7 @@ function NameDialog({ title, collection, onClose }: { title: string; collection?
             className={inputClass}
           />
         </label>
-        {error && <p id="collection-name-error" role="alert" className="text-sm text-error">{error}</p>}
+        <FieldError id="collection-name-error" message={error} />
         <div className="flex justify-end gap-2">
           <button type="button" onClick={onClose} className={buttonSecondary}>Cancel</button>
           <button type="submit" disabled={!name.trim() || pending} className={buttonPrimary}>{collection ? "Save" : "Create"}</button>

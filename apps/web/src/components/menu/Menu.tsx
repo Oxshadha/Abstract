@@ -2,6 +2,8 @@ import { MoreHorizontal } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 
+import { DESTRUCTIVE } from "@/components/status/tone";
+
 import { FLOATING_STYLE, useFloating } from "./useFloating";
 
 export interface MenuItem {
@@ -101,7 +103,7 @@ export function Menu({ label, items, footer, align = "right", trigger }: Props) 
                 button.current?.focus();
                 item.onSelect();
               }}
-              className={`flex min-h-11 w-full items-center gap-2 rounded-md px-2 text-left text-sm hover:bg-muted focus-visible:bg-muted disabled:opacity-50 ${item.destructive ? "text-error" : ""}`}
+              className={`flex min-h-11 w-full items-center gap-2 rounded-md px-2 text-left text-sm hover:bg-muted focus-visible:bg-muted disabled:opacity-50 ${item.destructive ? DESTRUCTIVE : ""}`}
             >
               {item.icon}
               <span className="min-w-0 flex-1 truncate">{item.label}</span>

@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { setAuthState } from "@/auth/state";
 import { Toaster } from "@/components/status/Toaster";
+import { DESTRUCTIVE } from "@/components/status/tone";
 import { paper } from "@/features/papers/fixtures";
 import { createAppRouter } from "@/router";
 import { seriousViolations } from "@/test/axe";
@@ -134,8 +135,8 @@ describe("Collections in the sidebar (AC6, AC7)", () => {
     fireEvent.click(await screen.findByRole("button", { name: "Actions for collection RAG & LLMs" }));
     const menu = screen.getByRole("menu");
     expect(menu.parentElement).toBe(document.body); // portal: never clipped by the sidebar's scroll
-    expect(within(menu).getByRole("menuitem", { name: "Delete" })).toHaveClass("text-error");
-    expect(within(menu).getByRole("menuitem", { name: "Rename" })).not.toHaveClass("text-error");
+    expect(within(menu).getByRole("menuitem", { name: "Delete" })).toHaveClass(DESTRUCTIVE);
+    expect(within(menu).getByRole("menuitem", { name: "Rename" })).not.toHaveClass(DESTRUCTIVE);
   });
 
   it("inside a collection a paper can be moved to another collection or removed", async () => {

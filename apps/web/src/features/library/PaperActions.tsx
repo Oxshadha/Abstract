@@ -4,6 +4,7 @@ import { useState, type SubmitEvent } from "react";
 
 import { Dialog, buttonPrimary, buttonSecondary, inputClass } from "@/components/dialog/Dialog";
 import { Menu } from "@/components/menu/Menu";
+import { FieldError } from "@/components/status/FieldError";
 import { toast } from "@/components/status/toast";
 import type { Paper } from "@/features/papers/api";
 
@@ -139,6 +140,7 @@ function CollectionsDialog({ paper, onClose }: { paper: Paper; onClose: () => vo
           placeholder="New collection"
           onChange={(e) => { setName(e.target.value); }}
           aria-invalid={error ? true : undefined}
+          aria-describedby={error ? `new-collection-error-${paper.id}` : undefined}
           className={inputClass}
         />
         <button type="submit" disabled={!name.trim() || create.isPending} className={buttonSecondary}>
@@ -146,7 +148,7 @@ function CollectionsDialog({ paper, onClose }: { paper: Paper; onClose: () => vo
           Create
         </button>
       </form>
-      {error && <p role="alert" className="text-sm text-error">{error}</p>}
+      <FieldError id={`new-collection-error-${paper.id}`} message={error} />
     </Dialog>
   );
 }

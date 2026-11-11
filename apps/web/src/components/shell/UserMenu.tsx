@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { fetchMe } from "@/api/me";
 import { useAuthState } from "@/auth/state";
 import { ThemeToggle } from "@/theme/ThemeToggle";
+import { DESTRUCTIVE } from "@/components/status/tone";
 
 function initials(name: string | null | undefined): string {
   const parts = (name ?? "").trim().split(/\s+/).filter(Boolean);
@@ -70,7 +71,7 @@ export function UserMenu() {
               setOpen(false);
               auth.signOut();
             }}
-            className="flex min-h-11 w-full items-center gap-2 rounded-md px-2 text-left text-error hover:bg-muted"
+            className={`flex min-h-11 w-full items-center gap-2 rounded-md px-2 text-left hover:bg-muted ${DESTRUCTIVE}`}
           >
             <LogOut aria-hidden className="size-4" />
             Sign out
