@@ -4,7 +4,7 @@
 |---|---|
 | **Status** | Approved (owner, 2026-11-12): default sort Recently added; passage search with no model tokens; debounce, paging and caching so the server is not hit on every keystroke or scroll |
 | **Week** | W3 (built before 009, D82) |
-| **Decisions** | D25, D27, D31, D39, D49, D60, D82 |
+| **Decisions** | D25, D27, D31, D39, D49, D60, D82, D83 |
 | **Engineering practices (D67)** | All 6 items of `engineering-practices.md` §3 Spec 013 are included (AC9 to AC14) |
 | **Feature flag** | none (core) |
 | **Mockup** | `UI/Abstract Research Library Dashboard.png` (minus the ⌘K badge and the Collections nav item, D82) |
@@ -19,9 +19,9 @@ One place to find any paper. The Library is the home page: upload on top, every 
 ## Acceptance criteria
 
 ### Library page (home)
-- [ ] **AC1** — `/app/library` is the home page. The upload area is shown in full when the user has no papers; once they have papers it collapses to the "Add Paper" button (top right, opens the file picker and accepts drops anywhere on the page).
+- [ ] **AC1** — (amended by D83) Home (`/app/home`, where `/app` and sign-in land) shows the research-paper upload area and the 5 papers opened most recently, with "View all in Library". The Library has an "Add Paper" button (opens the file picker; a PDF dropped anywhere on the page uploads too).
 - [ ] **AC2** — The list shows every paper of the user, newest first by default: title, authors and year (from the summary when available), pages, status pill, relative time, Open, and a "..." menu. More papers load automatically when the end of the list scrolls into view.
-- [ ] **AC3** — Filters All, Papers, Reports, Articles (from `doc_type`; papers without one appear only under All) and sort (Recently added, Recently opened, Title A to Z) are kept in the URL, so a filtered view can be bookmarked and survives a reload.
+- [ ] **AC3** — (amended by D83) Filters All and Starred and sort (Recently added, Recently opened, Title A to Z) are kept in the URL, so a filtered view can be bookmarked and survives a reload. No type filters in the UI (the API keeps `type` for later).
 - [ ] **AC4** — Grid and list views, the choice remembered on this device. On phones (< 768 px) rows stack with title first and all actions reachable at 44 px.
 
 ### Star and collections
