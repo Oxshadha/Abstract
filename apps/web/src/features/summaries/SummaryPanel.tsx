@@ -36,6 +36,8 @@ import {
   type Summary,
   type SummaryField,
 } from "./api";
+import { useCitations } from "@/features/viewer/citations";
+
 import { Markdown } from "./Markdown";
 import { pageLabel } from "./pages";
 import { useSummary } from "./useSummary";
@@ -56,6 +58,8 @@ const ICONS: Record<string, LucideIcon> = {
 function FieldCard({ field }: { field: SummaryField }) {
   const Icon = ICONS[field.key] ?? FileText;
   const [open, setOpen] = useState(false);
+  const viewer = useCitations();
+  const firstEvidence = field.evidence.find((e) => e.page != null && e.verified) ?? field.evidence.find((e) => e.page != null);
   const pages = field.evidence.map((e) => e.page).filter((p): p is number => p != null);
   return (
     <article className="border-b border-border pb-5 last:border-b-0">
@@ -81,6 +85,8 @@ function FieldCard({ field }: { field: SummaryField }) {
           aria-expanded={open}
           onClick={() => {
             setOpen(!open);
+            // Spec 008 AC4: open the cited page with the sentence highlighted.
+            if (!open && firstEvidence?.page != null) viewer?.open(firstEvidence.page, firstEvidence.quote);
           }}
           className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-md border border-border px-2.5 text-sm hover:bg-muted"
         >
@@ -93,9 +99,14 @@ function FieldCard({ field }: { field: SummaryField }) {
           {field.evidence.map((e, i) => (
             <li key={i} className="rounded-md bg-muted p-2.5 text-sm">
               <q className="font-reading">{e.quote}</q>
-              <span className="mt-1 block text-text-secondary">
+              <span className="mt-1 flex flex-wrap items-center gap-x-2 text-text-secondary">
                 {e.page != null ? `Page ${String(e.page)}` : "Page unknown"}
                 {e.verified ? " · found in the paper" : " · not found word for word"}
+                {viewer && e.page != null && (
+                  <button type="button" onClick={() => { viewer.open(e.page ?? 1, e.quote); }} className="min-h-9 underline">
+                    Show in paper
+                  </button>
+                )}
               </span>
             </li>
           ))}

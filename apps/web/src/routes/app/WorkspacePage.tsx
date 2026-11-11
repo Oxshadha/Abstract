@@ -1,13 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
 import { ArrowLeft, FileText, MessageSquare, Sparkles } from "lucide-react";
-import { useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
+import { useCallback, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 
 import { ErrorBoundary } from "@/components/feedback/ErrorBoundary";
 import { getPaper, paperKeys } from "@/features/papers/api";
 import { listSummaries, summaryKeys, type Summary } from "@/features/summaries/api";
 import { ChatPanel } from "@/features/chat/ChatPanel";
 import { SummaryPanel } from "@/features/summaries/SummaryPanel";
+import { CitationProvider } from "@/features/viewer/citations";
+import { PdfViewer } from "@/features/viewer/PdfViewer";
 import { useIsDesktop, useWorkspaceLayout } from "@/features/workspace/layout";
 
 type PanelId = "paper" | "summary" | "chat";
@@ -24,13 +26,8 @@ function byline(summary: Summary | undefined): string {
   return [authors, summary.year ? String(summary.year) : ""].filter(Boolean).join(" · ");
 }
 
-function PaperPanel() {
-  return (
-    <>
-      <h2 className="font-display text-lg font-bold">Paper</h2>
-      <p className="mt-2 text-sm text-text-secondary">The page viewer with highlighted citations arrives with spec 008.</p>
-    </>
-  );
+function PaperPanel({ paperId }: { paperId: string }) {
+  return <PdfViewer paperId={paperId} />;
 }
 
 function Panel({
@@ -108,7 +105,7 @@ function ToggleButton({ pressed, onClick, disabled, children }: { pressed: boole
  */
 export default function WorkspacePage() {
   const { paperId } = useParams({ from: "/app/papers/$paperId" });
-  const { layout, toggle, setChat, setSplit } = useWorkspaceLayout();
+  const { layout, toggle, setChat, setSplit, showPaper } = useWorkspaceLayout();
   const [mobile, setMobile] = useState<PanelId>("summary");
   const paper = useQuery({ queryKey: paperKeys.detail(paperId), queryFn: () => getPaper(paperId) });
   const summaries = useQuery({ queryKey: summaryKeys.forPaper(paperId), queryFn: () => listSummaries(paperId) });
@@ -118,8 +115,14 @@ export default function WorkspacePage() {
   });
   const both = layout.paper && layout.summary;
   const desktop = useIsDesktop();
+  // A citation click shows the Paper panel (desktop) or the Paper tab (phones), spec 008 AC4.
+  const openPaper = useCallback(() => {
+    if (desktop) showPaper();
+    else setMobile("paper");
+  }, [desktop, showPaper]);
 
   return (
+    <CitationProvider onOpen={openPaper}>
     <div className="flex h-full flex-col">
       <header className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-4">
         <Link to="/app/library" aria-label="Back to your library" className="inline-flex size-11 items-center justify-center rounded-md hover:bg-muted">
@@ -154,7 +157,7 @@ export default function WorkspacePage() {
         <div className="flex min-w-0 flex-1">
           {layout.paper && (
             <Panel label="Paper" className={both ? "" : "flex-1"} width={both ? layout.split : undefined}>
-              <PaperPanel />
+              <PaperPanel paperId={paperId} />
             </Panel>
           )}
           {both && <Divider split={layout.split} onChange={setSplit} />}
@@ -175,7 +178,7 @@ export default function WorkspacePage() {
       <>
       {/* Phones and tablets: one panel at a time (D60). */}
       <div className="flex-1 p-4 pb-20">
-        {mobile === "paper" && <Panel label="Paper"><PaperPanel /></Panel>}
+        {mobile === "paper" && <Panel label="Paper"><PaperPanel paperId={paperId} /></Panel>}
         {mobile === "summary" && <Panel label="Summary"><SummaryPanel paperId={paperId} /></Panel>}
         {mobile === "chat" && <Panel label="Ask Abstract"><ChatPanel paperId={paperId} /></Panel>}
       </div>
@@ -198,5 +201,6 @@ export default function WorkspacePage() {
       </>
       )}
     </div>
+    </CitationProvider>
   );
 }

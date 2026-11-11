@@ -16,6 +16,8 @@ import {
   type Conversation,
   type Message,
 } from "./api";
+import { useCitations } from "@/features/viewer/citations";
+
 import { withMarkers } from "./markers";
 import { completedSentences, useChat, type Draft } from "./useChat";
 
@@ -34,6 +36,7 @@ function citationLabel(c: Citation): string {
 
 function Citations({ items }: { items: Citation[] }) {
   const [open, setOpen] = useState<number | null>(null);
+  const viewer = useCitations();
   if (items.length === 0) return null;
   const current = items.find((c) => c.marker === open);
   return (
@@ -46,6 +49,8 @@ function Citations({ items }: { items: Citation[] }) {
             aria-expanded={open === c.marker}
             onClick={() => {
               setOpen(open === c.marker ? null : c.marker);
+              // Spec 008 AC4: open the cited page with the sentence highlighted.
+              if (c.page_start != null && open !== c.marker) viewer?.open(c.page_start, c.quote);
             }}
             className="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-border px-2 text-sm hover:bg-muted"
           >
@@ -271,7 +276,7 @@ export function ChatPanel({ paperId, onClose }: { paperId: string; onClose?: () 
         )}
       </div>
 
-      <div className="mt-3 flex min-h-0 flex-1 flex-col gap-4 overflow-auto" aria-label="Conversation">
+      <div className="mt-3 flex min-h-0 flex-1 flex-col gap-4 overflow-auto" role="log" aria-label="Conversation">
         {!available ? (
           <p className="text-sm text-text-secondary">Chat opens as soon as the paper is indexed. This takes a few seconds.</p>
         ) : empty ? (

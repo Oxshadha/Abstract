@@ -57,6 +57,9 @@ export function useWorkspaceLayout() {
   return {
     layout,
     toggle,
+    showPaper: () => {
+      setLayout((current) => ({ ...current, paper: true }));
+    },
     setChat: (chat: boolean) => {
       setLayout((current) => ({ ...current, chat }));
     },
