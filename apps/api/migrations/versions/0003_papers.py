@@ -35,6 +35,7 @@ SCHEMA = """
             declared_sha256 text NOT NULL CHECK (declared_sha256 ~ '^[0-9a-f]{64}$'),
             expires_at timestamptz NOT NULL,
             consumed_at timestamptz,
+            paper_id uuid,
             created_at timestamptz NOT NULL DEFAULT now()
         );
         CREATE INDEX uploads_org_owner_idx ON uploads (org_id, owner_id, created_at DESC);

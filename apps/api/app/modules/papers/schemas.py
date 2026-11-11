@@ -23,3 +23,34 @@ class UploadTicket(BaseModel):
     url: str
     fields: dict[str, str]
     expires_at: datetime
+
+
+class FinalizeRequest(StrictModel):
+    upload_id: UUID
+
+
+PaperStatus = Literal["processing", "ready", "failed"]
+
+
+class PaperOut(BaseModel):
+    id: UUID
+    filename: str
+    title: str | None
+    pages: int | None
+    size_bytes: int
+    status: PaperStatus
+    text_status: Literal["pending", "ready", "failed"]
+    error_message: str | None
+    created_at: datetime
+
+
+class JobOut(BaseModel):
+    id: UUID
+    status: str
+    step: str
+
+
+class FinalizeResponse(BaseModel):
+    paper: PaperOut
+    job: JobOut | None = None
+    duplicate: bool = False

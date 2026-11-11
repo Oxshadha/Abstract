@@ -42,7 +42,9 @@ async def api(database: dict[str, str]) -> AsyncIterator[PapersApi]:
     )
     async with (
         app.router.lifespan_context(app),
-        AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as client,
+        AsyncClient(
+            transport=ASGITransport(app=app, raise_app_exceptions=False), base_url="http://t"
+        ) as client,
     ):
         state.client = client
         yield state
