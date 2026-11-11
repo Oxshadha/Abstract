@@ -11,6 +11,7 @@ Streams fall back only before their first token; after that a failure reaches th
 """
 
 import asyncio
+import contextlib
 import contextvars
 import time
 from collections.abc import AsyncIterator, Awaitable, Callable
@@ -25,7 +26,7 @@ from app.ports.llm import ChatMessage, Completion, Embeddings, JsonSchema, Strea
 from app.ports.tracing import NoTracer, Tracer
 
 log = get_logger(__name__)
-Outcome = Literal["ok", "error", "fallback", "blocked"]
+Outcome = Literal["ok", "error", "fallback", "blocked", "stopped"]
 
 
 @dataclass(frozen=True)
@@ -311,13 +312,29 @@ class RoutedGateway:
 
         opened: _Opened = await self._run(task, first)
         usage = opened.first.usage
+        received: list[str] = [opened.first.text]
         try:
             yield opened.first
             async for chunk in opened.rest:
                 usage = chunk.usage or usage
+                received.append(chunk.text)
                 yield chunk
         except Exception as exc:
             await self._note(task, opened.route, "error", usage, opened.started, exc)
+            raise
+        except (asyncio.CancelledError, GeneratorExit):
+            # Stopped by the user (spec 007 AC13): record what was generated, estimated from
+            # the text received because providers report usage only at the end.
+            estimate = Usage(
+                provider=opened.route.provider,
+                model=opened.route.model,
+                task=task,
+                output_tokens=max(1, len("".join(received)) // 4),
+            )
+            with contextlib.suppress(BaseException):
+                await asyncio.shield(
+                    self._note(task, opened.route, "stopped", estimate, opened.started)
+                )
             raise
         await self._note(task, opened.route, "ok", usage, opened.started)
 

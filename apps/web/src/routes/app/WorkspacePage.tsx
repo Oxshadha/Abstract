@@ -1,11 +1,12 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
-import { ArrowLeft, FileText, MessageSquare, Sparkles, X } from "lucide-react";
+import { ArrowLeft, FileText, MessageSquare, Sparkles } from "lucide-react";
 import { useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 
 import { ErrorBoundary } from "@/components/feedback/ErrorBoundary";
 import { getPaper, paperKeys } from "@/features/papers/api";
 import { listSummaries, summaryKeys, type Summary } from "@/features/summaries/api";
+import { ChatPanel } from "@/features/chat/ChatPanel";
 import { SummaryPanel } from "@/features/summaries/SummaryPanel";
 import { useIsDesktop, useWorkspaceLayout } from "@/features/workspace/layout";
 
@@ -28,22 +29,6 @@ function PaperPanel() {
     <>
       <h2 className="font-display text-lg font-bold">Paper</h2>
       <p className="mt-2 text-sm text-text-secondary">The page viewer with highlighted citations arrives with spec 008.</p>
-    </>
-  );
-}
-
-function ChatPanel({ onClose }: { onClose?: () => void }) {
-  return (
-    <>
-      <div className="flex items-center justify-between">
-        <h2 className="font-display text-lg font-bold">Ask Abstract</h2>
-        {onClose && (
-          <button type="button" aria-label="Close chat" onClick={onClose} className="inline-flex size-11 items-center justify-center rounded-md hover:bg-muted">
-            <X aria-hidden className="size-5" />
-          </button>
-        )}
-      </div>
-      <p className="mt-2 text-sm text-text-secondary">Questions about this paper arrive with spec 007.</p>
     </>
   );
 }
@@ -181,7 +166,7 @@ export default function WorkspacePage() {
         </div>
         {layout.chat && (
           <Panel label="Ask Abstract" className="w-96 shrink-0">
-            <ChatPanel onClose={() => { setChat(false); }} />
+            <ChatPanel paperId={paperId} onClose={() => { setChat(false); }} />
           </Panel>
         )}
       </div>
@@ -192,7 +177,7 @@ export default function WorkspacePage() {
       <div className="flex-1 p-4 pb-20">
         {mobile === "paper" && <Panel label="Paper"><PaperPanel /></Panel>}
         {mobile === "summary" && <Panel label="Summary"><SummaryPanel paperId={paperId} /></Panel>}
-        {mobile === "chat" && <Panel label="Ask Abstract"><ChatPanel /></Panel>}
+        {mobile === "chat" && <Panel label="Ask Abstract"><ChatPanel paperId={paperId} /></Panel>}
       </div>
       <nav aria-label="Workspace panels" className="fixed inset-x-0 bottom-0 grid grid-cols-3 border-t border-border bg-surface">
         {MOBILE_TABS.map(({ id, label, Icon }) => (

@@ -15,6 +15,14 @@ Entry format:
 
 ---
 
+## 2026-11-11: Spec 007 chat implemented (17 of 18)
+**Done:** PR #8 (spec 006) merged. Spec 007 approved with owner answers (D80: gemini-3.6-flash for answers after a price check showed 3.5 Flash at twice the cost; hybrid retrieval always; reranker only by measurement). Built: conversations (AC1), streamed answers in the API process with status steps (AC2, AC7), short-term memory and query rewrite (AC3), hybrid paper-scoped retrieval (AC4), validated citations with quotes (AC5), guardrails with an OWASP LLM01-style test set (AC6), per-user answer cache (AC8), Ask Abstract panel (AC9, AC10), idempotent sends, heartbeats, stop with partial save, abort on switch, frame-batched tokens and sentence-level announcements, length cap, paged history (AC11 to AC17), reranker port and adapter off by default (AC18 code).
+**Verified:** Playwright happy path with a real cited answer from Gemini 3.6 Flash (desktop and phone).
+**Bugs caught:** context variables broken across tasks by the first heartbeat design (streams cut off); cached answers skipped the rolling summary; tests shared the dev stack's Redis; Gemini's grouped markers [S1, S2] were rejected as uncited; an example question was lost when it had to create the conversation first.
+**Decisions:** D80   **Specs:** 007 Implemented except AC18
+**Next:** owner enables the Discovery Engine API for experiment R; run experiments L (006 AC6) and R together; spec 008 (citations in the PDF viewer).
+**Blockers / waiting on owner:** enable `discoveryengine.googleapis.com` on the GCP project for the rerank experiment.
+
 ## 2026-11-11: Spec 006 summaries implemented (13 of 14); workspace layout D79
 **Done:** Templates as versioned data with Quick and Detailed seeded (AC1); template step after upload (AC2); summary job streaming fields from the sanitized PDF with the versioned prompt (AC3); deterministic quote verification and provisional/verified labels (AC4); gap-fill with full-text plus vector search (AC5); calm failures with Retry (AC7); Workspace Summary panel (AC8); versioned edits never overwritten (AC9); summary steps on the processing page (AC10); 3-query reads (AC11); autosave with If-Match (AC12); ETag and 304 (AC13); safe Markdown with KaTeX (AC14). Owner direction recorded as D79: editor-style Workspace (Paper and Summary side by side, hideable, resizable; chat on demand). Owner and reviewer approved R9 conditionally (D78).
 **Verified:** browser happy path with real Gemini at desktop and phone sizes.

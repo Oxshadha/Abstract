@@ -30,6 +30,18 @@ test("upload a paper and open it once chat is available", async ({ page }, testI
   await expect(open).toBeVisible({ timeout: 30_000 });
   await page.screenshot({ path: testInfo.outputPath("processing-done.png"), fullPage: true });
 
+  // Spec 007: ask a question in the workspace and get a cited answer.
+  await open.click();
+  await expect(page).toHaveURL(/\/app\/papers\/[0-9a-f-]+$/);
+  if (testInfo.project.name === "mobile") await page.getByRole("button", { name: "Chat" }).click();
+  else await page.getByRole("button", { name: "Ask Abstract" }).click(); // desktop toolbar
+  const input = page.getByLabel("Ask about this paper");
+  await expect(input).toBeEnabled({ timeout: 30_000 });
+  await input.fill("What does self attention relate?");
+  await input.press("Enter");
+  await expect(page.getByRole("button", { name: /^\[1\] p\. 1/ }).first()).toBeVisible({ timeout: 45_000 });
+  await page.screenshot({ path: testInfo.outputPath("chat-answer.png"), fullPage: true });
+
   await page.getByRole("link", { name: "Library" }).first().click();
   const row = page.getByRole("listitem").filter({ hasText: title });
   await expect(row.getByText("Ready")).toBeVisible({ timeout: 15_000 });

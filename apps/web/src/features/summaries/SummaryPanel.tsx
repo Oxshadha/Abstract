@@ -183,10 +183,10 @@ function TemplateSwitcher({
         onClick={() => {
           setOpen(!open);
         }}
-        className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border px-3 hover:bg-muted"
+        className="inline-flex min-h-11 min-w-0 items-center gap-2 rounded-md border border-border px-3 hover:bg-muted"
       >
-        <Layers aria-hidden className="size-4" />
-        {name}
+        <Layers aria-hidden className="size-4 shrink-0" />
+        <span className="truncate whitespace-nowrap">{name}</span>
         <ChevronDown aria-hidden className="size-4" />
       </button>
       {open && (
@@ -359,7 +359,7 @@ export function SummaryPanel({ paperId }: { paperId: string }) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="font-display text-lg font-bold">Summary</h2>
+        <h2 className="font-display text-lg font-bold whitespace-nowrap">Summary</h2>
         <TemplateSwitcher current={templateId} onChoose={choose} />
       </div>
       {summaries.isPending || (brief && summary.isPending) ? (
