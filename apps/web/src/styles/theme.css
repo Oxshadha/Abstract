@@ -1,0 +1,33 @@
+/* Generated from design/tokens.json by scripts/build-tokens.mjs. Do not edit. */
+@theme inline {
+  --font-display: var(--abs-font-display);
+  --font-ui: var(--abs-font-ui);
+  --font-reading: var(--abs-font-reading);
+  --radius-sm: var(--abs-radius-sm);
+  --radius-md: var(--abs-radius-md);
+  --radius-lg: var(--abs-radius-lg);
+  --radius-xl: var(--abs-radius-xl);
+  --radius-pill: var(--abs-radius-pill);
+  --spacing: var(--abs-spacing-unit);
+  --shadow-card: var(--abs-shadow-card);
+  --shadow-overlay: var(--abs-shadow-overlay);
+  --color-highlight: var(--abs-color-highlight);
+  --color-bg: var(--abs-color-bg);
+  --color-surface: var(--abs-color-surface);
+  --color-text: var(--abs-color-text);
+  --color-text-secondary: var(--abs-color-text-secondary);
+  --color-border: var(--abs-color-border);
+  --color-border-strong: var(--abs-color-border-strong);
+  --color-primary: var(--abs-color-primary);
+  --color-primary-text: var(--abs-color-primary-text);
+  --color-muted: var(--abs-color-muted);
+  --color-success: var(--abs-color-success);
+  --color-success-bg: var(--abs-color-success-bg);
+  --color-warning: var(--abs-color-warning);
+  --color-warning-bg: var(--abs-color-warning-bg);
+  --color-error: var(--abs-color-error);
+  --color-error-bg: var(--abs-color-error-bg);
+  --color-info: var(--abs-color-info);
+  --color-info-bg: var(--abs-color-info-bg);
+  --color-focus: var(--abs-color-focus);
+}

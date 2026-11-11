@@ -69,6 +69,10 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - name: Design tokens are up to date (spec 003 AC1)
+        run: |
+          pnpm tokens
+          git diff --exit-code -- src/styles/tokens.css src/styles/theme.css src/styles/tokens.ts
       - name: No em/en dashes or emojis in UI source (D62)
         working-directory: .
         run: scripts/check-ui-text.sh
