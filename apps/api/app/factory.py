@@ -3,8 +3,9 @@
 Tests build the app with injected readiness checks; production uses real clients.
 """
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -22,9 +23,18 @@ from app.core.middleware import RequestContextMiddleware
 from app.core.ratelimit import CounterStore, RedisCounterStore
 from app.core.readiness import ReadinessCheck
 from app.modules.identity import router as identity_router
+from app.modules.identity import webhooks as identity_webhooks
 from app.ports.auth import AuthProvider
 
 API_PREFIX = "/api/v1"
+
+
+def _celery_enqueue(task: str, kwargs: dict[str, Any]) -> None:
+    from app.worker.celery_app import celery_app
+
+    celery_app.send_task(task, kwargs=kwargs)
+
+
 log = get_logger(__name__)
 
 
@@ -34,6 +44,7 @@ def create_app(
     readiness_checks: dict[str, ReadinessCheck] | None = None,
     auth_provider: AuthProvider | None = None,
     rate_store: CounterStore | None = None,
+    enqueue: Callable[[str, dict[str, Any]], None] | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
     configure_logging(settings.log_level)
@@ -91,10 +102,12 @@ def create_app(
     app.add_middleware(RequestContextMiddleware)
     app.state.auth = auth
     app.state.settings = settings
+    app.state.enqueue = enqueue or _celery_enqueue
     install_error_handlers(app, production=settings.is_production)
 
     app.include_router(health.router, prefix=API_PREFIX)
     app.include_router(identity_router.router, prefix=API_PREFIX)
+    app.include_router(identity_webhooks.router, prefix=API_PREFIX)
     if not settings.is_production:
         app.include_router(debug.router, prefix=API_PREFIX)
     if auth.name == "dev":

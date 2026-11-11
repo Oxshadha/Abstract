@@ -172,6 +172,19 @@
         ],
         "title": "Ready",
         "type": "object"
+      },
+      "Received": {
+        "properties": {
+          "received": {
+            "title": "Received",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "received"
+        ],
+        "title": "Received",
+        "type": "object"
       }
     }
   },
@@ -286,6 +299,27 @@
         "summary": "Readiness: database, redis and object storage reachable",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/api/v1/webhooks/clerk": {
+      "post": {
+        "operationId": "clerk_webhook_api_v1_webhooks_clerk_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Received"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Clerk user lifecycle events (Svix-signed)",
+        "tags": [
+          "webhooks"
         ]
       }
     }

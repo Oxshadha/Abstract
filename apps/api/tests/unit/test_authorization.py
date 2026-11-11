@@ -13,6 +13,7 @@ PUBLIC_ROUTES = {
     "/api/v1/healthz",
     "/api/v1/readyz",
     "/api/v1/dev/token",  # dev login (D70), mounted only with the dev adapter
+    "/api/v1/webhooks/clerk",  # authenticated by Svix signature, not a user token
     "/api/v1/_debug/ping",  # dev-only diagnostics, never mounted in production
     "/api/v1/openapi.json",
     "/api/v1/docs",

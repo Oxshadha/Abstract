@@ -51,6 +51,7 @@ class Settings(BaseSettings):
     auth_provider: Literal["auto", "clerk", "dev"] = "auto"
     clerk_issuer: str | None = None  # e.g. https://<instance>.clerk.accounts.dev
     clerk_authorized_parties: list[str] = Field(default_factory=list)
+    clerk_webhook_secret: SecretStr | None = None  # "whsec_..." from the Clerk dashboard
     dev_auth_secret: SecretStr = Field(default_factory=lambda: SecretStr(secrets.token_urlsafe(32)))
 
     @model_validator(mode="after")
