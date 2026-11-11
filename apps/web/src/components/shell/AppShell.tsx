@@ -3,6 +3,7 @@ import { Bell, Menu, Search, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { ErrorBoundary } from "@/components/feedback/ErrorBoundary";
+import { OfflineBanner } from "@/components/feedback/offline";
 
 import { Sidebar } from "./Sidebar";
 import { UserMenu } from "./UserMenu";
@@ -69,6 +70,7 @@ export function AppShell() {
       )}
 
       <div className="flex min-w-0 flex-1 flex-col">
+        <OfflineBanner />
         <header className="flex items-center gap-2 border-b border-border px-4 py-3">
           <button
             ref={menuButton}
