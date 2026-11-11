@@ -13,6 +13,7 @@ export function ClerkBridge() {
       () => {
         void signOut();
       },
+      () => getToken({ skipCache: true }),
     );
     setAuthState({
       provider: "clerk",

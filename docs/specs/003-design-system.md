@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Implemented (2026-11-11, PR pending CI). Sentry live (EU); source-map upload activates when the auth token is added |
+| **Status** | Implemented (2026-11-11, PR #4). Sentry live (EU); source-map upload activates when the auth token is added |
 | **Week** | W2 |
 | **Decisions** | D17, D27, D33, D34, D35, D42, D43, D44, D45, D60, D62, D66, D67 |
 | **Requirements** | R4, N7 |

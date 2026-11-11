@@ -6,11 +6,25 @@
 export type TokenSource = () => Promise<string | null>;
 
 let tokenSource: TokenSource = () => Promise.resolve(null);
+let refreshSource: TokenSource = () => Promise.resolve(null);
 let unauthorizedHandler: () => void = () => undefined;
 
-export function configureAuth(source: TokenSource, onUnauthorized: () => void): void {
+/**
+ * `refresh` must return a brand-new token (bypassing any cache). On a 401 the client refreshes
+ * once and retries; only a second 401 ends the session.
+ */
+export function configureAuth(
+  source: TokenSource,
+  onUnauthorized: () => void,
+  refresh: TokenSource = source,
+): void {
   tokenSource = source;
+  refreshSource = refresh;
   unauthorizedHandler = onUnauthorized;
+}
+
+export function refreshToken(): Promise<string | null> {
+  return refreshSource();
 }
 
 export function currentToken(): Promise<string | null> {

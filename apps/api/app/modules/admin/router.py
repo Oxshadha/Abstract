@@ -30,6 +30,18 @@ class RoleChange(BaseModel):
 async def _set_role(ctx: Context, target: UUID, new_role: str) -> RoleChange:
     if target == ctx.identity.user_id and new_role != "admin":
         raise ProblemError(409, "self-demotion", "You cannot remove your own admin access")
+    # Serialize concurrent role changes: lock every admin row, then re-check under the lock.
+    # Without this, two admins revoking each other at the same moment could leave none.
+    admins = {
+        row.id
+        for row in await ctx.session.execute(
+            text("SELECT id FROM users WHERE platform_role = 'admin' ORDER BY id FOR UPDATE")
+        )
+    }
+    if ctx.identity.user_id not in admins:
+        raise ProblemError(403, "forbidden", "You no longer have admin access")
+    if new_role != "admin" and admins - {target} == set():
+        raise ProblemError(409, "last-admin", "At least one admin must remain")
     updated = (
         await ctx.session.execute(
             text(

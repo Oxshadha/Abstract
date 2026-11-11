@@ -113,3 +113,81 @@ async def test_AC10_bootstrap_command_grants_first_admin(
         database, "SELECT platform_role FROM users WHERE clerk_user_id = 'user_founder'"
     )
     assert role == [("admin",)]
+
+
+async def test_AC10_concurrent_mutual_revocation_keeps_one_admin(database: dict[str, str]) -> None:
+    """Two admins revoke each other at the same moment: exactly one succeeds, one admin remains."""
+    import asyncio
+
+    from sqlalchemy.ext.asyncio import async_sessionmaker
+
+    from app.core.context import Context
+    from app.core.errors import ProblemError
+    from app.modules.admin.router import _set_role
+    from app.modules.identity.service import provision
+    from app.ports.auth import Principal
+
+    engine = create_async_engine(database["app"], pool_size=4)
+    maker = async_sessionmaker(engine, expire_on_commit=False)
+    identities = {}
+    for subject in ("admin_a", "admin_b"):
+        async with maker() as session, session.begin():
+            identities[subject] = await provision(session, Principal(subject=subject))
+    await _sql(
+        database,
+        "UPDATE users SET platform_role = 'admin' WHERE clerk_user_id IN ('admin_a', 'admin_b')",
+    )
+    await _sql(
+        database,
+        "UPDATE users SET platform_role = 'user' WHERE platform_role = 'admin' "
+        "AND clerk_user_id NOT IN ('admin_a', 'admin_b')",
+    )
+
+    async def revoke(actor: str, target: str) -> str:
+        async with maker() as session, session.begin():
+            ident = await provision(session, Principal(subject=actor))
+            await asyncio.sleep(0)  # let both transactions start before either locks
+            try:
+                await _set_role(
+                    Context(identity=ident, session=session), identities[target].user_id, "user"
+                )
+            except ProblemError as exc:
+                return f"refused {exc.status}"
+            return "revoked"
+
+    try:
+        outcomes = await asyncio.gather(revoke("admin_a", "admin_b"), revoke("admin_b", "admin_a"))
+        assert outcomes.count("revoked") == 1, outcomes
+        remaining = await _sql(
+            database,
+            "SELECT count(*) FROM users WHERE platform_role = 'admin' "
+            "AND clerk_user_id IN ('admin_a', 'admin_b')",
+        )
+        assert remaining == [(1,)]
+    finally:
+        await engine.dispose()
+        await _sql(
+            database, "UPDATE users SET platform_role = 'user' WHERE clerk_user_id LIKE 'admin_%'"
+        )
+
+
+async def test_AC10_last_admin_cannot_be_removed(
+    client: AsyncClient, database: dict[str, str]
+) -> None:
+    await _sql(database, "UPDATE users SET platform_role = 'user' WHERE platform_role = 'admin'")
+    await _demo_role(database, "admin")
+    try:
+        me = (await client.get("/api/v1/me")).json()["user"]["id"]
+        other = (
+            await _sql(
+                database,
+                "INSERT INTO users (clerk_user_id, platform_role) VALUES ('user_plain', 'user') "
+                "ON CONFLICT (clerk_user_id) DO UPDATE SET platform_role = 'user' RETURNING id",
+            )
+        )[0][0]
+        # Revoking a non-admin is a no-op on the admin set and allowed.
+        assert (await client.post(f"/api/v1/admin/users/{other}/revoke-admin")).status_code == 200
+        # Only the demo admin remains; it cannot demote itself (409, self or last admin).
+        assert (await client.post(f"/api/v1/admin/users/{me}/revoke-admin")).status_code == 409
+    finally:
+        await _demo_role(database, "user")

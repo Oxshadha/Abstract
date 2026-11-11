@@ -37,7 +37,9 @@ async def env(database: dict[str, str]) -> AsyncIterator[tuple[AsyncClient, Reco
     )
     async with (
         app.router.lifespan_context(app),
-        AsyncClient(transport=ASGITransport(app=app), base_url="http://t") as client,
+        AsyncClient(
+            transport=ASGITransport(app=app, raise_app_exceptions=False), base_url="http://t"
+        ) as client,
     ):
         yield client, recorder
 
@@ -137,3 +139,75 @@ async def test_AC3_bad_signature_is_rejected(env: tuple[AsyncClient, Recorder]) 
     assert response.status_code == 400
     assert response.headers["content-type"] == "application/problem+json"
     assert recorder.calls == []
+
+
+async def test_AC3_events_after_deletion_never_re_enable_the_account(
+    env: tuple[AsyncClient, Recorder], database: dict[str, str]
+) -> None:
+    """Out-of-order delivery: Svix retries can deliver user.updated or a late user.created
+    after user.deleted. The account must stay disabled."""
+    client, _ = env
+    subject = "user_out_of_order"
+    for msg_id, event_type in (
+        ("ooo_created", "user.created"),
+        ("ooo_deleted", "user.deleted"),
+        ("ooo_updated", "user.updated"),
+        ("ooo_created_late", "user.created"),
+    ):
+        body = _event(event_type, subject)
+        response = await client.post(
+            "/api/v1/webhooks/clerk", content=body, headers=_headers(msg_id, body)
+        )
+        assert response.status_code == 200, (event_type, response.text)
+    assert (await _user(database, subject)).disabled_at is not None
+
+
+async def test_AC3_deletion_job_is_queued_only_after_commit(
+    env: tuple[AsyncClient, Recorder], database: dict[str, str]
+) -> None:
+    """If the transaction fails, the account stays enabled and no deletion job is queued."""
+    client, recorder = env
+    subject = "user_rollback"
+    created = _event("user.created", subject)
+    await client.post("/api/v1/webhooks/clerk", content=created, headers=_headers("rb_c", created))
+
+    engine = create_async_engine(database["admin"])
+    async with engine.begin() as conn:
+        org = (
+            await conn.execute(
+                text("INSERT INTO orgs (name, kind) VALUES ('Rollback', 'personal') RETURNING id")
+            )
+        ).scalar()
+        await conn.execute(
+            text("UPDATE users SET personal_org_id = :o WHERE clerk_user_id = :s"),
+            {"o": org, "s": subject},
+        )
+        # Fail at COMMIT (deferred trigger), i.e. after the handler's work: proves jobs are
+        # queued only once the commit succeeds, not merely after the last statement.
+        await conn.execute(
+            text(
+                "CREATE FUNCTION fail_on_disable() RETURNS trigger AS $$ BEGIN "
+                "IF NEW.clerk_user_id = 'user_rollback' AND NEW.disabled_at IS NOT NULL THEN "
+                "RAISE EXCEPTION 'forced commit failure'; END IF; RETURN NEW; END $$ "
+                "LANGUAGE plpgsql"
+            )
+        )
+        await conn.execute(
+            text(
+                "CREATE CONSTRAINT TRIGGER fail_on_disable AFTER UPDATE ON users "
+                "DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION fail_on_disable()"
+            )
+        )
+    try:
+        deleted = _event("user.deleted", subject)
+        response = await client.post(
+            "/api/v1/webhooks/clerk", content=deleted, headers=_headers("rb_d", deleted)
+        )
+        assert response.status_code == 500
+        assert recorder.calls == []  # nothing queued for a change that never committed
+        assert (await _user(database, subject)).disabled_at is None  # fully rolled back
+    finally:
+        async with engine.begin() as conn:
+            await conn.execute(text("DROP TRIGGER fail_on_disable ON users"))
+            await conn.execute(text("DROP FUNCTION fail_on_disable()"))
+        await engine.dispose()
