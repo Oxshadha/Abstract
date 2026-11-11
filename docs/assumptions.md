@@ -38,6 +38,7 @@ Agents: add an entry **before** acting on a new assumption. When the owner confi
 | C7 | `page.search_for(quote)` reliably finds model-quoted sentences despite ligatures and hyphenation; fuzzy fallback is needed. | Assumed | Spec 008 tests |
 | C8 | Pre-rendering the landing page works with the chosen Vite plugin and Clerk on the client side. | Assumed | Spec 016 |
 | C9 | Local `pgvector/pgvector:pg17` matches the Postgres major version of the Neon project (and pgvector supports `halfvec` there). | Assumed | Check Neon console at spec 017; integration test on `halfvec` |
+| C10 | **Neon connection budget (spec 002 AC9):** runtime uses the **pooled** endpoint (auto-detected by `-pooler` in the host; prepared-statement caches off, unique statement names); Alembic uses the **direct** endpoint. Per API process: pool 5 + overflow 10 = up to 15; per Celery worker process: same engine, concurrency 2. v1 on one EC2 host (1 API process, 1 worker with 2 processes) needs at most about 45 pooled client connections, far below the pooler's limit; direct connections are used only by migrations. | Assumed | Verify on the real Neon project at spec 017 (owner provides direct and pooled URLs) |
 
 ## D. External facts with expiry (re-check before relying on them)
 | ID | Fact (as of 2026-11-10) | Risk if changed |
