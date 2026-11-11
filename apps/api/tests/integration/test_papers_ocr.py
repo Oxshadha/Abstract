@@ -55,6 +55,8 @@ async def test_AC10_scanned_paper_becomes_ready_after_ocr(api: PapersApi, worker
     assert (after.status, after.text_status) == ("ready", "ready")
     chunk = await worker.row("SELECT text FROM chunks WHERE paper_id = :p", p=before.id)
     assert "residual learning" in chunk.text.lower()
+    title = await worker.row("SELECT title FROM papers WHERE id = :p", p=before.id)
+    assert title.title == "Residual Networks"  # from the OCR'd first page, not the filename
 
 
 async def test_AC10_mixed_paper_reindexes_digital_and_ocr_pages(

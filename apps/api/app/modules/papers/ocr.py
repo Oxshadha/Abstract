@@ -10,6 +10,7 @@ from uuid import UUID
 from sqlalchemy import text
 
 from app.adapters.pdf.ocr import ocr_pages
+from app.adapters.pdf.text import PageText, title_from_text
 from app.core.logging import get_logger
 from app.core.tenancy import set_tenant
 from app.modules.papers.chunking import chunk_paper
@@ -71,6 +72,9 @@ async def run_ocr(deps: Deps, org_id: UUID, job_id: UUID) -> None:
         await set_step(session, job_id, "indexing")
 
     title = paper.title or paper.filename
+    if title in (paper.filename, paper.filename.removesuffix(".pdf")):  # provisional: no text
+        page_texts = [PageText(p.page_no, p.text, True) for p in pages]
+        title = title_from_text(page_texts) or title
     chunks = chunk_paper(title, [(p.page_no, p.text) for p in pages if p.text.strip()])
     vectors, model = await embed_chunks(deps.gateway, chunks)
 
@@ -78,6 +82,10 @@ async def run_ocr(deps: Deps, org_id: UUID, job_id: UUID) -> None:
         await set_tenant(session, org_id)
         await lock_usable_paper(session, paper.id)
         await store_chunks(session, org_id, paper.id, chunks, vectors, model)
+        await session.execute(
+            text("UPDATE papers SET title = :title WHERE id = :id"),
+            {"title": title, "id": paper.id},
+        )
         await session.execute(
             text(
                 "UPDATE papers SET status = 'ready', updated_at = now(), text_status ="

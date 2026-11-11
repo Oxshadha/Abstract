@@ -55,7 +55,7 @@ def _title_line(line: str) -> bool:
     )
 
 
-def _first_line_title(pages: list[PageText]) -> str | None:
+def title_from_text(pages: list[PageText]) -> str | None:
     """First title-like line of page 1, joined with the next line when the title wraps."""
     if not pages:
         return None
@@ -91,6 +91,6 @@ def extract_text(data: bytes) -> ExtractedPdf:
                 page.close()
             visible = sum(1 for c in text if not c.isspace())
             pages.append(PageText(index + 1, text, visible >= MIN_TEXT_CHARS))
-        return ExtractedPdf(pages=pages, title=_metadata_title(pdf) or _first_line_title(pages))
+        return ExtractedPdf(pages=pages, title=_metadata_title(pdf) or title_from_text(pages))
     finally:
         pdf.close()
