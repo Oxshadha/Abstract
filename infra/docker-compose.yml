@@ -109,6 +109,15 @@ services:
   worker:
     build: { context: ./apps/api, target: dev }
     command: ["celery", "-A", "app.worker.celery_app", "worker", "--loglevel=INFO", "-Q", "fast", "--concurrency=2", "-n", "fast@%h"]
+    # Hardened sandbox for untrusted PDFs (spec 004 AC13, D77): no host ports, read-only root,
+    # scratch space in memory only, no Linux capabilities, no privilege escalation, capped RAM.
+    <<: &worker-hardening
+      read_only: true
+      tmpfs: ["/tmp:size=512m,mode=1777"]
+      cap_drop: [ALL]
+      security_opt: ["no-new-privileges:true"]
+      pids_limit: 256
+    mem_limit: 1g
     environment: &worker-env
       <<: *api-env
       DATABASE_URL: postgresql+asyncpg://abstract_worker:abstract_worker_dev@postgres:5432/${POSTGRES_DB:-abstract}
@@ -121,6 +130,8 @@ services:
   worker-bg:
     build: { context: ./apps/api, target: dev }
     command: ["celery", "-A", "app.worker.celery_app", "worker", "--loglevel=INFO", "-Q", "enrichment,scan,deletion", "--concurrency=1", "-n", "bg@%h"]
+    <<: *worker-hardening
+    mem_limit: 2g  # OCR renders pages at 300 dpi
     environment: *worker-env
     volumes: ["./apps/api/app:/app/app"]
     secrets: [gcp_sa]

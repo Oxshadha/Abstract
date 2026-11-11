@@ -33,8 +33,10 @@ dev = [
     "pytest>=9.2.0",
     "pytest-asyncio>=1.4.1.post1",
     "pytest-socket>=0.8.1",
+    "pyyaml>=6.0.3",
     "ruff>=0.17.4",
     "testcontainers[postgres]>=4.15.0",
+    "types-pyyaml>=6.0.12,<6.0.12.20261001",
 ]
 eval = [
     "pillow>=13.0.0",
