@@ -2,6 +2,8 @@ import { Outlet } from "@tanstack/react-router";
 import { Bell, Menu, Search, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { ErrorBoundary } from "@/components/feedback/ErrorBoundary";
+
 import { Sidebar } from "./Sidebar";
 import { UserMenu } from "./UserMenu";
 
@@ -101,7 +103,9 @@ export function AppShell() {
           </div>
         </header>
         <main id="main" className="min-w-0 flex-1">
-          <Outlet />
+          <ErrorBoundary name="this page">
+            <Outlet />
+          </ErrorBoundary>
         </main>
       </div>
     </div>

@@ -2,6 +2,8 @@ import { useParams } from "@tanstack/react-router";
 import { FileText, MessageSquare, Sparkles } from "lucide-react";
 import { useState } from "react";
 
+import { ErrorBoundary } from "@/components/feedback/ErrorBoundary";
+
 function PageHeader({ title, description }: { title: string; description: string }) {
   return (
     <header className="px-4 pt-6 pb-4 md:px-8">
@@ -46,7 +48,9 @@ export function WorkspacePage() {
             aria-label={label}
             className={`${active === id ? "block" : "hidden"} min-h-64 rounded-lg border border-border bg-surface p-4 lg:block`}
           >
-            <h2 className="font-display text-lg font-bold">{label === "Chat" ? "Ask Abstract" : label}</h2>
+            <ErrorBoundary name={`the ${label.toLowerCase()} panel`}>
+              <h2 className="font-display text-lg font-bold">{label === "Chat" ? "Ask Abstract" : label}</h2>
+            </ErrorBoundary>
           </section>
         ))}
       </div>
