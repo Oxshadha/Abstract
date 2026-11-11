@@ -4,7 +4,8 @@ name: abstract
 x-api-env: &api-env
   ENV: development
   LOG_LEVEL: ${LOG_LEVEL:-INFO}
-  DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-abstract}:${POSTGRES_PASSWORD:-abstract}@postgres:5432/${POSTGRES_DB:-abstract}
+  # Runtime role: never the table owner, so RLS always applies (spec 002 AC6).
+  DATABASE_URL: postgresql+asyncpg://abstract_app:abstract_app_dev@postgres:5432/${POSTGRES_DB:-abstract}
   REDIS_URL: redis://redis:6379/0
   S3_ENDPOINT_URL: http://s3:8333
   S3_BUCKET: ${S3_BUCKET:-abstract-dev}
@@ -56,12 +57,25 @@ services:
       timeout: 3s
       retries: 30
 
+  # Creates the runtime roles (idempotent) before migrations run.
+  db-init:
+    image: pgvector/pgvector:0.8.7-pg17
+    command: ["psql", "-v", "ON_ERROR_STOP=1", "-h", "postgres", "-U", "${POSTGRES_USER:-abstract}", "-d", "${POSTGRES_DB:-abstract}", "-f", "/roles.sql"]
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD:-abstract}
+    volumes: ["./infra/postgres/roles.sql:/roles.sql:ro"]
+    depends_on:
+      postgres: { condition: service_healthy }
+
   migrate:
     build: { context: ./apps/api, target: dev }
     command: ["alembic", "upgrade", "head"]
-    environment: *api-env
+    environment:
+      <<: *api-env
+      # Migrations run as the owner; the app uses the runtime role above.
+      MIGRATIONS_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-abstract}:${POSTGRES_PASSWORD:-abstract}@postgres:5432/${POSTGRES_DB:-abstract}
     depends_on:
-      postgres: { condition: service_healthy }
+      db-init: { condition: service_completed_successfully }
 
   api:
     build: { context: ./apps/api, target: dev }
@@ -82,7 +96,9 @@ services:
   worker:
     build: { context: ./apps/api, target: dev }
     command: ["celery", "-A", "app.worker.celery_app", "worker", "--loglevel=INFO", "--concurrency=2"]
-    environment: *api-env
+    environment:
+      <<: *api-env
+      DATABASE_URL: postgresql+asyncpg://abstract_worker:abstract_worker_dev@postgres:5432/${POSTGRES_DB:-abstract}
     volumes: ["./apps/api/app:/app/app"]
     secrets: [gcp_sa]
     depends_on:

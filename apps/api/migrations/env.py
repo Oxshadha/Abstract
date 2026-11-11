@@ -1,4 +1,4 @@
-"""Alembic environment (async). The database URL comes only from DATABASE_URL."""
+"""Alembic environment (async). URL from MIGRATIONS_DATABASE_URL, else DATABASE_URL."""
 
 import asyncio
 import os
@@ -11,9 +11,10 @@ target_metadata = None  # models are added from spec 002 onwards
 
 
 def _url() -> str:
-    url = os.environ.get("DATABASE_URL")
+    # Migrations run as the table OWNER; the app runs as a separate runtime role (spec 002).
+    url = os.environ.get("MIGRATIONS_DATABASE_URL") or os.environ.get("DATABASE_URL")
     if not url:
-        raise RuntimeError("DATABASE_URL is required to run migrations")
+        raise RuntimeError("MIGRATIONS_DATABASE_URL (or DATABASE_URL) is required for migrations")
     return url
 
 
