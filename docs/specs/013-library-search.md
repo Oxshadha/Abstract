@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Approved (owner, 2026-11-12): default sort Recently added; passage search with no model tokens; debounce, paging and caching so the server is not hit on every keystroke or scroll |
+| **Status** | Implemented (2026-11-12). Approved (owner, 2026-11-12): default sort Recently added; passage search with no model tokens; debounce, paging and caching so the server is not hit on every keystroke or scroll |
 | **Week** | W3 (built before 009, D82) |
 | **Decisions** | D25, D27, D31, D39, D49, D60, D82, D83 |
 | **Engineering practices (D67)** | All 6 items of `engineering-practices.md` §3 Spec 013 are included (AC9 to AC14) |
@@ -19,26 +19,32 @@ One place to find any paper. The Library is the home page: upload on top, every 
 ## Acceptance criteria
 
 ### Library page (home)
-- [ ] **AC1** — (amended by D83) Home (`/app/home`, where `/app` and sign-in land) shows the research-paper upload area and the 5 papers opened most recently, with "View all in Library". The Library has an "Add Paper" button (opens the file picker; a PDF dropped anywhere on the page uploads too).
-- [ ] **AC2** — The list shows every paper of the user, newest first by default: title, authors and year (from the summary when available), pages, status pill, relative time, Open, and a "..." menu. More papers load automatically when the end of the list scrolls into view.
-- [ ] **AC3** — (amended by D83) Filters All and Starred and sort (Recently added, Recently opened, Title A to Z) are kept in the URL, so a filtered view can be bookmarked and survives a reload. No type filters in the UI (the API keeps `type` for later).
-- [ ] **AC4** — Grid and list views, the choice remembered on this device. On phones (< 768 px) rows stack with title first and all actions reachable at 44 px.
+- [x] **AC1** — (amended by D83) Home (`/app/home`, where `/app` and sign-in land) shows the research-paper upload area and the 5 papers opened most recently, with "View all in Library". The Library has an "Add Paper" button (opens the file picker; a PDF dropped anywhere on the page uploads too).
+- [x] **AC2** — The list shows every paper of the user, newest first by default: title, authors and year (from the summary when available), pages, status pill, relative time, Open, and a "..." menu. More papers load automatically when the end of the list scrolls into view.
+- [x] **AC3** — (amended by D83) Filters All and Starred and sort (Recently added, Recently opened, Title A to Z) are kept in the URL, so a filtered view can be bookmarked and survives a reload. No type filters in the UI (the API keeps `type` for later).
+- [x] **AC4** — Grid and list views, the choice remembered on this device. On phones (< 768 px) rows stack with title first and all actions reachable at 44 px.
 
 ### Star and collections
-- [ ] **AC5** — A paper can be starred from its row or the Workspace header; a "Starred" filter shows only starred papers.
-- [ ] **AC6** — The sidebar lists the user's collections with paper counts under the Library item. "+" creates one (name 1 to 60 characters, unique per user); each has a "..." menu with Rename and Delete. Deleting a collection never deletes its papers.
-- [ ] **AC7** — Choosing a collection shows the Library filtered to it at `/app/library?collection=<id>`, with the same search, filters and sort. A paper can be in several collections; "Add to collection" in its "..." menu lists collections with checkmarks and can create a new one inline.
+- [x] **AC5** — A paper can be starred from its row or the Workspace header; a "Starred" filter shows only starred papers.
+- [x] **AC6** — The sidebar lists the user's collections with paper counts under the Library item. "+" creates one (name 1 to 60 characters, unique per user); each has a "..." menu with Rename and Delete. Deleting a collection never deletes its papers.
+- [x] **AC7** — Choosing a collection shows the Library filtered to it at `/app/library?collection=<id>`, with the same search, filters and sort. A paper can be in several collections; "Add to collection" in its "..." menu lists collections with checkmarks and can create a new one inline.
 
 ### Search
-- [ ] **AC8** — The top-bar search (Ctrl+K or Cmd+K, named in the tooltip; no key badge on screen) opens a search panel: results grouped as Papers (title and author matches) and In papers (passages from the full text, with the page number); Enter or a click opens the paper (a passage result opens the Workspace at that page). On phones the top bar shows a search icon that opens the panel full screen. Results respect the open collection when one is selected, with a "Search all papers" switch. Search is Postgres full-text and trigram matching only: no embedding or LLM call, so it uses no model tokens.
+- [x] **AC8** — The top-bar search (Ctrl+K or Cmd+K, named in the tooltip; no key badge on screen) opens a search panel: results grouped as Papers (title and author matches) and In papers (passages from the full text, with the page number); Enter or a click opens the paper (a passage result opens the Workspace at that page). On phones the top bar shows a search icon that opens the panel full screen. Results respect the open collection when one is selected, with a "Search all papers" switch. Search is Postgres full-text and trigram matching only: no embedding or LLM call, so it uses no model tokens.
 
 ### Engineering practices (D67)
-- [ ] **AC9** — Query budget: the list, a collection view and search each run at most 3 SQL queries regardless of page size, proved by a test that counts queries.
-- [ ] **AC10** — Search input is debounced 250 ms, queries under 2 characters do not hit the API, and each new keystroke aborts the previous request. Results are cached per query for 60 s, so typing back to an earlier query or reopening search does not call the API again; list pages are cached the same way and refreshed only when a paper or collection changes.
-- [ ] **AC11** — List endpoints use opaque keyset cursors on the sort key plus `id`, `limit` at most 50; the web app uses `useInfiniteQuery` with a sentinel.
-- [ ] **AC12** — Star, rename, add to or remove from collection are optimistic, roll back on error and show a toast.
-- [ ] **AC13** — Hovering or focusing a row prefetches the paper and its summary, so opening it shows the summary at once.
-- [ ] **AC14** — Indexes: `(org_id, owner_id, created_at DESC, id)` and `(owner_id, last_opened_at DESC, id)` on papers, GIN on the paper search `tsvector`, GIN trigram on title; `EXPLAIN` in a test shows the list and search use them.
+- [x] **AC9** — Query budget: the list, a collection view and search each run at most 3 SQL queries regardless of page size, proved by a test that counts queries.
+- [x] **AC10** — Search input is debounced 250 ms, queries under 2 characters do not hit the API, and each new keystroke aborts the previous request. Results are cached per query for 60 s, so typing back to an earlier query or reopening search does not call the API again; list pages are cached the same way and refreshed only when a paper or collection changes.
+- [x] **AC11** — List endpoints use opaque keyset cursors on the sort key plus `id`, `limit` at most 50; the web app uses `useInfiniteQuery` with a sentinel.
+- [x] **AC12** — Star, rename, add to or remove from collection are optimistic, roll back on error and show a toast.
+- [x] **AC13** — Hovering or focusing a row prefetches the paper and its summary, so opening it shows the summary at once.
+- [x] **AC14** — Indexes: `(org_id, owner_id, created_at DESC, id)` and `(owner_id, last_opened_at DESC, id)` on papers, GIN on the paper search `tsvector`, GIN trigram on title; `EXPLAIN` in a test shows the list and search use them.
+
+## Implementation notes
+- API: `app/modules/library/` (collections, search), list, rename, star and opened in `app/modules/papers/`; migration 0008. Tests: `tests/integration/test_library.py` (sorting and cursors, filters, privacy, search with typos and passages, query budget, index use).
+- Web: `src/features/library/` (Home, Library, sidebar collections, search dialog, optimistic mutations), shared `Menu`, `Select` and `Dialog` in `src/components/`. Tests: `library.test.tsx`; Playwright covers upload on Home, a new collection and a scoped search that opens a passage at its page, in Chromium, WebKit and Firefox.
+- Owner review changed the layout during the build: Home plus Library and no type filters (D83); floating menus, red destructive items and moving papers between collections (D84).
+- Search typo tolerance uses word-level trigram similarity (threshold 0.4, set per transaction), so a misspelt word finds a long title.
 
 ## API contract
 | Method | Path | Request | Response | Errors |

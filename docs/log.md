@@ -15,6 +15,14 @@ Entry format:
 
 ---
 
+## 2026-11-12: Spec 013 Library, collections and search implemented
+**Done:** Home (upload plus the five papers opened most recently) and Library (every paper, All/Starred, sort, grid/list, infinite loading, Add Paper with drop-anywhere upload); star and rename; collections as sidebar folders with move and remove; Ctrl/Cmd+K search over titles, authors and passages with no model tokens (debounced, aborted, cached), passages open at their page highlighted. Menus and dropdowns now float above panels; Delete and Sign out are red. API with migration 0008, query budget and index tests.
+**Verified:** Playwright in Chromium, WebKit and Firefox, desktop and phone.
+**Found:** PR #10 (spec 008) merged into `feat/007-chat` after #9 had merged, so 008 never reached `main`; reopened as #11 against `main`.
+**Decisions:** D82, D83, D84   **Specs:** 013 Implemented
+**Next:** spec 009 (tables, figures, Figures tab, Ask about this region).
+**Blockers / waiting on owner:** merge #11 (008), then the 013 PR.
+
 ## 2026-11-12: Owner review of the running app; spec 013 approved and next
 **Done:** Fixed a Safari and older-Chrome crash in the Paper panel (pdf.js legacy build); replaced native controls with one shared design-system dropdown; Playwright now runs Chromium, WebKit and Firefox (desktop and phones), all passing. Owner decided the Library is the home page, collections are sidebar folders and search is built next (D82); spec 013 drafted and approved (default sort Recently added; passage search with no model tokens; debounce, paging and caching). Removed the Mac-only shortcut badge. CI: the Tesseract install now retries after a runner DNS outage failed PR #9.
 **Decisions:** D82   **Specs:** 008 Implemented, 013 Approved
