@@ -279,6 +279,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/papers/{paper_id}/summaries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The paper's summaries, one per template */
+        get: operations["list_summaries_api_v1_papers__paper_id__summaries_get"];
+        put?: never;
+        /** Start a summary of a paper with a template (or return the existing one) */
+        post: operations["create_summary_api_v1_papers__paper_id__summaries_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/readyz": {
         parameters: {
             query?: never;
@@ -288,6 +306,40 @@ export interface paths {
         };
         /** Readiness: database, redis and object storage reachable */
         get: operations["readyz_api_v1_readyz_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/summaries/{summary_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A summary with all fields and evidence (ETag, 304 when unchanged) */
+        get: operations["get_summary_api_v1_summaries__summary_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/summaries/{summary_id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Summary progress as Server-Sent Events (a snapshot whenever fields change) */
+        get: operations["summary_events_api_v1_summaries__summary_id__events_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -334,6 +386,20 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** CreateSummary */
+        CreateSummary: {
+            /**
+             * Template Id
+             * Format: uuid
+             */
+            template_id: string;
+        };
+        /** CreatedSummary */
+        CreatedSummary: {
+            /** Created */
+            created: boolean;
+            summary: components["schemas"]["SummaryBrief"];
+        };
         /** DevToken */
         DevToken: {
             /** Token */
@@ -343,6 +409,45 @@ export interface components {
              * @default bearer
              */
             token_type: string;
+        };
+        /** EvidenceOut */
+        EvidenceOut: {
+            /** Page */
+            page: number | null;
+            /** Quote */
+            quote: string;
+            /** Verified */
+            verified: boolean;
+        };
+        /** FieldOut */
+        FieldOut: {
+            /** Edited */
+            edited: boolean;
+            /** Evidence */
+            evidence: components["schemas"]["EvidenceOut"][];
+            /** Gap Filled */
+            gap_filled: boolean;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "found" | "inferred" | "not_reported";
+            /**
+             * Style
+             * @enum {string}
+             */
+            style: "paragraph" | "bullets" | "short";
+            /** Value */
+            value: string;
+            /**
+             * Verification
+             * @enum {string}
+             */
+            verification: "verified" | "provisional";
         };
         /** FinalizeRequest */
         FinalizeRequest: {
@@ -643,6 +748,86 @@ export interface components {
              * @enum {string}
              */
             state: "done" | "active" | "pending" | "failed";
+        };
+        /** SummaryBrief */
+        SummaryBrief: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "generating" | "ready" | "failed";
+            /**
+             * Template Id
+             * Format: uuid
+             */
+            template_id: string;
+            /** Template Name */
+            template_name: string;
+        };
+        /** SummaryList */
+        SummaryList: {
+            /** Items */
+            items: components["schemas"]["SummaryBrief"][];
+        };
+        /** SummaryOut */
+        SummaryOut: {
+            /** Authors */
+            authors: string[];
+            /**
+             * Coverage
+             * @enum {string}
+             */
+            coverage: "full" | "partial";
+            /** Doc Type */
+            doc_type: string | null;
+            /** Error Message */
+            error_message: string | null;
+            /** Expected Fields */
+            expected_fields: number;
+            /** Fields */
+            fields: components["schemas"]["FieldOut"][];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Paper Id
+             * Format: uuid
+             */
+            paper_id: string;
+            /** Seq */
+            seq: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "queued" | "generating" | "ready" | "failed";
+            /**
+             * Template Id
+             * Format: uuid
+             */
+            template_id: string;
+            /** Template Name */
+            template_name: string;
+            /** Template Version */
+            template_version: number;
+            /** Title */
+            title: string | null;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /** Version */
+            version: number;
+            /** Year */
+            year: number | null;
         };
         /** TemplateField */
         TemplateField: {
@@ -1339,6 +1524,83 @@ export interface operations {
             };
         };
     };
+    list_summaries_api_v1_papers__paper_id__summaries_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SummaryList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_summary_api_v1_papers__paper_id__summaries_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path: {
+                paper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateSummary"];
+            };
+        };
+        responses: {
+            /** @description Already exists */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedSummary"];
+                };
+            };
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedSummary"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     readyz_api_v1_readyz_get: {
         parameters: {
             query?: never;
@@ -1363,6 +1625,79 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    get_summary_api_v1_summaries__summary_id__get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "If-None-Match"?: string | null;
+            };
+            path: {
+                summary_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SummaryOut"];
+                };
+            };
+            /** @description Not modified */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    summary_events_api_v1_summaries__summary_id__events_get: {
+        parameters: {
+            query?: never;
+            header?: {
+                "Last-Event-ID"?: number | null;
+            };
+            path: {
+                summary_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };

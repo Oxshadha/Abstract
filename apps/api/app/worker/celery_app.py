@@ -23,6 +23,7 @@ QUEUES = ("fast", "enrichment", "scan", "deletion")
 TASKS: dict[str, tuple[str, int, int]] = {
     "app.worker.tasks.ingest_paper": ("fast", 120, 150),
     "app.worker.tasks.ocr_pages": ("enrichment", 600, 660),
+    "app.worker.tasks.generate_summary": ("fast", 240, 270),
     "app.worker.tasks.scan_paper": ("scan", 300, 330),
     "app.worker.tasks.delete_paper": ("deletion", 120, 150),
     "app.worker.tasks.reindex_embeddings": ("enrichment", 900, 960),

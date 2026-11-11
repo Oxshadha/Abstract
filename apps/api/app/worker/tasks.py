@@ -15,6 +15,8 @@ from app.modules.papers import ocr as ocr_module
 from app.modules.papers import scan as scan_module
 from app.modules.papers.ingest import Deps
 from app.modules.papers.runner import JobTimeoutError, Outcome, run_job
+from app.modules.summaries import failures as summary_failures
+from app.modules.summaries import generate as summary_module
 from app.worker.celery_app import celery_app
 from app.worker.runtime import worker_deps
 
@@ -23,7 +25,14 @@ Step = Callable[[Deps, UUID, UUID], Awaitable[None]]
 
 
 async def _run(
-    step: Step, job_id: UUID, org_id: UUID, retries: int, *, name: str, scan: bool = False
+    step: Step,
+    job_id: UUID,
+    org_id: UUID,
+    retries: int,
+    *,
+    name: str,
+    scan: bool = False,
+    summary: bool = False,
 ) -> Outcome:
     async with worker_deps() as deps:
 
@@ -36,6 +45,9 @@ async def _run(
         async def scan_give_up(reason: str) -> None:
             await scan_module.give_up(deps, org_id, job_id, reason)
 
+        async def summary_give_up(reason: str) -> None:
+            await summary_failures.give_up(deps, org_id, job_id, reason)
+
         return await run_job(
             deps.sessionmaker,
             org_id,
@@ -43,17 +55,32 @@ async def _run(
             work,
             retries=retries,
             max_retries=MAX_RETRIES,
-            give_up=scan_give_up if scan else None,
+            give_up=scan_give_up if scan else summary_give_up if summary else None,
             tracer=deps.tracer,
             trace_name=name,
         )
 
 
 def _job_task(
-    task: Any, step: Step, job_id: str, org_id: str, *, name: str, scan: bool = False
+    task: Any,
+    step: Step,
+    job_id: str,
+    org_id: str,
+    *,
+    name: str,
+    scan: bool = False,
+    summary: bool = False,
 ) -> str:
     outcome = asyncio.run(
-        _run(step, UUID(job_id), UUID(org_id), task.request.retries, name=name, scan=scan)
+        _run(
+            step,
+            UUID(job_id),
+            UUID(org_id),
+            task.request.retries,
+            name=name,
+            scan=scan,
+            summary=summary,
+        )
     )
     if outcome.kind == "retry":
         raise task.retry(countdown=outcome.retry_in)
@@ -64,6 +91,19 @@ def _job_task(
 def ingest_paper(self: Any, job_id: str, org_id: str) -> str:
     """Fast path for one uploaded PDF (spec 004 AC10, AC11)."""
     return _job_task(self, ingest_module.ingest, job_id, org_id, name="ingest-paper")
+
+
+@celery_app.task(bind=True, name="app.worker.tasks.generate_summary", max_retries=MAX_RETRIES)  # type: ignore[untyped-decorator]
+def generate_summary(self: Any, job_id: str, org_id: str) -> str:
+    """Structured summary from the sanitized PDF (spec 006 AC3 to AC5); never blocks chat."""
+    return _job_task(
+        self,
+        summary_module.run_summary,
+        job_id,
+        org_id,
+        name="generate-summary",
+        summary=True,
+    )
 
 
 @celery_app.task(bind=True, name="app.worker.tasks.ocr_pages", max_retries=MAX_RETRIES)  # type: ignore[untyped-decorator]
