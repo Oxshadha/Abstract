@@ -180,6 +180,7 @@ Owner principle: **design for scale, build for now.** Every item is either a **B
 - Each chunk row stores `embedding_model` and `embedding_dims`.
 
 **Spec 006 (Summaries)**
+- **Query budget:** fetching a summary with all fields, evidence and citations makes at most a fixed number of SQL queries regardless of field or citation count (proposal: at most 4); a test counts queries with a SQLAlchemy event listener (review follow-up to 002 AC12).
 - Summary edits autosave after 1 s of inactivity with a visible "Saved" state; saves send `If-Match: <version>` and a stale version returns `412`, prompting the user to reload or keep their copy.
 - `GET /summaries/{id}` returns an `ETag` and `Cache-Control: private, no-cache`; a `304` is served when unchanged.
 - Markdown is rendered with react-markdown without `rehype-raw`; links get `rel="noopener noreferrer nofollow"` and only `http(s)` and `mailto` protocols; KaTeX >= 0.16.21 with `trust: false`; if any HTML is ever allowed, `rehype-sanitize` runs before `rehype-katex`.
@@ -215,6 +216,7 @@ Owner principle: **design for scale, build for now.** Every item is either a **B
 - Each user has a cap on concurrent processing jobs (proposal: 2 on the free plan); further uploads are accepted as `queued`.
 
 **Spec 013 (Library, collections, ⌘K)**
+- **Query budget:** the Library list, a collection page and search each make at most a fixed number of SQL queries regardless of page size (proposal: at most 3), proving relationships are loaded with `selectinload`, not per row; a test counts queries with a SQLAlchemy event listener (review follow-up to 002 AC12).
 - The search input is debounced 250 ms; a new keystroke aborts the previous request through the query `signal`; queries shorter than 2 characters do not hit the API.
 - List endpoints use opaque keyset cursors on `(created_at, id)` with `limit` <= 50; the SPA uses `useInfiniteQuery` with a "Load more" sentinel.
 - Star, rename and add-to-collection are optimistic with rollback on error and a toast.
