@@ -40,6 +40,11 @@ Every request is authenticated, every row belongs to an organisation, and no use
 - [ ] **AC13** — `GET /api/v1/me` returns the user, the active org, the user's role in it and the platform role; request logs carry `user_id` and `org_id` after authentication.
 - [ ] **AC14** — The web app wraps the router in `ClerkProvider`; the generated API client attaches `Authorization: Bearer <token>` per request via Clerk's `getToken()`; a `401` from the API signs the user out of the local session and routes to sign-in (the modal itself is spec 003). Tokens are never stored in `localStorage` by our code.
 
+**Abuse protection and input safety (owner request 2026-11-11, D75)**
+- [ ] **AC15** — **Baseline rate limiting** before any feature ships: a Redis-backed limiter keyed per authenticated user (or per client IP when unauthenticated) and per route group, e.g. `auth` (dev token, webhooks) 30/min, `read` 300/min, `write` 60/min (defaults in settings; plan-aware limits arrive in spec 012). Exceeding a limit returns `429 problem+json` with `Retry-After`; the limiter fails open (logged) if Redis is down so an outage does not lock everyone out.
+- [ ] **AC16** — **Input validation baseline:** every request schema forbids unknown fields (`extra="forbid"`) and bounds every string and list; JSON bodies over 1 MB are rejected with `413 problem+json` before parsing (uploads get their own limit in spec 004); free-text fields are Unicode-normalized (NFC) and stripped of control characters. SQL is parameterized only (no string-built SQL outside reviewed migrations).
+- [ ] **AC17** — **Never trust client-supplied identity or ownership:** request schemas may not contain `org_id`, `owner_id`, `user_id`, `role`, `platform_role` or similar; these come only from the verified principal and the database. A test scans every request body in the OpenAPI schema and fails if a forbidden field appears. Resource ids in paths are always re-checked server side (`authorize()` + RLS) and a resource from another org returns `404` (no existence leak).
+
 ## API contract
 | Method | Path | Auth | Response | Errors |
 |---|---|---|---|---|
