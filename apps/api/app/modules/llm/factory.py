@@ -18,6 +18,7 @@ from app.modules.llm.budget import SpendGuard
 from app.modules.llm.gateway import RoutedGateway
 from app.modules.llm.registry import Registry, RegistryEntry
 from app.modules.llm.usage import DbUsageSink
+from app.ports.tracing import NoTracer, Tracer
 
 log = get_logger(__name__)
 
@@ -51,6 +52,18 @@ def build_adapters(settings: Settings) -> dict[str, Any]:
     return adapters
 
 
+def build_tracer(settings: Settings) -> Tracer:
+    if settings.langfuse_public_key and settings.langfuse_secret_key:
+        from app.adapters.tracing.langfuse import LangfuseTracer
+
+        return LangfuseTracer(
+            settings.langfuse_public_key,
+            settings.langfuse_secret_key.get_secret_value(),
+            settings.langfuse_host,
+        )
+    return NoTracer()
+
+
 @dataclass
 class LLM:
     gateway: RoutedGateway
@@ -72,6 +85,7 @@ class LLM:
 
     async def flush(self) -> None:
         await self.usage.flush()
+        await self.gateway.tracer.flush()
 
 
 def build_llm(
@@ -89,6 +103,7 @@ def build_llm(
         adapters if adapters is not None else build_adapters(settings),
         usage=usage,
         budget=budget,
+        tracer=build_tracer(settings),
         max_concurrency=settings.llm_max_concurrency_per_provider,
         force_provider="fake" if settings.llm_provider == "fake" else None,
     )

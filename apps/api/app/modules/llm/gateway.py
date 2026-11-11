@@ -15,13 +15,15 @@ import contextvars
 import time
 from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass, field, replace
+from datetime import UTC, datetime, timedelta
 from typing import Any, Literal, Protocol
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from app.adapters.llm.vertex import ModelSpec
 from app.core.logging import get_logger
 from app.modules.llm.registry import ModelRoute, Registry, RegistryEntry
 from app.ports.llm import ChatMessage, Completion, Embeddings, JsonSchema, StreamChunk, Usage
+from app.ports.tracing import NoTracer, TraceEvent, Tracer
 
 log = get_logger(__name__)
 Outcome = Literal["ok", "error", "fallback", "blocked"]
@@ -113,6 +115,7 @@ class RoutedGateway:
     adapters: dict[str, ProviderAdapter]
     usage: UsageSink = field(default_factory=NoUsage)
     budget: BudgetGuard = field(default_factory=NoBudget)
+    tracer: Tracer = field(default_factory=NoTracer)
     max_concurrency: int = 8
     force_provider: str | None = None  # "fake" in development and tests: no paid calls
     _bulkheads: dict[str, asyncio.Semaphore] = field(default_factory=dict, init=False)
@@ -171,6 +174,10 @@ class RoutedGateway:
                 await hook(attempt)
             except Exception as exc:  # recording must never fail a model call (AC7)
                 log.warning("llm_usage_record_failed", error=type(exc).__name__)
+        try:
+            self.tracer.emit(_trace_event(attempt, started))
+        except Exception as exc:  # tracing must never fail a model call (AC14)
+            log.warning("llm_trace_failed", error=type(exc).__name__)
 
     async def _run(
         self,
@@ -287,3 +294,25 @@ class _Opened:
     rest: AsyncIterator[StreamChunk]
     first: StreamChunk
     started: float = 0.0
+
+
+def _trace_event(attempt: Attempt, started: float) -> TraceEvent:
+    ended = datetime.now(UTC)
+    ctx, usage = attempt.context, attempt.usage
+    return TraceEvent(
+        trace_id=str(ctx.job_id or uuid4()),
+        task=attempt.task,
+        provider=attempt.route.provider,
+        model=usage.model if usage else attempt.route.model,
+        outcome=attempt.outcome,
+        started_at=ended - timedelta(milliseconds=attempt.latency_ms),
+        ended_at=ended,
+        input_tokens=usage.input_tokens if usage else 0,
+        output_tokens=usage.output_tokens if usage else 0,
+        cost_usd=usage.cost_usd if usage else 0.0,
+        prompt_version=ctx.prompt_version,
+        org_id=str(ctx.org_id) if ctx.org_id else None,
+        user_id=str(ctx.user_id) if ctx.user_id else None,
+        paper_id=str(ctx.paper_id) if ctx.paper_id else None,
+        error_type=attempt.error_type,
+    )
