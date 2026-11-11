@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft |
+| **Status** | Approved (owner, 2026-11-12): default sort Recently added; passage search with no model tokens; debounce, paging and caching so the server is not hit on every keystroke or scroll |
 | **Week** | W3 (built before 009, D82) |
 | **Decisions** | D25, D27, D31, D39, D49, D60, D82 |
 | **Engineering practices (D67)** | All 6 items of `engineering-practices.md` §3 Spec 013 are included (AC9 to AC14) |
@@ -30,11 +30,11 @@ One place to find any paper. The Library is the home page: upload on top, every 
 - [ ] **AC7** — Choosing a collection shows the Library filtered to it at `/app/library?collection=<id>`, with the same search, filters and sort. A paper can be in several collections; "Add to collection" in its "..." menu lists collections with checkmarks and can create a new one inline.
 
 ### Search
-- [ ] **AC8** — The top-bar search (Ctrl+K or Cmd+K, named in the tooltip; no key badge on screen) opens a search panel: results grouped as Papers (title and author matches) and In papers (passages from the full text, with the page number); Enter or a click opens the paper (a passage result opens the Workspace at that page). On phones the top bar shows a search icon that opens the panel full screen. Results respect the open collection when one is selected, with a "Search all papers" switch.
+- [ ] **AC8** — The top-bar search (Ctrl+K or Cmd+K, named in the tooltip; no key badge on screen) opens a search panel: results grouped as Papers (title and author matches) and In papers (passages from the full text, with the page number); Enter or a click opens the paper (a passage result opens the Workspace at that page). On phones the top bar shows a search icon that opens the panel full screen. Results respect the open collection when one is selected, with a "Search all papers" switch. Search is Postgres full-text and trigram matching only: no embedding or LLM call, so it uses no model tokens.
 
 ### Engineering practices (D67)
 - [ ] **AC9** — Query budget: the list, a collection view and search each run at most 3 SQL queries regardless of page size, proved by a test that counts queries.
-- [ ] **AC10** — Search input is debounced 250 ms, queries under 2 characters do not hit the API, and each new keystroke aborts the previous request.
+- [ ] **AC10** — Search input is debounced 250 ms, queries under 2 characters do not hit the API, and each new keystroke aborts the previous request. Results are cached per query for 60 s, so typing back to an earlier query or reopening search does not call the API again; list pages are cached the same way and refreshed only when a paper or collection changes.
 - [ ] **AC11** — List endpoints use opaque keyset cursors on the sort key plus `id`, `limit` at most 50; the web app uses `useInfiniteQuery` with a sentinel.
 - [ ] **AC12** — Star, rename, add to or remove from collection are optimistic, roll back on error and show a toast.
 - [ ] **AC13** — Hovering or focusing a row prefetches the paper and its summary, so opening it shows the summary at once.
@@ -74,5 +74,5 @@ List page p95 < 150 ms server time; search p95 < 300 ms for 1,000 papers; no LLM
 Integration (testcontainers Postgres): list sort, filters and cursor stability with inserts; star, rename; collections CRUD, membership, cascade, RLS isolation between users; search ranking and passage pages; query counts (AC9); index usage (AC14). Web (Vitest): URL state, infinite loading, optimistic rollback, debounce and abort, keyboard shortcut, phone layout, axe. Playwright: create a collection, add a paper, filter by it, search a phrase from the paper and open the result at its page.
 
 ## Open questions (owner)
-- **Q1:** Default sort: Recently added (recommended, matches the mockup) or Recently opened?
-- **Q2:** Should "In papers" passage results be in v1 search (recommended: they reuse the chat index at no extra cost), or titles and authors only?
+- **Q1 (answered):** default sort is Recently added.
+- **Q2 (answered):** "In papers" passage results are in v1, as full-text search over the existing chunk index: no model tokens per search.
