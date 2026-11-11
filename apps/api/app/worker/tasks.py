@@ -11,6 +11,7 @@ from celery.exceptions import SoftTimeLimitExceeded
 from app.modules.papers import deletion
 from app.modules.papers import ingest as ingest_module
 from app.modules.papers import ocr as ocr_module
+from app.modules.papers import scan as scan_module
 from app.modules.papers.ingest import Deps
 from app.modules.papers.runner import JobTimeoutError, Outcome, run_job
 from app.worker.celery_app import celery_app
@@ -20,7 +21,9 @@ MAX_RETRIES = 3
 Step = Callable[[Deps, UUID, UUID], Awaitable[None]]
 
 
-async def _run(step: Step, job_id: UUID, org_id: UUID, retries: int) -> Outcome:
+async def _run(
+    step: Step, job_id: UUID, org_id: UUID, retries: int, *, scan: bool = False
+) -> Outcome:
     async with worker_deps() as deps:
 
         async def work() -> None:
@@ -29,13 +32,22 @@ async def _run(step: Step, job_id: UUID, org_id: UUID, retries: int) -> Outcome:
             except SoftTimeLimitExceeded as exc:
                 raise JobTimeoutError from exc
 
+        async def scan_give_up(reason: str) -> None:
+            await scan_module.give_up(deps, org_id, job_id, reason)
+
         return await run_job(
-            deps.sessionmaker, org_id, job_id, work, retries=retries, max_retries=MAX_RETRIES
+            deps.sessionmaker,
+            org_id,
+            job_id,
+            work,
+            retries=retries,
+            max_retries=MAX_RETRIES,
+            give_up=scan_give_up if scan else None,
         )
 
 
-def _job_task(task: Any, step: Step, job_id: str, org_id: str) -> str:
-    outcome = asyncio.run(_run(step, UUID(job_id), UUID(org_id), task.request.retries))
+def _job_task(task: Any, step: Step, job_id: str, org_id: str, *, scan: bool = False) -> str:
+    outcome = asyncio.run(_run(step, UUID(job_id), UUID(org_id), task.request.retries, scan=scan))
     if outcome.kind == "retry":
         raise task.retry(countdown=outcome.retry_in)
     return outcome.kind
@@ -51,6 +63,12 @@ def ingest_paper(self: Any, job_id: str, org_id: str) -> str:
 def ocr_pages(self: Any, job_id: str, org_id: str) -> str:
     """OCR for pages without a text layer, on the enrichment queue (spec 004 AC10)."""
     return _job_task(self, ocr_module.run_ocr, job_id, org_id)
+
+
+@celery_app.task(bind=True, name="app.worker.tasks.scan_paper", max_retries=MAX_RETRIES)  # type: ignore[untyped-decorator]
+def scan_paper(self: Any, job_id: str, org_id: str) -> str:
+    """Background malware scan on its own queue (D77, spec 004 AC16)."""
+    return _job_task(self, scan_module.run_scan, job_id, org_id, scan=True)
 
 
 async def _delete_paper(org_id: UUID, paper_id: UUID, quarantine_key: str) -> int:

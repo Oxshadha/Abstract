@@ -53,6 +53,29 @@ jobs:
           uv run --project ../apps/api --group eval mypy
           uv run --project ../apps/api --group eval pytest
 
+  clamav:
+    name: ClamAV adapter (EICAR, spec 004 AC16)
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: apps/api } }
+    services:
+      clamav:
+        image: clamav/clamav:1.4
+        ports: ["3310:3310"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with: { enable-cache: true }
+      - run: uv sync --frozen
+      - name: Wait for clamd (loads signatures on start)
+        run: |
+          for i in $(seq 1 60); do
+            uv run python -c "import socket; s=socket.create_connection(('127.0.0.1',3310),2); s.sendall(b'zPING\0'); assert s.recv(16).startswith(b'PONG')" && exit 0
+            sleep 5
+          done
+          exit 1
+      - run: uv run pytest tests/integration/test_clamav.py -p no:cacheprovider
+        env: { CLAMAV_HOST: 127.0.0.1 }
+
   web:
     name: Web (lint, types, tests, build)
     runs-on: ubuntu-latest

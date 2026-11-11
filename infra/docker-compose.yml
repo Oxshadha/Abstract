@@ -20,6 +20,9 @@ x-api-env: &api-env
   SENTRY_DSN: ${SENTRY_DSN:-}
   SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-development}
   CORS_ORIGINS: '["http://localhost:${WEB_PORT:-5173}"]'
+  # Fake scanner in `make dev`; `make dev-full` sets clamav (D77, spec 004 AC16).
+  MALWARE_SCAN: ${MALWARE_SCAN:-fake}
+  CLAMAV_HOST: clamav
 
 services:
   postgres:
@@ -58,6 +61,12 @@ services:
       interval: 3s
       timeout: 3s
       retries: 30
+
+  # Real antivirus for `make dev-full` (D77). Needs about 3 GiB RAM; off in `make dev`.
+  clamav:
+    image: clamav/clamav-debian:1.4
+    profiles: ["full"]
+    ports: ["${CLAMAV_PORT:-3310}:3310"]
 
   # Creates the runtime roles (idempotent) before migrations run.
   db-init:

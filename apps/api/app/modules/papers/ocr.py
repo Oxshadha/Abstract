@@ -13,7 +13,14 @@ from app.adapters.pdf.ocr import ocr_pages
 from app.core.logging import get_logger
 from app.core.tenancy import set_tenant
 from app.modules.papers.chunking import chunk_paper
-from app.modules.papers.ingest import Deps, PaperGoneError, embed_chunks, set_step, store_chunks
+from app.modules.papers.ingest import (
+    Deps,
+    PaperGoneError,
+    embed_chunks,
+    lock_usable_paper,
+    set_step,
+    store_chunks,
+)
 from app.modules.papers.jobs import transition
 
 log = get_logger(__name__)
@@ -69,12 +76,7 @@ async def run_ocr(deps: Deps, org_id: UUID, job_id: UUID) -> None:
 
     async with maker() as session, session.begin():
         await set_tenant(session, org_id)
-        if (
-            await session.execute(
-                text("SELECT 1 FROM papers WHERE id = :id FOR UPDATE"), {"id": paper.id}
-            )
-        ).first() is None:
-            raise PaperGoneError(str(paper.id))
+        await lock_usable_paper(session, paper.id)
         await store_chunks(session, org_id, paper.id, chunks, vectors, model)
         await session.execute(
             text(

@@ -55,6 +55,12 @@ class Settings(BaseSettings):
     upload_url_ttl_seconds: int = 600
     upload_max_pages: int = 300
 
+    # Malware scanning (D77, spec 004 AC16). Unset: fake in development/test; production must
+    # choose a scanner or opt out explicitly with "disabled-with-sanitization".
+    malware_scan: Literal["fake", "clamav", "guardduty", "disabled-with-sanitization"] | None = None
+    clamav_host: str = "clamav"
+    clamav_port: int = 3310
+
     # Progress event stream (spec 004 AC12).
     sse_poll_seconds: float = 1.0
     sse_heartbeat_seconds: float = 15.0
@@ -80,6 +86,13 @@ class Settings(BaseSettings):
             )
         if self.resolved_auth_provider == "dev" and self.env == "production":
             raise ValueError("The development auth adapter is not allowed when ENV=production")
+        if self.malware_scan == "fake" and self.env == "production":
+            raise ValueError("MALWARE_SCAN=fake is for development only")
+        if self.malware_scan is None and self.env == "production":
+            raise ValueError(
+                "Production needs a malware scanner (MALWARE_SCAN=clamav or guardduty) or the "
+                "explicit opt-out MALWARE_SCAN=disabled-with-sanitization (D77)"
+            )
         if self.resolved_auth_provider == "clerk" and not self.clerk_issuer:
             raise ValueError("Clerk auth requires CLERK_ISSUER")
         return self
@@ -91,6 +104,14 @@ class Settings(BaseSettings):
         if self.clerk_issuer or self.env == "production":
             return "clerk"
         return "dev"
+
+    @property
+    def resolved_malware_scan(self) -> str:
+        return self.malware_scan or "fake"  # unset is only allowed outside production
+
+    @property
+    def scanning_enabled(self) -> bool:
+        return self.resolved_malware_scan != "disabled-with-sanitization"
 
     @property
     def is_production(self) -> bool:

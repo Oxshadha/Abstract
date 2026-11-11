@@ -20,6 +20,8 @@ def make_settings(**overrides: object) -> Settings:
         "_env_file": None,
     }
     values.update(overrides)
+    if values.get("env") == "production":  # explicit opt-out unless a test chooses (D77)
+        values.setdefault("malware_scan", "disabled-with-sanitization")
     return Settings(**values)  # type: ignore[arg-type]
 
 

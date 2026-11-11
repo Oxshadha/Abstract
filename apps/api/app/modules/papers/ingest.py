@@ -32,6 +32,7 @@ from app.modules.papers.chunking import Chunk, chunk_paper
 from app.modules.papers.jobs import transition
 from app.modules.papers.keys import paper_prefix, sanitized_key
 from app.ports.llm import LLMGateway
+from app.ports.scanner import MalwareScanner
 from app.ports.storage import ObjectChangedError, Storage
 
 EMBED_TASK = "embed"
@@ -48,6 +49,7 @@ class Deps:
     gateway: LLMGateway
     settings: Settings
     enqueue: Callable[[str, dict[str, Any]], None]
+    scanner: MalwareScanner | None = None
 
 
 class PaperGoneError(Exception):
@@ -85,6 +87,17 @@ async def set_step(session: AsyncSession, job_id: UUID, step: str) -> None:
         text("UPDATE jobs SET step = :step, event_seq = event_seq + 1 WHERE id = :job"),
         {"step": step, "job": job_id},
     )
+
+
+async def lock_usable_paper(session: AsyncSession, paper_id: UUID) -> None:
+    """Lock the paper row; stop if it was deleted or flagged by the malware scan meanwhile."""
+    scan_status = (
+        await session.execute(
+            text("SELECT scan_status FROM papers WHERE id = :id FOR UPDATE"), {"id": paper_id}
+        )
+    ).scalar_one_or_none()
+    if scan_status is None or scan_status == "infected":
+        raise PaperGoneError(str(paper_id))
 
 
 def _vector_literal(vector: list[float]) -> str:
@@ -231,12 +244,7 @@ async def _run(deps: Deps, org_id: UUID, job_id: UUID, paper: _Paper) -> None:
     ocr_job: UUID | None = None
     async with maker() as session, session.begin():
         await set_tenant(session, org_id)
-        if (
-            await session.execute(
-                text("SELECT 1 FROM papers WHERE id = :id FOR UPDATE"), {"id": paper.id}
-            )
-        ).first() is None:
-            raise PaperGoneError(str(paper.id))
+        await lock_usable_paper(session, paper.id)
         await store_chunks(session, org_id, paper.id, chunks, vectors, model)
         text_ready = bool(chunks)
         await session.execute(

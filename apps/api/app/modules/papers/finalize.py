@@ -24,6 +24,7 @@ from app.modules.papers.schemas import FinalizeResponse, JobOut, PaperOut
 from app.ports.storage import Storage
 
 INGEST_TASK = "app.worker.tasks.ingest_paper"
+SCAN_TASK = "app.worker.tasks.scan_paper"
 PDF_MAGIC = b"%PDF-"
 log = get_logger(__name__)
 
@@ -157,6 +158,20 @@ async def finalize(
             {"org": identity.org_id, "paper": paper_id},
         )
     ).scalar_one()
+    scan_job: UUID | None = None
+    if settings.scanning_enabled:  # in parallel with ingest, never in the user's path (D77)
+        scan_job = (
+            await session.execute(
+                text(
+                    "INSERT INTO jobs (org_id, paper_id, kind, step) VALUES"
+                    " (:org, :paper, 'scan', 'scan') RETURNING id"
+                ),
+                {"org": identity.org_id, "paper": paper_id},
+            )
+        ).scalar_one()
+        await session.execute(
+            text("UPDATE papers SET scan_status = 'pending' WHERE id = :id"), {"id": paper_id}
+        )
     await session.execute(
         text("UPDATE uploads SET consumed_at = now(), paper_id = :p WHERE id = :id"),
         {"p": paper_id, "id": upload_id},
@@ -181,4 +196,12 @@ async def finalize(
             "queue-unavailable",
             "Your file is saved, but processing could not start. We will retry it shortly.",
         ) from exc
+    if scan_job is not None:
+        try:
+            enqueue(SCAN_TASK, {"job_id": str(scan_job), "org_id": str(identity.org_id)})
+        except Exception as exc:  # the paper is fine without it; the admin monitor retries it
+            log.error("enqueue_failed", job_id=str(scan_job), error=type(exc).__name__)
+            async with sessionmaker() as retry_session, retry_session.begin():
+                await set_tenant(retry_session, identity.org_id)
+                await transition(retry_session, scan_job, "enqueue_failed", error="enqueue failed")
     return response

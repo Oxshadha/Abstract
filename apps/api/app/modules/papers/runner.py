@@ -107,7 +107,10 @@ async def run_job(
     *,
     retries: int,
     max_retries: int,
+    give_up: Callable[[str], Awaitable[None]] | None = None,
 ) -> Outcome:
+    """`give_up(reason)` replaces the default failure (job and paper failed) when retries run
+    out; the malware scan uses it so a scanner outage never fails the paper (D77)."""
     if not await claim(maker, org_id, job_id):
         return Outcome("skipped")
     try:
@@ -126,7 +129,10 @@ async def run_job(
         reason = f"{type(exc).__name__}: {exc}"
         if retries >= max_retries:
             log.error("job_failed", job_id=str(job_id), error=type(exc).__name__)
-            await fail(maker, org_id, job_id, user_message=GENERIC_FAILURE, reason=reason)
+            if give_up is not None:
+                await give_up(reason)
+            else:
+                await fail(maker, org_id, job_id, user_message=GENERIC_FAILURE, reason=reason)
             return Outcome("failed")
         log.warning("job_retry", job_id=str(job_id), error=type(exc).__name__, attempt=retries)
         await requeue(maker, org_id, job_id, reason)

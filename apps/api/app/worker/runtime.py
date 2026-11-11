@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 
 from app.adapters.llm import build_llm_gateway
+from app.adapters.scanner import build_scanner
 from app.adapters.storage.s3 import S3Storage
 from app.core.config import get_settings
 from app.core.db import build_sessionmaker, engine_options
@@ -34,6 +35,7 @@ async def worker_deps() -> AsyncIterator[Deps]:
             gateway=build_llm_gateway(settings),
             settings=settings,
             enqueue=_enqueue,
+            scanner=build_scanner(settings),
         )
     finally:
         await engine.dispose()

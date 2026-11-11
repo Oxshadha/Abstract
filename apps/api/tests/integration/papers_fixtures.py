@@ -40,7 +40,7 @@ async def api(database: dict[str, str]) -> AsyncIterator[PapersApi]:
         state.enqueued.append((task, kwargs))
 
     app = create_app(
-        make_settings(database_url=database["app"]),
+        make_settings(database_url=database["app"], malware_scan="disabled-with-sanitization"),
         readiness_checks={},
         auth_provider=SubjectAuth(),
         rate_store=MemoryCounterStore(),
