@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft |
+| **Status** | Approved (owner, 2026-11-11): caps $5/day global and $0.50/day per user; Langfuse adapter built now, enabled when keys are added |
 | **Week** | W2 |
 | **Decisions** | D9, D10, D24, D37, D52, D69, D72, D74, D76 |
 | **Requirements** | R3, R5, N2, N5 |
@@ -60,5 +60,5 @@ Gateway overhead p95 < 5 ms per call (registry cached in memory, counters in Red
 Unit: routing, fallback order, retry and deadline, budget behaviour, free-model guard, prompt versions, bulkhead. Integration (Postgres, Redis): registry cache refresh, usage rows and RLS, caps under concurrency, admin API with audit and `412`, re-index job. Contract: recorded Vertex and OpenRouter responses. Eval harness switched to the registry (`make eval` costs money and runs by hand).
 
 ## Open questions (owner)
-- **Q1 — Spend caps (proposal):** global **$5 per day** and per user **$0.50 per day** while there are no plans (about 30 papers or 75 questions per user per day by the cost model). Raise or lower?
-- **Q2 — Langfuse:** build the adapter now and enable it when you add keys (free cloud tier, EU region, metadata only), or defer tracing to spec 017? Proposal: build now, enable later.
+- **Q1 (answered):** global $5 per day, per user $0.50 per day until plans exist (spec 012).
+- **Q2 (answered):** build the Langfuse adapter now, disabled until the owner adds keys (EU region, metadata only).
