@@ -15,6 +15,14 @@ Entry format:
 
 ---
 
+## 2026-11-11: Spec 000 merged; spec 002 implemented (17 of 17)
+**Done:** Spec 000 merged (PR #2): experiment C (Docling) added, combined report (180/180 ok), Docling moved to its own dependency group so CI stays light. Spec 002 built criterion by criterion on `feat/002-auth-tenancy`: forced RLS with runtime roles, role timeouts and a schema conformance test (AC5 to AC8, AC11); Clerk token verification with key rotation and a dev-only login adapter (AC1, D70); idempotent provisioning and /me (AC2, AC13); central authorize() with route coverage (AC4); rate limiting (AC15); strict schemas, 1 MB body limit, no client identity fields (AC16, AC17); signed deduplicated Clerk webhooks (AC3); admin role with audit and bootstrap command (AC10); Neon pooled connections and no implicit lazy loading (AC9, AC12); frontend token on every call with @clerk/react 6 (AC14).
+**Decisions:** D69 to D75 (production models, dev auth, visual-evidence fast path, routing policy, performance targets, chat requirements, abuse protection).
+**Bugs caught by tests:** JWKS refetch blocked for 60 s after rotation; legit new kid negatively cached; OpenAPI export polluted by a log line; boto3 client creation making network calls at startup; chunked oversized bodies returning 400 instead of 413 (FastAPI masks body exceptions); SQL comment containing a semicolon broke statement splitting.
+**Process:** twice a gate failure was hidden by piping its output; both caught before pushing, and every commit since checks the gate's real exit code.
+**Next:** CI on the spec 002 PR, merge, then spec 003 (design system) and spec 004 (upload and ingestion).
+**Owner input later:** real Clerk keys (only for real sign-in), Neon direct and pooled URLs (spec 017).
+
 ## 2026-11-11: Spec 000 harness complete; blocked on OpenRouter credits
 **Done:** EDP-002 approved (D64). Benchmark models chosen from OpenRouter's live catalogue: claude-haiku-5.5 for all summary experiments, claude-sonnet-5.5 for drafting golden data. Built: parser variants (B pymupdf4llm layout with per-page OCR, B-fast legacy, B' pypdfium2), scoring metrics, Quick Summary schema and shared prompts, budget guard, golden drafting (LLM facts/questions + geometry-derived layout probes), experiment runner with streaming timings, scoring and verdict report. Fake provider now returns schema-valid JSON so the whole harness runs offline in CI (30 eval tests).
 **Measured so far (no LLM needed):** all 3 to 43 page documents are under 60k tokens; only Llama 2 (77 pages, about 69k) is tier L (C1 holds). pymupdf4llm's built-in OCR heuristic OCR'd image-heavy digital pages (fixed: OCR only pages without a text layer). Layout parsing takes 2 to 25 s per document, dominated by table detection; plain text extraction takes under 0.5 s. This may justify summarizing from plain text first and running layout parsing in the background; to be confirmed by experiment B vs B' before any EDP.

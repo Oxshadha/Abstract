@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Approved (owner, 2026-11-11); Q1 approved as D70 |
+| **Status** | Implemented (2026-11-11, PR pending CI); Q1 approved as D70 |
 | **Week** | W1 to W2 |
 | **Decisions** | D5, D11, D16, D25, D45, D55, D58, D66, D67 |
 | **Requirements** | N1, N2 |
@@ -19,31 +19,31 @@ Every request is authenticated, every row belongs to an organisation, and no use
 
 ## Acceptance criteria
 **Authentication**
-- [ ] **AC1** — Given a request without a token, with a malformed, expired or wrongly signed token, or with an `azp` (authorized party) not in the allowed origins, when it hits any non-public route, then it gets `401 problem+json` and nothing is logged containing the token. JWKS keys are cached and refreshed once on an unknown `kid` (key rotation); clock skew tolerance is 30 s.
-- [ ] **AC2** — Given a valid token for a user seen for the first time, when the first request arrives, then exactly one `users` row, one personal `orgs` row and one `owner` membership are created, even when several first requests arrive concurrently (unique constraints + upsert; test fires 10 in parallel).
-- [ ] **AC3** — Clerk webhooks (`user.created`, `user.updated`, `user.deleted`) are accepted only with a valid Svix signature and timestamp within 5 minutes; each event id is stored in `webhook_events` and a replay returns `200` without re-processing; `user.deleted` disables the user immediately and enqueues the account-deletion job (deletion of papers lands with spec 004).
+- [x] **AC1** — Given a request without a token, with a malformed, expired or wrongly signed token, or with an `azp` (authorized party) not in the allowed origins, when it hits any non-public route, then it gets `401 problem+json` and nothing is logged containing the token. JWKS keys are cached and refreshed once on an unknown `kid` (key rotation); clock skew tolerance is 30 s.
+- [x] **AC2** — Given a valid token for a user seen for the first time, when the first request arrives, then exactly one `users` row, one personal `orgs` row and one `owner` membership are created, even when several first requests arrive concurrently (unique constraints + upsert; test fires 10 in parallel).
+- [x] **AC3** — Clerk webhooks (`user.created`, `user.updated`, `user.deleted`) are accepted only with a valid Svix signature and timestamp within 5 minutes; each event id is stored in `webhook_events` and a replay returns `200` without re-processing; `user.deleted` disables the user immediately and enqueues the account-deletion job (deletion of papers lands with spec 004).
 
 **Authorization**
-- [ ] **AC4** — Every route declares an action through `authorize(principal, action, resource)`; a test enumerates all mounted routes and fails if a non-public route has no authorization dependency. Denials return `403 problem+json` (or `404` when revealing existence would leak, e.g. another org's resource).
-- [ ] **AC5** — Tenant context is set with `SELECT set_config('app.org_id', :org, true)` (transaction-local) at the start of every transaction, in the API and in Celery tasks; a test proves a query without context returns zero rows. *(practices §3)*
-- [ ] **AC6** — The runtime DB role does not own the tables; every tenant table has `ENABLE` and `FORCE ROW LEVEL SECURITY`; a test connects as the runtime role and fails to read another org's row. *(practices §3)*
-- [ ] **AC7** — Policies compare raw columns to `(select current_setting('app.org_id')::uuid)`; every `org_id`/`owner_id` used in a policy is the leading column of an index. A **conformance test** scans the schema and fails if any table with an `org_id` column lacks FORCE RLS, a policy, or that index, so every future spec inherits the rule. *(practices §3)*
-- [ ] **AC8** — The runtime role has `statement_timeout = 5s` and `idle_in_transaction_session_timeout = 10s` set with `ALTER ROLE` (not session `SET`, which a transaction-mode pooler drops); the worker role gets an explicit longer value (60 s). *(practices §3)*
-- [ ] **AC9** — The SQLAlchemy engine uses Neon's **direct** endpoint for Alembic and the pooled endpoint with `statement_cache_size=0` and `prepared_statement_cache_size=0` at runtime; the choice and the connection budget (API pool + workers × concurrency) are recorded in `assumptions.md`. Locally the same two roles exist in the compose Postgres. *(practices §3)*
-- [ ] **AC10** — Platform roles (`user`, `admin`) live in our DB (D11). Admin-only actions check `platform_role = admin`; changing a role writes the audit log.
+- [x] **AC4** — Every route declares an action through `authorize(principal, action, resource)`; a test enumerates all mounted routes and fails if a non-public route has no authorization dependency. Denials return `403 problem+json` (or `404` when revealing existence would leak, e.g. another org's resource).
+- [x] **AC5** — Tenant context is set with `SELECT set_config('app.org_id', :org, true)` (transaction-local) at the start of every transaction, in the API and in Celery tasks; a test proves a query without context returns zero rows. *(practices §3)*
+- [x] **AC6** — The runtime DB role does not own the tables; every tenant table has `ENABLE` and `FORCE ROW LEVEL SECURITY`; a test connects as the runtime role and fails to read another org's row. *(practices §3)*
+- [x] **AC7** — Policies compare raw columns to `(select current_setting('app.org_id')::uuid)`; every `org_id`/`owner_id` used in a policy is the leading column of an index. A **conformance test** scans the schema and fails if any table with an `org_id` column lacks FORCE RLS, a policy, or that index, so every future spec inherits the rule. *(practices §3)*
+- [x] **AC8** — The runtime role has `statement_timeout = 5s` and `idle_in_transaction_session_timeout = 10s` set with `ALTER ROLE` (not session `SET`, which a transaction-mode pooler drops); the worker role gets an explicit longer value (60 s). *(practices §3)*
+- [x] **AC9** — The SQLAlchemy engine uses Neon's **direct** endpoint for Alembic and the pooled endpoint with `statement_cache_size=0` and `prepared_statement_cache_size=0` at runtime; the choice and the connection budget (API pool + workers × concurrency) are recorded in `assumptions.md`. Locally the same two roles exist in the compose Postgres. *(practices §3)*
+- [x] **AC10** — Platform roles (`user`, `admin`) live in our DB (D11). Admin-only actions check `platform_role = admin`; changing a role writes the audit log.
 
 **Audit and data access**
-- [ ] **AC11** — `audit_log` covers at least: paper delete, account delete, role change, plan change, flag change, model registry change, admin job retry (the latter ones become live in their specs; the writer and table exist now). The runtime role has `INSERT` and `SELECT` only; a test proves `UPDATE`/`DELETE` fail. *(practices §3)*
-- [ ] **AC12** — ORM relationships default to `lazy="raise"`; list endpoints use explicit `selectinload` (a test asserts accidental lazy loading raises). *(practices §3)*
+- [x] **AC11** — `audit_log` covers at least: paper delete, account delete, role change, plan change, flag change, model registry change, admin job retry (the latter ones become live in their specs; the writer and table exist now). The runtime role has `INSERT` and `SELECT` only; a test proves `UPDATE`/`DELETE` fail. *(practices §3)*
+- [x] **AC12** — ORM relationships default to `lazy="raise"`; list endpoints use explicit `selectinload` (a test asserts accidental lazy loading raises). *(practices §3)*
 
 **API and frontend**
-- [ ] **AC13** — `GET /api/v1/me` returns the user, the active org, the user's role in it and the platform role; request logs carry `user_id` and `org_id` after authentication.
-- [ ] **AC14** — The web app wraps the router in `ClerkProvider`; the generated API client attaches `Authorization: Bearer <token>` per request via Clerk's `getToken()`; a `401` from the API signs the user out of the local session and routes to sign-in (the modal itself is spec 003). Tokens are never stored in `localStorage` by our code.
+- [x] **AC13** — `GET /api/v1/me` returns the user, the active org, the user's role in it and the platform role; request logs carry `user_id` and `org_id` after authentication.
+- [x] **AC14** — The web app wraps the router in `ClerkProvider`; the generated API client attaches `Authorization: Bearer <token>` per request via Clerk's `getToken()`; a `401` from the API signs the user out of the local session and routes to sign-in (the modal itself is spec 003). Tokens are never stored in `localStorage` by our code.
 
 **Abuse protection and input safety (owner request 2026-11-11, D75)**
-- [ ] **AC15** — **Baseline rate limiting** before any feature ships: a Redis-backed limiter keyed per authenticated user (or per client IP when unauthenticated) and per route group, e.g. `auth` (dev token, webhooks) 30/min, `read` 300/min, `write` 60/min (defaults in settings; plan-aware limits arrive in spec 012). Exceeding a limit returns `429 problem+json` with `Retry-After`; the limiter fails open (logged) if Redis is down so an outage does not lock everyone out.
-- [ ] **AC16** — **Input validation baseline:** every request schema forbids unknown fields (`extra="forbid"`) and bounds every string and list; JSON bodies over 1 MB are rejected with `413 problem+json` before parsing (uploads get their own limit in spec 004); free-text fields are Unicode-normalized (NFC) and stripped of control characters. SQL is parameterized only (no string-built SQL outside reviewed migrations).
-- [ ] **AC17** — **Never trust client-supplied identity or ownership:** request schemas may not contain `org_id`, `owner_id`, `user_id`, `role`, `platform_role` or similar; these come only from the verified principal and the database. A test scans every request body in the OpenAPI schema and fails if a forbidden field appears. Resource ids in paths are always re-checked server side (`authorize()` + RLS) and a resource from another org returns `404` (no existence leak).
+- [x] **AC15** — **Baseline rate limiting** before any feature ships: a Redis-backed limiter keyed per authenticated user (or per client IP when unauthenticated) and per route group, e.g. `auth` (dev token, webhooks) 30/min, `read` 300/min, `write` 60/min (defaults in settings; plan-aware limits arrive in spec 012). Exceeding a limit returns `429 problem+json` with `Retry-After`; the limiter fails open (logged) if Redis is down so an outage does not lock everyone out.
+- [x] **AC16** — **Input validation baseline:** every request schema forbids unknown fields (`extra="forbid"`) and bounds every string and list; JSON bodies over 1 MB are rejected with `413 problem+json` before parsing (uploads get their own limit in spec 004); free-text fields are Unicode-normalized (NFC) and stripped of control characters. SQL is parameterized only (no string-built SQL outside reviewed migrations).
+- [x] **AC17** — **Never trust client-supplied identity or ownership:** request schemas may not contain `org_id`, `owner_id`, `user_id`, `role`, `platform_role` or similar; these come only from the verified principal and the database. A test scans every request body in the OpenAPI schema and fails if a forbidden field appears. Resource ids in paths are always re-checked server side (`authorize()` + RLS) and a resource from another org returns `404` (no existence leak).
 
 ## API contract
 | Method | Path | Auth | Response | Errors |
