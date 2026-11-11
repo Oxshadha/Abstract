@@ -20,16 +20,19 @@ export function ThemeToggle() {
           type="button"
           role="radio"
           aria-checked={choice === value}
+          aria-label={label}
+          title={label}
           onClick={() => {
             applyTheme(value);
             setChoice(value);
           }}
-          className={`inline-flex min-h-11 items-center gap-1.5 rounded-pill px-3 text-sm ${
+          className={`inline-flex min-h-11 min-w-11 items-center justify-center gap-1.5 rounded-pill px-3 text-sm ${
             choice === value ? "bg-surface text-text shadow-card" : "text-text-secondary"
           }`}
         >
           <Icon aria-hidden className="size-4" />
-          {label}
+          {/* Phones: icons only (D86); the name stays for screen readers and the tooltip. */}
+          <span aria-hidden className="hidden sm:inline">{label}</span>
         </button>
       ))}
     </div>

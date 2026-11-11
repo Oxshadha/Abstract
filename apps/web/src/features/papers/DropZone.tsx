@@ -39,7 +39,7 @@ export function DropZone({ compact = false }: { compact?: boolean }) {
         setDragging(false);
       }}
       onDrop={onDrop}
-      className={`flex flex-col items-center gap-3 rounded-xl border-2 border-dashed px-4 text-center ${compact ? "py-6" : "py-10"} ${dragging ? "border-text bg-muted" : "border-border-strong bg-surface"}`}
+      className={`flex flex-col items-center gap-2 rounded-xl sm:gap-3 border-2 border-dashed px-4 text-center ${compact ? "py-6" : "py-5 sm:py-10"} ${dragging ? "border-text bg-muted" : "border-border-strong bg-surface"}`}
     >
       {busy && phase ? (
         <div className="flex w-full max-w-md flex-col items-center gap-3" aria-live="polite">
@@ -77,9 +77,9 @@ export function DropZone({ compact = false }: { compact?: boolean }) {
         </div>
       ) : (
         <>
-          <FileUp aria-hidden className="size-12" />
+          <FileUp aria-hidden className="size-9 sm:size-12" />
           <h2 className="font-display text-xl font-bold">Upload a research paper</h2>
-          <p className="text-text-secondary">Drop a PDF here or choose a file to get a structured summary.</p>
+          <p className="text-sm text-text-secondary sm:text-base">Drop a PDF here or choose a file to get a structured summary.</p>
           <button
             type="button"
             disabled={!online}
@@ -102,7 +102,7 @@ export function DropZone({ compact = false }: { compact?: boolean }) {
               event.target.value = "";
             }}
           />
-          <p className="text-sm text-text-secondary">PDF up to 50 MB. Supports academic papers, reports, and articles.</p>
+          <p className="text-xs text-text-secondary sm:text-sm">PDF up to 50 MB. Supports academic papers, reports, and articles.</p>
           <FieldError id={errorId} message={error} />
         </>
       )}

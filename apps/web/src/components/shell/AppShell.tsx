@@ -1,21 +1,27 @@
-import { Outlet } from "@tanstack/react-router";
-import { Bell, Menu, Search, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { Link, Outlet, useRouterState } from "@tanstack/react-router";
+import { Bell, Search } from "lucide-react";
+import { useEffect, useState } from "react";
 
 import { ErrorBoundary } from "@/components/feedback/ErrorBoundary";
 import { OfflineBanner } from "@/components/feedback/offline";
 import { SearchDialog } from "@/features/library/SearchDialog";
 import { useOpenCollection } from "@/features/library/useOpenCollection";
 
+import { LogoMark } from "@/components/brand/Logo";
+
+import { NAV_ITEMS } from "./navigation";
+import { PillBar } from "./PillBar";
 import { Sidebar } from "./Sidebar";
 import { UserMenu } from "./UserMenu";
 
-/** App shell from the Library mockup; sidebar becomes a drawer below 768 px (AC6, D60). */
+/** App shell from the Library mockup. Phones: brand in the top bar, floating pill navigation (D86). */
 export function AppShell() {
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const menuButton = useRef<HTMLButtonElement>(null);
-  const closeButton = useRef<HTMLButtonElement>(null);
   const [searchOpen, setSearchOpen] = useState(false);
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  // The Workspace has its own Paper / Summary / Chat bar on phones.
+  const inWorkspace = /^\/app\/papers\/[^/]+$/.test(pathname);
+  // Home scrolls its own list under the pill bar on phones, so the page reserves no space for it.
+  const ownsScroll = inWorkspace || pathname === "/app/home";
   const collection = useOpenCollection();
   const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.userAgent);
   const shortcut = isMac ? "Cmd+K" : "Ctrl+K";
@@ -32,76 +38,20 @@ export function AppShell() {
     return () => { document.removeEventListener("keydown", onKey); };
   }, []);
 
-  useEffect(() => {
-    if (!drawerOpen) return;
-    const trigger = menuButton.current;
-    closeButton.current?.focus();
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setDrawerOpen(false);
-    };
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      trigger?.focus(); // return focus to the trigger
-    };
-  }, [drawerOpen]);
-
   return (
     <div className="flex min-h-dvh bg-bg text-text">
       <aside className="hidden w-64 shrink-0 border-r border-border md:block">
         <Sidebar />
       </aside>
 
-      {drawerOpen && (
-        <div className="fixed inset-0 z-30 md:hidden">
-          <div
-            className="absolute inset-0 bg-text/40 motion-safe:animate-in"
-            aria-hidden
-            onClick={() => {
-              setDrawerOpen(false);
-            }}
-          />
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-label="Navigation"
-            className="absolute inset-y-0 left-0 w-72 max-w-[85vw] bg-surface shadow-overlay"
-          >
-            <button
-              ref={closeButton}
-              type="button"
-              aria-label="Close navigation"
-              onClick={() => {
-                setDrawerOpen(false);
-              }}
-              className="absolute top-3 right-3 inline-flex size-11 items-center justify-center rounded-md hover:bg-muted"
-            >
-              <X aria-hidden className="size-5" />
-            </button>
-            <Sidebar
-              onNavigate={() => {
-                setDrawerOpen(false);
-              }}
-            />
-          </div>
-        </div>
-      )}
-
       <div className="flex min-w-0 flex-1 flex-col">
         <OfflineBanner />
         <header className="flex items-center gap-2 border-b border-border px-4 py-3">
-          <button
-            ref={menuButton}
-            type="button"
-            aria-label="Open navigation"
-            aria-expanded={drawerOpen}
-            onClick={() => {
-              setDrawerOpen(true);
-            }}
-            className="inline-flex size-11 items-center justify-center rounded-md hover:bg-muted md:hidden"
-          >
-            <Menu aria-hidden className="size-5" />
-          </button>
+          {/* Phones: the brand where the menu button was; navigation is the pill bar (D86). */}
+          <Link to="/app/home" aria-label="abstract. home" className="inline-flex min-h-11 items-center md:hidden">
+            <LogoMark className="size-7" />
+            <span className="ml-1.5 font-display text-xl font-bold tracking-tight">abstract.</span>
+          </Link>
           <button
             type="button"
             title={`Search (${shortcut})`}
@@ -118,11 +68,11 @@ export function AppShell() {
             aria-label="Search"
             aria-haspopup="dialog"
             onClick={() => { setSearchOpen(true); }}
-            className="inline-flex size-11 items-center justify-center rounded-md hover:bg-muted sm:hidden"
+            className="ml-auto inline-flex size-11 items-center justify-center rounded-md hover:bg-muted sm:hidden"
           >
             <Search aria-hidden className="size-5" />
           </button>
-          <div className="ml-auto flex items-center gap-1">
+          <div className="flex items-center gap-1 sm:ml-auto">
             <button
               type="button"
               aria-label="Notifications"
@@ -134,11 +84,23 @@ export function AppShell() {
           </div>
         </header>
         <SearchDialog open={searchOpen} onClose={() => { setSearchOpen(false); }} collection={collection ?? null} />
-        <main id="main" className="min-w-0 flex-1">
+        <main id="main" className={`min-w-0 flex-1 ${ownsScroll ? "" : "pb-24 md:pb-0"}`}>
           <ErrorBoundary name="this page">
             <Outlet />
           </ErrorBoundary>
         </main>
+        {!inWorkspace && (
+          <PillBar
+            label="Navigation"
+            items={NAV_ITEMS.map(({ to, label, Icon }) => ({
+              key: to,
+              label,
+              icon: <Icon aria-hidden className="size-5" />,
+              active: pathname.startsWith(to),
+              render: (props) => <Link to={to} {...props} aria-current={pathname.startsWith(to) ? "page" : undefined} />,
+            }))}
+          />
+        )}
       </div>
     </div>
   );

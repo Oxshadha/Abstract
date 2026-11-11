@@ -17,6 +17,7 @@ Requirements from the client brief are in `docs/requirements.md` (the PDF is not
 | `docs/specs/` | Feature specs. **No feature code without an Approved spec** (see Workflow) |
 | `docs/research.md` | Background research only. Superseded where `decisions.md` differs |
 | `UI/*.png` | Visual reference for each screen. Match them |
+| `docs/design-principles.md` | The owner's standing UI rules from design reviews (phones first, one-line rows, floating pill navigation, icons over words, no native controls). **Apply them to every screen without being asked** |
 
 **Precedence when docs conflict:** `decisions.md` > `architecture.md` > `specs/*` > `research.md`. Treat a conflict as a bug: fix the lower doc and log it.
 

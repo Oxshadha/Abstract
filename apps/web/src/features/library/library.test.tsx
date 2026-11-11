@@ -124,7 +124,8 @@ describe("Star (AC5, AC12)", () => {
 describe("Collections in the sidebar (AC6, AC7)", () => {
   it("lists collections with counts and opens the Library filtered to one", async () => {
     await renderAt("/app/library");
-    const link = await screen.findByRole("link", { name: /RAG & LLMs/ });
+    const sidebar = await screen.findByRole("navigation", { name: "Main" });
+    const link = await within(sidebar).findByRole("link", { name: /RAG & LLMs/ });
     expect(link).toHaveAttribute("href", `/app/library?collection=${RAG}`);
     expect(within(link).getByText("16")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Collections" })).toBeNull(); // folders, not a page (D82)

@@ -1,6 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { setAuthState } from "@/auth/state";
@@ -40,17 +40,14 @@ describe("AC6: app shell", () => {
     expect(screen.getByRole("button", { name: /search papers/i })).toBeInTheDocument();
   });
 
-  it("mobile drawer opens, closes on Escape and returns focus", async () => {
+  it("phones get the brand in the top bar and a floating pill for navigation (D86)", async () => {
     await renderAt("/app/library");
-    const open = await screen.findByRole("button", { name: "Open navigation" });
-    fireEvent.click(open);
-    expect(screen.getByRole("dialog", { name: "Navigation" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Close navigation" })).toHaveFocus();
-    fireEvent.keyDown(document, { key: "Escape" });
-    await waitFor(() => {
-      expect(screen.queryByRole("dialog")).toBeNull();
-    });
-    expect(open).toHaveFocus();
+    expect(await screen.findByRole("link", { name: "abstract. home" })).toHaveAttribute("href", "/app/home");
+    const pill = screen.getByRole("navigation", { name: "Navigation" });
+    const links = within(pill).getAllByRole("link");
+    expect(links.map((l) => l.getAttribute("aria-label"))).toEqual(["Home", "Library", "Templates", "Settings"]);
+    expect(within(pill).getByRole("link", { name: "Library" })).toHaveAttribute("aria-current", "page");
+    expect(screen.queryByRole("button", { name: "Open navigation" })).toBeNull(); // no drawer any more
   });
 
   it("user menu shows initials, theme choice and sign out", async () => {

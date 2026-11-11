@@ -12,6 +12,7 @@ import { useMediaQuery } from "@/features/workspace/layout";
 
 import { libraryKeys, listCollections, listLibrary, type LibraryParams, type Sort } from "./api";
 import { PaperCard, PaperRow } from "./PaperItems";
+import { CollectionChips } from "./SidebarCollections";
 import { withDefaults, type LibrarySearch } from "./search-params";
 
 const FILTERS: { label: string; starred?: boolean }[] = [{ label: "All" }, { label: "Starred", starred: true }];
@@ -221,6 +222,7 @@ export function LibraryView() {
       {(
         <section aria-labelledby="papers-heading" className="flex flex-col gap-4">
           <h2 id="papers-heading" className="sr-only">Papers</h2>
+          <CollectionChips />
           <Toolbar params={params} view={view} onView={changeView} />
           {papers.isPending ? (
             <Loading label="Loading your papers">

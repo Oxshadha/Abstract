@@ -75,7 +75,7 @@ test("upload a paper and open it once chat is available", async ({ page }, testI
   await page.getByRole("button", { name: "Create" }).click();
   await expect(page.getByRole("checkbox", { name: new RegExp(folder) })).toHaveAttribute("aria-checked", "true");
   await page.getByRole("button", { name: "Done" }).click();
-  if (testInfo.project.use.isMobile) await page.getByRole("button", { name: "Open navigation" }).click();
+  // Desktop: the sidebar folder; phones: the chip row at the top of the Library (D86).
   await page.getByRole("link", { name: new RegExp(folder) }).click();
   await expect(page.getByRole("heading", { level: 1, name: folder })).toBeVisible();
   await expect(page.getByRole("listitem").filter({ has: page.locator(`a[href$="/app/papers/${paperId}"]`) })).toBeVisible();

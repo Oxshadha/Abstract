@@ -24,12 +24,13 @@ export function HomeView() {
   const items = recent.data?.items ?? [];
 
   return (
-    <div className="flex flex-col gap-6 px-4 pt-6 pb-10 md:gap-8 md:px-8">
+    <div className="flex h-[calc(100dvh-4.4rem)] flex-col gap-4 px-4 pt-4 sm:gap-6 sm:pt-6 md:h-auto md:gap-8 md:px-8 md:pb-10">
       {/* The upload box below already says what to do; a subtitle only repeated it (owner review). */}
-      <h1 className="text-3xl font-bold tracking-tight">Home</h1>
+      <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Home</h1>
       <DropZone />
       {(recent.isPending || items.length > 0) && (
-        <section aria-labelledby="recent-heading" className="flex flex-col gap-4">
+        // Phones: the upload stays put and only this list scrolls (D86); wider screens scroll the page.
+        <section aria-labelledby="recent-heading" className="flex min-h-0 flex-1 flex-col gap-3 md:flex-none md:gap-4">
           <div className="flex items-center gap-2">
             <h2 id="recent-heading" className="font-display text-xl font-bold whitespace-nowrap sm:text-2xl">Recently opened</h2>
             <Link
@@ -48,7 +49,7 @@ export function HomeView() {
               <ListRowSkeleton />
             </Loading>
           ) : (
-            <ul aria-label="Recently opened papers" className="flex flex-col gap-3">
+            <ul aria-label="Recently opened papers" className="-mx-1 flex min-h-0 flex-col gap-3 overflow-y-auto overscroll-contain px-1 pb-28 md:overflow-visible md:pb-0">
               {items.map((paper) => <PaperRow key={paper.id} paper={paper} />)}
             </ul>
           )}

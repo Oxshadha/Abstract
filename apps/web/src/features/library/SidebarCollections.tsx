@@ -70,6 +70,48 @@ export function SidebarCollections({ onNavigate }: { onNavigate?: () => void }) 
   );
 }
 
+/**
+ * Phones (D86): collections as a scrollable chip row at the top of the Library, since there is
+ * no sidebar. The open collection gets a "..." for Rename and Delete; "+" creates one.
+ */
+export function CollectionChips() {
+  const collections = useQuery({ queryKey: libraryKeys.collections, queryFn: listCollections, staleTime: 60_000 });
+  const openCollection = useOpenCollection();
+  const [dialog, setDialog] = useState<{ mode: "create" } | { mode: "rename" | "delete"; collection: Collection } | null>(null);
+  const active = collections.data?.find((c) => c.id === openCollection);
+  const chip = (on: boolean) =>
+    `inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-pill border px-3 text-sm whitespace-nowrap ${on ? "border-primary bg-primary text-primary-text" : "border-border text-text-secondary"}`;
+  return (
+    <div className="-mx-4 flex items-center gap-2 overflow-x-auto px-4 md:hidden" role="group" aria-label="Collections">
+      <Link to="/app/library" aria-current={!openCollection ? "page" : undefined} className={chip(!openCollection)}>
+        All papers
+      </Link>
+      {(collections.data ?? []).map((c) => (
+        <Link key={c.id} to="/app/library" search={{ collection: c.id }} aria-current={c.id === openCollection ? "page" : undefined} className={chip(c.id === openCollection)}>
+          <Folder aria-hidden className="size-4" />
+          {c.name}
+          <span className="tabular-nums opacity-70">{c.paper_count}</span>
+        </Link>
+      ))}
+      <button type="button" aria-label="New collection" title="New collection" onClick={() => { setDialog({ mode: "create" }); }} className="inline-flex size-9 shrink-0 items-center justify-center rounded-pill border border-border text-text-secondary">
+        <Plus aria-hidden className="size-4" />
+      </button>
+      {active && (
+        <Menu
+          label={`Actions for collection ${active.name}`}
+          items={[
+            { label: "Rename", icon: <Pencil aria-hidden className="size-4" />, onSelect: () => { setDialog({ mode: "rename", collection: active }); } },
+            { label: "Delete", icon: <Trash2 aria-hidden className="size-4" />, destructive: true, onSelect: () => { setDialog({ mode: "delete", collection: active }); } },
+          ]}
+        />
+      )}
+      {dialog?.mode === "create" && <NameDialog title="New collection" onClose={() => { setDialog(null); }} />}
+      {dialog?.mode === "rename" && <NameDialog title="Rename collection" collection={dialog.collection} onClose={() => { setDialog(null); }} />}
+      {dialog?.mode === "delete" && <DeleteCollection collection={dialog.collection} onClose={() => { setDialog(null); }} />}
+    </div>
+  );
+}
+
 function NameDialog({ title, collection, onClose }: { title: string; collection?: Collection; onClose: () => void }) {
   const { create, rename } = useCollectionActions();
   const navigate = useNavigate();
