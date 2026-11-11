@@ -33,6 +33,106 @@
         "title": "Health",
         "type": "object"
       },
+      "Me": {
+        "properties": {
+          "org": {
+            "$ref": "#/components/schemas/MeOrg"
+          },
+          "role": {
+            "enum": [
+              "owner",
+              "member"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/MeUser"
+          }
+        },
+        "required": [
+          "user",
+          "org",
+          "role"
+        ],
+        "title": "Me",
+        "type": "object"
+      },
+      "MeOrg": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "personal",
+              "team"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind"
+        ],
+        "title": "MeOrg",
+        "type": "object"
+      },
+      "MeUser": {
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "platform_role": {
+            "enum": [
+              "user",
+              "admin"
+            ],
+            "title": "Platform Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "display_name",
+          "platform_role"
+        ],
+        "title": "MeUser",
+        "type": "object"
+      },
       "Pong": {
         "properties": {
           "pong": {
@@ -141,6 +241,27 @@
         "summary": "Liveness (no dependencies)",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/api/v1/me": {
+      "get": {
+        "operationId": "me_api_v1_me_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "The signed-in user and their active organization",
+        "tags": [
+          "identity"
         ]
       }
     },

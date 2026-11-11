@@ -14,11 +14,12 @@ from app.adapters.auth import build_auth_provider
 from app.adapters.storage.s3 import S3Storage
 from app.api.v1 import debug, dev_auth, health
 from app.core.config import Settings, get_settings
-from app.core.db import build_engine, ping_db
+from app.core.db import build_engine, build_sessionmaker, ping_db
 from app.core.errors import install_error_handlers
 from app.core.logging import configure_logging, get_logger
 from app.core.middleware import RequestContextMiddleware
 from app.core.readiness import ReadinessCheck
+from app.modules.identity import router as identity_router
 from app.ports.auth import AuthProvider
 
 API_PREFIX = "/api/v1"
@@ -37,10 +38,7 @@ def create_app(
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        if readiness_checks is not None:
-            app.state.readiness_checks = readiness_checks
-            yield
-            return
+        # Clients connect lazily, so building them is cheap even in unit tests.
         engine = build_engine(settings.database_url)
         redis = Redis.from_url(settings.redis_url)
         storage = S3Storage(settings)
@@ -54,13 +52,15 @@ def create_app(
             await redis.ping()
 
         app.state.engine = engine
+        app.state.sessionmaker = build_sessionmaker(engine)
+        app.state.redis = redis
         app.state.storage = storage
-        app.state.readiness_checks = {
-            "db": lambda: ping_db(engine),
-            "redis": check_redis,
-            "storage": storage.ping,
-        }
-        log.info("startup", env=settings.env, llm_provider=settings.llm_provider)
+        app.state.readiness_checks = (
+            readiness_checks
+            if readiness_checks is not None
+            else {"db": lambda: ping_db(engine), "redis": check_redis, "storage": storage.ping}
+        )
+        log.info("startup", env=settings.env, llm_provider=settings.llm_provider, auth=auth.name)
         try:
             yield
         finally:
@@ -88,6 +88,7 @@ def create_app(
     install_error_handlers(app, production=settings.is_production)
 
     app.include_router(health.router, prefix=API_PREFIX)
+    app.include_router(identity_router.router, prefix=API_PREFIX)
     if not settings.is_production:
         app.include_router(debug.router, prefix=API_PREFIX)
     if auth.name == "dev":

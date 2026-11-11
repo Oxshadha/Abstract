@@ -13,26 +13,38 @@ from app.core.config import Settings
 class S3Storage:
     def __init__(self, settings: Settings) -> None:
         self.bucket = settings.s3_bucket
-        self._client: Any = boto3.client(
-            "s3",
-            endpoint_url=settings.s3_endpoint_url,
-            region_name=settings.s3_region,
-            aws_access_key_id=(
-                settings.s3_access_key_id.get_secret_value() if settings.s3_access_key_id else None
-            ),
-            aws_secret_access_key=(
-                settings.s3_secret_access_key.get_secret_value()
-                if settings.s3_secret_access_key
-                else None
-            ),
-            # Path-style keeps local S3-compatible servers working on plain hostnames.
-            config=Config(
-                s3={"addressing_style": "path"},
-                retries={"max_attempts": 3, "mode": "standard"},
-                connect_timeout=2,
-                read_timeout=10,
-            ),
-        )
+        self._settings = settings
+        self._client_instance: Any = None
+
+    @property
+    def _client(self) -> Any:
+        """Created on first use: building a boto3 client resolves credentials, which can make
+        network calls (instance metadata), so it must not happen at app startup."""
+        if self._client_instance is None:
+            settings = self._settings
+            self._client_instance = boto3.client(
+                "s3",
+                endpoint_url=settings.s3_endpoint_url,
+                region_name=settings.s3_region,
+                aws_access_key_id=(
+                    settings.s3_access_key_id.get_secret_value()
+                    if settings.s3_access_key_id
+                    else None
+                ),
+                aws_secret_access_key=(
+                    settings.s3_secret_access_key.get_secret_value()
+                    if settings.s3_secret_access_key
+                    else None
+                ),
+                # Path-style keeps local S3-compatible servers working on plain hostnames.
+                config=Config(
+                    s3={"addressing_style": "path"},
+                    retries={"max_attempts": 3, "mode": "standard"},
+                    connect_timeout=2,
+                    read_timeout=10,
+                ),
+            )
+        return self._client_instance
 
     async def ping(self) -> None:
         await asyncio.to_thread(self._client.head_bucket, Bucket=self.bucket)
