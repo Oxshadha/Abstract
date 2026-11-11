@@ -15,6 +15,13 @@ Entry format:
 
 ---
 
+## 2026-11-11: Upload security decided (D77); spec 004 approved
+**Done:** Spec 003 merged (PR #4) and the spec 002 review hardening merged (PR #5: 401 refresh and retry, deletion job queued after commit, last-admin race, query budgets). Spec 004 drafted and approved. The malware strategy went through EDP-006: ClamAV needs at least 3 GiB RAM and GuardDuty needs AWS, which isn't available before EC2, so the owner approved "sanitize and sandbox now, scan later".
+**Decisions:** D77 added (supersedes the scanner and gating parts of D65)   **Assumptions:** D6, D7, R6, R7 added   **Specs:** 004 Approved (AC11 rewritten, AC12 stage timings, AC16 scanner port)
+**Artifacts:** docs/proposals/EDP-006-upload-malware-strategy.md, docs/specs/004-upload-ingestion.md
+**Next:** Build spec 004 criterion by criterion on `feat/004-upload-ingestion`, starting with migration 0003 and the upload endpoints.
+**Blockers / waiting on owner:** none for 004; hosting choice (Railway vs EC2) at spec 017.
+
 ## 2026-11-11: Spec 002 merged; spec 003 design system implemented (15 of 15)
 **Done:** Spec 002 merged (PR #3, CI green). Spec 003 on `feat/003-design-system`: one token source with WCAG checks (AC1), raw colours/fonts and status colours outside status components rejected by a self-tested checker (AC2, AC5), flash-free theme toggle (AC3), Latin-only self-hosted fonts, 84 to 5 files (AC4), shell and routes from the Library mockup with a mobile drawer and workspace tab bar (AC6, AC7), sign-in modal over the inert blurred app plus split-screen fallbacks (AC8), query defaults (AC9), lazy Clerk/Sentry/Workspace with a 200 KB budget, entry 185 to 112 KB gzip (AC10), error boundaries (AC11), Sentry web and API live in the EU region with privacy-first defaults (AC12, AC13, D76), skeleton/empty/offline states (AC14), axe on every screen (AC15).
 **Owner input:** Sentry DSNs provided and verified with one test event per project; Sentry auth token still needed at deployment for readable production stack traces.

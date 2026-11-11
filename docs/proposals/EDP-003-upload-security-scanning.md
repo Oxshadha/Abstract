@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Approved by owner (2026-11-11), option A → recorded as **D65** |
+| **Status** | Approved by owner (2026-11-11), option A → recorded as **D65**; scanner and gating parts superseded by **D77** (EDP-006) |
 | **Raised by** | Owner question (2026-11-11): "an AV-like security check is needed, but users shouldn't see the latency; how do enterprises handle it?" |
 | **Affects** | Spec 004 (upload and ingestion), D14/D18 (infra), D25 (`papers.status`), architecture §3 |
 
