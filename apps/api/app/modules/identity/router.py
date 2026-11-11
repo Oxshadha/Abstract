@@ -1,13 +1,16 @@
-from fastapi import APIRouter
+from typing import Annotated
 
-from app.core.context import Ctx
+from fastapi import APIRouter, Depends
+
+from app.core.context import Context
+from app.core.policy import require
 from app.modules.identity.schemas import Me, MeOrg, MeUser
 
 router = APIRouter(tags=["identity"])
 
 
 @router.get("/me", response_model=Me, summary="The signed-in user and their active organization")
-async def me(ctx: Ctx) -> Me:
+async def me(ctx: Annotated[Context, Depends(require("me.read"))]) -> Me:
     i = ctx.identity
     return Me(
         user=MeUser(
