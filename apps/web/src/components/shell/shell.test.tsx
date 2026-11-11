@@ -64,14 +64,18 @@ describe("AC6: app shell", () => {
 });
 
 describe("AC7: routes", () => {
-  it("workspace has three panels and a tab bar for phones", async () => {
+  it("workspace on phones shows one panel at a time with a tab bar (D60, D79)", async () => {
+    vi.stubGlobal("matchMedia", (query: string) => ({
+      matches: false, media: query, addEventListener: () => undefined, removeEventListener: () => undefined,
+    }));
     await renderAt("/app/papers/paper-123");
-    expect(await screen.findByRole("region", { name: "Paper" })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Summary" })).toBeInTheDocument();
-    expect(screen.getByRole("region", { name: "Chat" })).toBeInTheDocument();
+    expect(await screen.findByRole("region", { name: "Summary" })).toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "Paper" })).not.toBeInTheDocument();
     const chatTab = screen.getByRole("button", { name: "Chat" });
     fireEvent.click(chatTab);
     expect(chatTab).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("region", { name: "Ask Abstract" })).toBeInTheDocument();
+    vi.unstubAllGlobals();
   });
 
   it.each(["/app/collections", "/app/templates", "/app/settings"])("%s renders", async (path) => {
