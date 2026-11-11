@@ -348,6 +348,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/summaries/{summary_id}/fields/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Edit one field (autosave); If-Match carries the summary version */
+        patch: operations["edit_field_api_v1_summaries__summary_id__fields__key__patch"];
+        trace?: never;
+    };
+    "/api/v1/summaries/{summary_id}/fields/{key}/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reset an edited field to the generated value */
+        post: operations["reset_field_api_v1_summaries__summary_id__fields__key__reset_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/summaries/{summary_id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry a failed summary */
+        post: operations["retry_summary_api_v1_summaries__summary_id__retry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/templates": {
         parameters: {
             query?: never;
@@ -410,6 +461,11 @@ export interface components {
              */
             token_type: string;
         };
+        /** EditResult */
+        EditResult: {
+            /** Version */
+            version: number;
+        };
         /** EvidenceOut */
         EvidenceOut: {
             /** Page */
@@ -418,6 +474,11 @@ export interface components {
             quote: string;
             /** Verified */
             verified: boolean;
+        };
+        /** FieldEdit */
+        FieldEdit: {
+            /** Value */
+            value: string;
         };
         /** FieldOut */
         FieldOut: {
@@ -742,7 +803,9 @@ export interface components {
              * Key
              * @enum {string}
              */
-            key: "uploading" | "extracting" | "sections" | "indexing" | "ocr";
+            key: "uploading" | "extracting" | "sections" | "indexing" | "ocr" | "summary" | "citations";
+            /** Progress */
+            progress?: number | null;
             /**
              * State
              * @enum {string}
@@ -1689,6 +1752,130 @@ export interface operations {
                 content: {
                     "text/event-stream": unknown;
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    edit_field_api_v1_summaries__summary_id__fields__key__patch: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                summary_id: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FieldEdit"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditResult"];
+                };
+            };
+            /** @description Changed elsewhere */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    reset_field_api_v1_summaries__summary_id__fields__key__reset_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                summary_id: string;
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EditResult"];
+                };
+            };
+            /** @description Changed elsewhere */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retry_summary_api_v1_summaries__summary_id__retry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                summary_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Not failed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {

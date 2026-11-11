@@ -229,3 +229,98 @@ async def test_AC3_events_stream_snapshots_until_ready(api: PapersApi, worker: W
     assert stream.status_code == 200
     assert "event: summary" in stream.text
     assert '"status":"ready"' in stream.text
+
+
+async def ready_summary(api: PapersApi, worker: Worker) -> tuple[str, str, str]:
+    user, paper = await processed_paper(api, worker)
+    summary_id = (await start(api, user, paper)).json()["summary"]["id"]
+    await run(worker, ScriptedSummaries(), api.enqueued[-1][1])
+    return user, paper, summary_id
+
+
+async def test_AC9_AC12_edits_are_versioned_and_never_overwritten(
+    api: PapersApi, worker: Worker
+) -> None:
+    user, _, summary_id = await ready_summary(api, worker)
+    url = f"/api/v1/summaries/{summary_id}"
+    version = (await api.client.get(url, headers=bearer(user))).json()["version"]
+    edited = await api.client.patch(
+        f"{url}/fields/conclusion",
+        json={"value": "My own words."},
+        headers={**bearer(user), "If-Match": f'"{version}"'},
+    )
+    assert edited.status_code == 200, edited.text
+    new_version = edited.json()["version"]
+    assert new_version == version + 1
+    stale = await api.client.patch(
+        f"{url}/fields/conclusion",
+        json={"value": "Other tab."},
+        headers={**bearer(user), "If-Match": f'"{version}"'},
+    )
+    assert stale.status_code == 412  # AC12: another tab saved first
+    # Regeneration of the same field keeps the user's edit (D15).
+    org = (await worker.row("SELECT org_id FROM summaries WHERE id = :s", s=summary_id)).org_id
+    async with worker.deps.sessionmaker() as session, session.begin():
+        from app.core.tenancy import set_tenant
+
+        await set_tenant(session, org)
+        await generate_module.save_field(
+            session,
+            org,
+            UUID(summary_id),
+            "conclusion",
+            4,
+            {"value": "Regenerated.", "status": "found", "evidence": []},
+        )
+    field = next(
+        f
+        for f in (await api.client.get(url, headers=bearer(user))).json()["fields"]
+        if f["key"] == "conclusion"
+    )
+    assert (field["value"], field["edited"]) == ("My own words.", True)
+    reset = await api.client.post(
+        f"{url}/fields/conclusion/reset", headers={**bearer(user), "If-Match": f'"{new_version}"'}
+    )
+    assert reset.status_code == 200
+    field = next(
+        f
+        for f in (await api.client.get(url, headers=bearer(user))).json()["fields"]
+        if f["key"] == "conclusion"
+    )
+    assert (field["value"], field["edited"]) == ("Regenerated.", False)
+    intruder = await api.client.patch(
+        f"{url}/fields/conclusion",
+        json={"value": "x"},
+        headers={**bearer(new_user()), "If-Match": '"1"'},
+    )
+    assert intruder.status_code == 404
+
+
+async def test_AC7_a_failed_summary_can_be_retried(api: PapersApi, worker: Worker) -> None:
+    user, paper = await processed_paper(api, worker)
+    summary_id = (await start(api, user, paper)).json()["summary"]["id"]
+    job = api.enqueued[-1][1]
+    await run(worker, ScriptedSummaries(fail=True), job, retries=3)
+    retry = await api.client.post(f"/api/v1/summaries/{summary_id}/retry", headers=bearer(user))
+    assert retry.status_code == 202
+    task, new_job = api.enqueued[-1]
+    assert task == "app.worker.tasks.generate_summary"
+    assert new_job["job_id"] != job["job_id"]
+    assert (await run(worker, ScriptedSummaries(), new_job)).kind == "done"
+    again = await api.client.post(f"/api/v1/summaries/{summary_id}/retry", headers=bearer(user))
+    assert again.status_code == 409  # only failed summaries are retried
+
+
+async def test_AC10_processing_steps_include_the_summary(api: PapersApi, worker: Worker) -> None:
+    user, paper = await processed_paper(api, worker)
+    await start(api, user, paper)
+    before = (await api.client.get(f"/api/v1/papers/{paper}/status", headers=bearer(user))).json()
+    steps = {s["key"]: s for s in before["steps"]}
+    assert steps["summary"]["state"] == "active"
+    assert steps["citations"]["state"] == "pending"
+    await run(worker, ScriptedSummaries(), api.enqueued[-1][1])
+    after = (await api.client.get(f"/api/v1/papers/{paper}/status", headers=bearer(user))).json()
+    steps = {s["key"]: s for s in after["steps"]}
+    assert (steps["summary"]["state"], steps["summary"]["progress"]) == ("done", 1.0)
+    assert steps["citations"]["state"] == "done"
+    assert after["seq"] > before["seq"]

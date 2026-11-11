@@ -70,3 +70,7 @@ class CreatedSummary(BaseModel):
 
 class FieldEdit(StrictModel):
     value: CleanStr = Field(min_length=1, max_length=8000)
+
+
+class EditResult(BaseModel):
+    version: int

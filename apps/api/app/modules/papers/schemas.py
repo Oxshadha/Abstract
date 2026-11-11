@@ -61,13 +61,14 @@ class PaperPage(BaseModel):
     next_cursor: str | None
 
 
-StepKey = Literal["uploading", "extracting", "sections", "indexing", "ocr"]
+StepKey = Literal["uploading", "extracting", "sections", "indexing", "ocr", "summary", "citations"]
 StepState = Literal["done", "active", "pending", "failed"]
 
 
 class StepOut(BaseModel):
     key: StepKey
     state: StepState
+    progress: float | None = None  # 0 to 1 where measurable (summary fields)
 
 
 class PaperStatus(BaseModel):

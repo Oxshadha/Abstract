@@ -51,6 +51,19 @@
         "title": "DevToken",
         "type": "object"
       },
+      "EditResult": {
+        "properties": {
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "title": "EditResult",
+        "type": "object"
+      },
       "EvidenceOut": {
         "properties": {
           "page": {
@@ -79,6 +92,22 @@
           "verified"
         ],
         "title": "EvidenceOut",
+        "type": "object"
+      },
+      "FieldEdit": {
+        "additionalProperties": false,
+        "properties": {
+          "value": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "title": "FieldEdit",
         "type": "object"
       },
       "FieldOut": {
@@ -843,10 +872,23 @@
               "extracting",
               "sections",
               "indexing",
-              "ocr"
+              "ocr",
+              "summary",
+              "citations"
             ],
             "title": "Key",
             "type": "string"
+          },
+          "progress": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Progress"
           },
           "state": {
             "enum": [
@@ -2338,6 +2380,192 @@
           }
         },
         "summary": "Summary progress as Server-Sent Events (a snapshot whenever fields change)",
+        "tags": [
+          "summaries"
+        ]
+      }
+    },
+    "/api/v1/summaries/{summary_id}/fields/{key}": {
+      "patch": {
+        "operationId": "edit_field_api_v1_summaries__summary_id__fields__key__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "summary_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Summary Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z][a-z0-9_]{1,39}$",
+              "title": "Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FieldEdit"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EditResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "412": {
+            "description": "Changed elsewhere"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Edit one field (autosave); If-Match carries the summary version",
+        "tags": [
+          "summaries"
+        ]
+      }
+    },
+    "/api/v1/summaries/{summary_id}/fields/{key}/reset": {
+      "post": {
+        "operationId": "reset_field_api_v1_summaries__summary_id__fields__key__reset_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "summary_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Summary Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z][a-z0-9_]{1,39}$",
+              "title": "Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EditResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "412": {
+            "description": "Changed elsewhere"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reset an edited field to the generated value",
+        "tags": [
+          "summaries"
+        ]
+      }
+    },
+    "/api/v1/summaries/{summary_id}/retry": {
+      "post": {
+        "operationId": "retry_summary_api_v1_summaries__summary_id__retry_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "summary_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Summary Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "description": "Not failed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Retry a failed summary",
         "tags": [
           "summaries"
         ]

@@ -4,7 +4,7 @@ from collections.abc import AsyncIterator
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, Request, Response
+from fastapi import APIRouter, Depends, Header, Path, Request, Response
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from app.core import idempotency
@@ -13,10 +13,12 @@ from app.core.policy import require, require_identity
 from app.core.ratelimit import user_rate_limit
 from app.core.tenancy import set_tenant
 from app.modules.identity.service import RequestContext
-from app.modules.summaries import service, templates
+from app.modules.summaries import edits, service, templates
 from app.modules.summaries.schemas import (
     CreatedSummary,
     CreateSummary,
+    EditResult,
+    FieldEdit,
     SummaryList,
     SummaryOut,
 )
@@ -153,3 +155,61 @@ async def summary_events(
         media_type="text/event-stream",
         headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
     )
+
+
+@router.patch(
+    "/summaries/{summary_id}/fields/{key}",
+    response_model=EditResult,
+    summary="Edit one field (autosave); If-Match carries the summary version",
+    responses={412: {"description": "Changed elsewhere"}},
+    dependencies=[Depends(user_rate_limit("write"))],
+)
+async def edit_field(
+    summary_id: UUID,
+    key: Annotated[str, Path(pattern=r"^[a-z][a-z0-9_]{1,39}$")],
+    body: FieldEdit,
+    ctx: Annotated[Context, Depends(require("summary.update"))],
+    if_match: Annotated[str, Header(alias="If-Match", max_length=40)],
+) -> EditResult:
+    version = await edits.edit_field(
+        ctx, summary_id, key, body.value, edits.parse_version(if_match)
+    )
+    return EditResult(version=version)
+
+
+@router.post(
+    "/summaries/{summary_id}/fields/{key}/reset",
+    response_model=EditResult,
+    summary="Reset an edited field to the generated value",
+    responses={412: {"description": "Changed elsewhere"}},
+    dependencies=[Depends(user_rate_limit("write"))],
+)
+async def reset_field(
+    summary_id: UUID,
+    key: Annotated[str, Path(pattern=r"^[a-z][a-z0-9_]{1,39}$")],
+    ctx: Annotated[Context, Depends(require("summary.update"))],
+    if_match: Annotated[str, Header(alias="If-Match", max_length=40)],
+) -> EditResult:
+    version = await edits.reset_field(ctx, summary_id, key, edits.parse_version(if_match))
+    return EditResult(version=version)
+
+
+@router.post(
+    "/summaries/{summary_id}/retry",
+    status_code=202,
+    summary="Retry a failed summary",
+    responses={409: {"description": "Not failed"}},
+    dependencies=[Depends(user_rate_limit("write"))],
+)
+async def retry_summary(
+    summary_id: UUID,
+    request: Request,
+    ctx: Annotated[Context, Depends(require("summary.create"))],
+) -> Response:
+    job_id = await edits.retry(ctx, summary_id)
+    await ctx.session.commit()
+    state = request.app.state
+    await service.enqueue_summary(
+        job_id, ctx.identity.org_id, enqueue=state.enqueue, sessionmaker=state.sessionmaker
+    )
+    return Response(status_code=202)

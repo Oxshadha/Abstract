@@ -88,6 +88,27 @@ def _steps(paper: Any, ingest: Any, ocr: Any) -> list[StepOut]:
     return steps
 
 
+def _summary_steps(summary: Any) -> list[StepOut]:
+    """Building summary (progress by completed fields) and Finding citations (AC10 of 006)."""
+    if summary is None:
+        return []
+    progress = min(1.0, summary.done / summary.expected) if summary.expected else None
+    building: StepState = {"ready": "done", "failed": "failed"}.get(summary.status, "active")  # type: ignore[assignment]
+    citations: StepState = (
+        "done"
+        if summary.status == "ready"
+        else "failed"
+        if summary.status == "failed"
+        else "active"
+        if progress == 1.0
+        else "pending"
+    )
+    return [
+        StepOut(key="summary", state=building, progress=1.0 if building == "done" else progress),
+        StepOut(key="citations", state=citations),
+    ]
+
+
 async def paper_status(session: AsyncSession, owner_id: UUID, paper_id: UUID) -> PaperStatus:
     paper = (
         await session.execute(
@@ -110,7 +131,18 @@ async def paper_status(session: AsyncSession, owner_id: UUID, paper_id: UUID) ->
         )
     ).all()
     by_kind = {j.kind: j for j in jobs}
-    seq = sum(j.event_seq for j in jobs)
+    summary = (
+        await session.execute(
+            text(
+                "SELECT s.status, s.event_seq, jsonb_array_length(v.fields) AS expected,"
+                " (SELECT count(*) FROM summary_fields f WHERE f.summary_id = s.id) AS done"
+                " FROM summaries s JOIN template_versions v ON v.id = s.template_version_id"
+                " WHERE s.paper_id = :id ORDER BY s.created_at DESC LIMIT 1"
+            ),
+            {"id": paper_id},
+        )
+    ).first()
+    seq = sum(j.event_seq for j in jobs) + (summary.event_seq if summary else 0)
     return PaperStatus(
         paper_id=paper.id,
         seq=seq,
@@ -118,5 +150,5 @@ async def paper_status(session: AsyncSession, owner_id: UUID, paper_id: UUID) ->
         text_status=paper.text_status,
         chat_available=paper.text_status == "ready",
         error_message=paper.error_message,
-        steps=_steps(paper, by_kind.get("ingest"), by_kind.get("ocr")),
+        steps=_steps(paper, by_kind.get("ingest"), by_kind.get("ocr")) + _summary_steps(summary),
     )
