@@ -29,6 +29,9 @@ from app.ports.llm import (
 )
 
 RETRY_CODES = {408, 429, 500, 502, 503, 504}
+# Models found to merge a list of texts into one embedding (process-wide; learned at runtime).
+SINGLE_TEXT_EMBED_MODELS: set[str] = set()
+EMBED_CONCURRENCY = 16  # one text per call: parallel calls keep a paper's index fast (D73)
 log = get_logger(__name__)
 
 
@@ -203,22 +206,28 @@ class VertexGateway:
             return [list(e.values) for e in response.embeddings]
 
         vectors: list[list[float]] = []
-        limit = asyncio.Semaphore(8)
+        limit = asyncio.Semaphore(EMBED_CONCURRENCY)
 
         async def one(text: str) -> list[float]:
             async with limit:
                 return (await call([text]))[0]
 
-        # Vertex accepts a limited batch per call; stay well under it.
-        for start in range(0, len(texts), 64):
-            batch = texts[start : start + 64]
-            result = await call(batch)
-            if len(result) != len(batch):
-                # Multimodal embedding models (e.g. gemini-embedding-2) merge a list of texts
-                # into ONE embedding. Never accept a count mismatch: embed each text instead.
-                log.warning("vertex_embed_batch_merged", model=spec.id, sent=len(batch))
-                result = list(await asyncio.gather(*(one(t) for t in batch)))
-            vectors.extend(result)
+        if spec.id in SINGLE_TEXT_EMBED_MODELS:
+            # Known to embed one text per call: skip the batch attempt (it would be merged).
+            vectors = list(await asyncio.gather(*(one(t) for t in texts)))
+        else:
+            # Vertex accepts a limited batch per call; stay well under it.
+            for start in range(0, len(texts), 64):
+                batch = texts[start : start + 64]
+                result = await call(batch)
+                if len(result) != len(batch):
+                    # Multimodal embedding models (e.g. gemini-embedding-2) merge a list of texts
+                    # into ONE embedding. Never accept a count mismatch: embed each text instead,
+                    # and remember it for this process so later papers skip the wasted call.
+                    log.warning("vertex_embed_batch_merged", model=spec.id, sent=len(batch))
+                    SINGLE_TEXT_EMBED_MODELS.add(spec.id)
+                    result = list(await asyncio.gather(*(one(t) for t in batch)))
+                vectors.extend(result)
         est_tokens = sum(len(t) for t in texts) // 4  # Vertex reports characters, not tokens
         usage = Usage(
             provider=self.provider,

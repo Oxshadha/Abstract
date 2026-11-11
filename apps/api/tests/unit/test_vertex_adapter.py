@@ -131,3 +131,20 @@ async def test_unknown_task_is_rejected() -> None:
     gw, _ = gateway()
     with pytest.raises(ValueError, match="No model configured"):
         await gw.complete(task="nope", messages=[ChatMessage(role="user", content="x")])
+
+
+async def test_merging_models_are_remembered_and_embedded_in_parallel() -> None:
+    from app.adapters.llm import vertex as vertex_module
+
+    vertex_module.SINGLE_TEXT_EMBED_MODELS.discard("gemini-embed")
+    gw, stub = gateway()
+    stub.merge_batches = True
+    first = await gw.embed(task="embed", texts=["a", "b", "c"], dimensions=8)
+    assert len(first.vectors) == 3
+    batch_calls = sum(1 for c in stub.calls if len(c["contents"]) > 1)
+    assert batch_calls == 1  # tried once, merged, then one text per call
+    stub.calls.clear()
+    second = await gw.embed(task="embed", texts=["d", "e"], dimensions=8)
+    assert len(second.vectors) == 2
+    assert all(len(c["contents"]) == 1 for c in stub.calls)  # no wasted batch attempt
+    vertex_module.SINGLE_TEXT_EMBED_MODELS.discard("gemini-embed")
