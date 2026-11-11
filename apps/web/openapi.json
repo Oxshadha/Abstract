@@ -949,6 +949,40 @@
       }
     },
     "/api/v1/papers/{paper_id}": {
+      "delete": {
+        "operationId": "delete_paper_api_v1_papers__paper_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete a paper and everything derived from it",
+        "tags": [
+          "papers"
+        ]
+      },
       "get": {
         "operationId": "get_paper_api_v1_papers__paper_id__get",
         "parameters": [

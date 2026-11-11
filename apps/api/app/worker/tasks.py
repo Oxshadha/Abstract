@@ -8,6 +8,7 @@ from uuid import UUID
 
 from celery.exceptions import SoftTimeLimitExceeded
 
+from app.modules.papers import deletion
 from app.modules.papers import ingest as ingest_module
 from app.modules.papers import ocr as ocr_module
 from app.modules.papers.ingest import Deps
@@ -52,11 +53,39 @@ def ocr_pages(self: Any, job_id: str, org_id: str) -> str:
     return _job_task(self, ocr_module.run_ocr, job_id, org_id)
 
 
-@celery_app.task(name="app.worker.tasks.delete_account")  # type: ignore[untyped-decorator]
-def delete_account(user_id: str) -> dict[str, str]:
-    """Account deletion (spec 002 AC3). Deleting papers, chunks and S3 objects lands with spec 004;
-    the user is already disabled by the webhook, so no data is reachable meanwhile."""
-    return {"user_id": user_id, "status": "disabled; content deletion pending spec 004"}
+async def _delete_paper(org_id: UUID, paper_id: UUID, quarantine_key: str) -> int:
+    async with worker_deps() as deps:
+        return await deletion.delete_objects(deps.storage, org_id, paper_id, quarantine_key)
+
+
+@celery_app.task(  # type: ignore[untyped-decorator]
+    name="app.worker.tasks.delete_paper",
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_jitter=True,
+    max_retries=5,
+)
+def delete_paper(org_id: str, paper_id: str, quarantine_key: str) -> int:
+    """Remove a deleted paper's objects (spec 004 AC15). Idempotent."""
+    return asyncio.run(_delete_paper(UUID(org_id), UUID(paper_id), quarantine_key))
+
+
+async def _delete_account(user_id: UUID) -> int:
+    async with worker_deps() as deps, deps.sessionmaker() as session, session.begin():
+        return await deletion.delete_account_content(session, deps.storage, user_id)
+
+
+@celery_app.task(  # type: ignore[untyped-decorator]
+    name="app.worker.tasks.delete_account",
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_jitter=True,
+    max_retries=5,
+)
+def delete_account(user_id: str) -> dict[str, str | int]:
+    """Account deletion (spec 002 AC3, 004 AC15): all papers, derived data, uploads and objects.
+    The user was already disabled by the webhook, so nothing is reachable meanwhile."""
+    return {"user_id": user_id, "papers_deleted": asyncio.run(_delete_account(UUID(user_id)))}
 
 
 @celery_app.task(name="app.worker.tasks.ping")  # type: ignore[untyped-decorator]

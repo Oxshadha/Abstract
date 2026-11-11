@@ -11,7 +11,7 @@ from app.core.errors import ProblemError
 from app.core.policy import require, require_identity
 from app.core.ratelimit import user_rate_limit
 from app.modules.identity.service import RequestContext
-from app.modules.papers import events, finalize, queries, service
+from app.modules.papers import deletion, events, finalize, queries, service
 from app.modules.papers.schemas import (
     FinalizeRequest,
     FinalizeResponse,
@@ -177,3 +177,32 @@ async def paper_events(
         media_type="text/event-stream",
         headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
     )
+
+
+@router.delete(
+    "/{paper_id}",
+    status_code=204,
+    summary="Delete a paper and everything derived from it",
+    dependencies=[Depends(user_rate_limit("write"))],
+)
+async def delete_paper(
+    paper_id: UUID,
+    request: Request,
+    ctx: Annotated[Context, Depends(require("paper.delete"))],
+) -> Response:
+    deleted = await deletion.delete_rows(
+        ctx.session,
+        org_id=ctx.identity.org_id,
+        owner_id=ctx.identity.user_id,
+        actor_id=ctx.identity.user_id,
+        paper_ids=[paper_id],
+    )
+    if not deleted:
+        raise ProblemError(404, "paper-not-found", "This paper was not found.")
+    await ctx.session.commit()  # rows are gone before any cleanup is queued
+    for paper in deletion.schedule_cleanup(deleted, request.app.state.enqueue):
+        # Queue unavailable: clean up inline rather than leave objects behind.
+        await deletion.delete_objects(
+            request.app.state.storage, paper.org_id, paper.paper_id, paper.quarantine_key
+        )
+    return Response(status_code=204)

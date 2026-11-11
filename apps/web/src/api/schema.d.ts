@@ -152,7 +152,8 @@ export interface paths {
         get: operations["get_paper_api_v1_papers__paper_id__get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /** Delete a paper and everything derived from it */
+        delete: operations["delete_paper_api_v1_papers__paper_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -787,6 +788,35 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["PaperOut"];
                 };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_paper_api_v1_papers__paper_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Validation Error */
             422: {
