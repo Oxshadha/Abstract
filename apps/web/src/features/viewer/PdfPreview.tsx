@@ -14,7 +14,7 @@ export default function PdfPreview({ paperId, width }: { paperId: string; width:
   if (!file.data) return null;
   return (
     <div aria-label="Page 1 preview" role="img" className="overflow-hidden rounded-md border border-border bg-surface">
-      <Document file={file.data} options={options} loading="" error="">
+      <Document file={file.data} options={options} loading="" error="" suspense={false}>
         <Page pageNumber={1} width={width} renderAnnotationLayer={false} renderTextLayer={false} loading="" />
       </Document>
     </div>

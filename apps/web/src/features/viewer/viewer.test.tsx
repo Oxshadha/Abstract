@@ -14,9 +14,13 @@ import { visibleWindow } from "./virtual";
 // pdf.js needs a real canvas and worker; the viewer's own logic is what is under test here.
 const pageText = new Map<number, TextPiece[]>();
 const failRender = { on: false };
+const documentProps: { suspense?: boolean }[] = [];
 vi.mock("react-pdf", () => ({
   pdfjs: { GlobalWorkerOptions: {} },
-  Document: ({ children }: { children: ReactNode }) => <div data-testid="document">{children}</div>,
+  Document: ({ children, suspense }: { children: ReactNode; suspense?: boolean }) => {
+    documentProps.push({ suspense });
+    return <div data-testid="document">{children}</div>;
+  },
   Page: ({ pageNumber, onGetTextSuccess, customTextRenderer, onRenderError }: {
     pageNumber: number;
     onGetTextSuccess?: (c: { items: TextPiece[] }) => void;
@@ -114,6 +118,20 @@ describe("PdfViewer", () => {
     expect(visibleWindow([0, 100, 200, 300, 400, 500, 600, 700], [90, 90, 90, 90, 90, 90, 90, 90], 300, 150)).toEqual([1, 6]);
   });
 
+  it("AC1 AC8: fits the page to the panel width, remeasured on scroll", async () => {
+    renderViewer();
+    await screen.findByTestId("page-1");
+    const width = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "clientWidth");
+    Object.defineProperty(HTMLElement.prototype, "clientWidth", { configurable: true, get: () => 324 });
+    try {
+      fireEvent.scroll(screen.getByRole("region", { name: "Paper pages" }));
+      // fit width: (324 - 24) / 612 points, so a 612-point page is 300 px wide
+      await waitFor(() => { expect((document.querySelector('[data-page="1"]') as HTMLElement).style.width).toBe("300px"); });
+    } finally {
+      if (width) Object.defineProperty(HTMLElement.prototype, "clientWidth", width);
+    }
+  });
+
   it("AC4 AC5: a citation highlights the sentence and announces it", async () => {
     pageText.set(1, [{ str: "Self attention relates positions of a sequence.", hasEOL: true }]);
     renderViewer(<Cite page={1} quote="Self attention relates positions of a sequence." />);
@@ -150,6 +168,13 @@ describe("PdfViewer", () => {
     failRender.on = false;
     await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Try again" })); await Promise.resolve(); });
     expect(await screen.findByTestId("page-1")).toBeInTheDocument();
+  });
+
+  it("never suspends into the app's outer boundary (that reset the chat stream)", async () => {
+    renderViewer();
+    await screen.findByTestId("page-1");
+    expect(documentProps.length).toBeGreaterThan(0);
+    expect(documentProps.every((p) => p.suspense === false)).toBe(true);
   });
 
   it("has no serious accessibility violations", async () => {

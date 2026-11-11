@@ -3,7 +3,7 @@ import "react-pdf/dist/Page/TextLayer.css";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 import { ChevronLeft, ChevronRight, Download, Minus, Plus, RotateCcw } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 
 import { useCitations } from "./citations";
@@ -54,6 +54,7 @@ export function PdfViewer({ paperId }: { paperId: string }) {
     return () => {
       observer?.disconnect();
       if (frame.current !== null) cancelAnimationFrame(frame.current);
+      frame.current = null; // otherwise measure() would think a frame is pending and never run again
     };
   }, [measure, sizes.data]);
 
@@ -199,8 +200,12 @@ export function PdfViewer({ paperId }: { paperId: string }) {
         onClick={() => { if (highlight?.located) { citations?.clear(); } }}
         className="relative mt-2 min-h-0 flex-1 overflow-auto rounded-md bg-muted"
       >
+        {/* react-pdf suspends by default; a suspend reaching the app's outer boundary would hide
+            the whole Workspace and reset its effects, cancelling a streaming chat answer. */}
+        <Suspense fallback={null}>
         {file.data && pages.length > 0 && (
           <Document
+            suspense={false}
             key={attempt}
             file={file.data}
             options={options}
@@ -218,6 +223,7 @@ export function PdfViewer({ paperId }: { paperId: string }) {
                   {i >= first && i <= last && (
                     <Page
                       pageNumber={p.page}
+                      suspense={false}
                       width={p.width * scale}
                       renderAnnotationLayer={false}
                       renderTextLayer
@@ -232,6 +238,7 @@ export function PdfViewer({ paperId }: { paperId: string }) {
             </div>
           </Document>
         )}
+        </Suspense>
       </div>
     </div>
   );
