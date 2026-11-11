@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
 
 import { fetchHealth } from "@/api/health";
 
@@ -16,6 +17,13 @@ export function HomePage() {
       <p role="status" aria-live="polite">
         API status: <strong data-testid="api-status">{label}</strong>
       </p>
+      {/* Placeholder until the landing page (spec 016): the way into the app. */}
+      <Link
+        to="/app/library"
+        className="inline-flex min-h-11 w-fit items-center rounded-pill bg-primary px-5 font-medium text-primary-text"
+      >
+        Open your library
+      </Link>
     </main>
   );
 }

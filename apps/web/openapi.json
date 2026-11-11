@@ -112,6 +112,20 @@
         "title": "JobOut",
         "type": "object"
       },
+      "KillSwitch": {
+        "additionalProperties": false,
+        "properties": {
+          "paid_calls_enabled": {
+            "title": "Paid Calls Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "paid_calls_enabled"
+        ],
+        "title": "KillSwitch",
+        "type": "object"
+      },
       "Me": {
         "properties": {
           "org": {
@@ -210,6 +224,102 @@
           "platform_role"
         ],
         "title": "MeUser",
+        "type": "object"
+      },
+      "ModelParams": {
+        "additionalProperties": false,
+        "properties": {
+          "dimensions": {
+            "anyOf": [
+              {
+                "maximum": 3072.0,
+                "minimum": 64.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dimensions"
+          },
+          "max_tokens": {
+            "maximum": 65536.0,
+            "minimum": 1.0,
+            "title": "Max Tokens",
+            "type": "integer"
+          },
+          "temperature": {
+            "anyOf": [
+              {
+                "maximum": 2.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Temperature"
+          },
+          "thinking_budget": {
+            "anyOf": [
+              {
+                "maximum": 32768.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Thinking Budget"
+          }
+        },
+        "required": [
+          "max_tokens"
+        ],
+        "title": "ModelParams",
+        "type": "object"
+      },
+      "ModelRoute": {
+        "additionalProperties": false,
+        "properties": {
+          "input_usd_per_m": {
+            "default": 0.0,
+            "maximum": 1000.0,
+            "minimum": 0.0,
+            "title": "Input Usd Per M",
+            "type": "number"
+          },
+          "model": {
+            "maxLength": 120,
+            "minLength": 2,
+            "pattern": "^[A-Za-z0-9._:/@-]+$",
+            "title": "Model",
+            "type": "string"
+          },
+          "output_usd_per_m": {
+            "default": 0.0,
+            "maximum": 1000.0,
+            "minimum": 0.0,
+            "title": "Output Usd Per M",
+            "type": "number"
+          },
+          "provider": {
+            "enum": [
+              "vertex",
+              "openrouter",
+              "fake"
+            ],
+            "title": "Provider",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "model"
+        ],
+        "title": "ModelRoute",
         "type": "object"
       },
       "PaperOut": {
@@ -444,6 +554,132 @@
         "title": "Received",
         "type": "object"
       },
+      "RegistryEntryOut": {
+        "additionalProperties": false,
+        "properties": {
+          "deadline_seconds": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 600.0,
+            "title": "Deadline Seconds",
+            "type": "number"
+          },
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "on_budget": {
+            "default": "downgrade",
+            "enum": [
+              "downgrade",
+              "stop"
+            ],
+            "title": "On Budget",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/ModelParams"
+          },
+          "routes": {
+            "items": {
+              "$ref": "#/components/schemas/ModelRoute"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "title": "Routes",
+            "type": "array"
+          },
+          "task": {
+            "pattern": "^[a-z_]{2,32}$",
+            "title": "Task",
+            "type": "string"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "default": 1,
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "task",
+          "routes",
+          "params",
+          "deadline_seconds",
+          "updated_at"
+        ],
+        "title": "RegistryEntryOut",
+        "type": "object"
+      },
+      "RegistryList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/RegistryEntryOut"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "RegistryList",
+        "type": "object"
+      },
+      "RegistryUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "confirm_reindex": {
+            "default": false,
+            "title": "Confirm Reindex",
+            "type": "boolean"
+          },
+          "deadline_seconds": {
+            "exclusiveMinimum": 0.0,
+            "maximum": 600.0,
+            "title": "Deadline Seconds",
+            "type": "number"
+          },
+          "enabled": {
+            "default": true,
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "on_budget": {
+            "default": "downgrade",
+            "enum": [
+              "downgrade",
+              "stop"
+            ],
+            "title": "On Budget",
+            "type": "string"
+          },
+          "params": {
+            "$ref": "#/components/schemas/ModelParams"
+          },
+          "routes": {
+            "items": {
+              "$ref": "#/components/schemas/ModelRoute"
+            },
+            "maxItems": 5,
+            "minItems": 1,
+            "title": "Routes",
+            "type": "array"
+          }
+        },
+        "required": [
+          "routes",
+          "params",
+          "deadline_seconds"
+        ],
+        "title": "RegistryUpdate",
+        "type": "object"
+      },
       "RoleChange": {
         "properties": {
           "platform_role": {
@@ -566,6 +802,86 @@
         "title": "UploadTicket",
         "type": "object"
       },
+      "UsageRow": {
+        "properties": {
+          "calls": {
+            "title": "Calls",
+            "type": "integer"
+          },
+          "cost_usd": {
+            "title": "Cost Usd",
+            "type": "number"
+          },
+          "input_tokens": {
+            "title": "Input Tokens",
+            "type": "integer"
+          },
+          "model": {
+            "title": "Model",
+            "type": "string"
+          },
+          "outcome": {
+            "title": "Outcome",
+            "type": "string"
+          },
+          "output_tokens": {
+            "title": "Output Tokens",
+            "type": "integer"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          },
+          "task": {
+            "title": "Task",
+            "type": "string"
+          }
+        },
+        "required": [
+          "task",
+          "provider",
+          "model",
+          "outcome",
+          "calls",
+          "input_tokens",
+          "output_tokens",
+          "cost_usd"
+        ],
+        "title": "UsageRow",
+        "type": "object"
+      },
+      "UsageSummary": {
+        "properties": {
+          "calls": {
+            "title": "Calls",
+            "type": "integer"
+          },
+          "cost_usd": {
+            "title": "Cost Usd",
+            "type": "number"
+          },
+          "rows": {
+            "items": {
+              "$ref": "#/components/schemas/UsageRow"
+            },
+            "title": "Rows",
+            "type": "array"
+          },
+          "since": {
+            "format": "date-time",
+            "title": "Since",
+            "type": "string"
+          }
+        },
+        "required": [
+          "since",
+          "calls",
+          "cost_usd",
+          "rows"
+        ],
+        "title": "UsageSummary",
+        "type": "object"
+      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -632,6 +948,177 @@
         "summary": "Round-trip a task through the worker",
         "tags": [
           "debug"
+        ]
+      }
+    },
+    "/api/v1/admin/llm/kill-switch": {
+      "get": {
+        "operationId": "get_kill_switch_api_v1_admin_llm_kill_switch_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KillSwitch"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Whether paid model calls are enabled",
+        "tags": [
+          "admin"
+        ]
+      },
+      "put": {
+        "operationId": "set_kill_switch_api_v1_admin_llm_kill_switch_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/KillSwitch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KillSwitch"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Enable or pause every paid model call",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/llm/usage/summary": {
+      "get": {
+        "operationId": "usage_summary_api_v1_admin_llm_usage_summary_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UsageSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Today's model usage and cost (aggregates only)",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/models": {
+      "get": {
+        "operationId": "list_models_api_v1_admin_models_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistryList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Model Registry entries",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/models/{task}": {
+      "put": {
+        "operationId": "update_model_api_v1_admin_models__task__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "task",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z_]{2,32}$",
+              "title": "Task",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistryUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistryEntryOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "description": "Re-index confirmation needed"
+          },
+          "412": {
+            "description": "Stale"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Update one task's models, limits and fallbacks",
+        "tags": [
+          "admin"
         ]
       }
     },

@@ -6,6 +6,7 @@ from typing import Any
 
 import pytest
 
+from app.modules.papers import events as events_module
 from tests.fakes.auth import bearer
 from tests.fakes.pdfs import make_pdf
 from tests.integration.papers_fixtures import PapersApi, Worker
@@ -45,14 +46,27 @@ async def _events(api: PapersApi, user: str, paper: str, **headers: str) -> str:
 
 
 async def test_AC12_stream_reports_progress_until_finished(
-    fast_stream: PapersApi, worker: Worker
+    fast_stream: PapersApi, worker: Worker, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     api, user = fast_stream, new_user()
+    api.app.state.settings.sse_heartbeat_seconds = 0.0  # a heartbeat on every poll
     paper = (await upload_pdf(api, user, make_pdf([PAGE]))).json()["paper"]["id"]
     job = api.enqueued[-1][1]
 
+    # Process only once the stream has sent its first snapshot and started polling, so the
+    # test never depends on how fast either side happens to run.
+    polling = asyncio.Event()
+    real_load = events_module.load_status
+
+    async def load_and_signal(*args: Any, **kwargs: Any) -> Any:
+        result = await real_load(*args, **kwargs)
+        polling.set()
+        return result
+
+    monkeypatch.setattr(events_module, "load_status", load_and_signal)
+
     async def process() -> None:
-        await asyncio.sleep(0.1)
+        await asyncio.wait_for(polling.wait(), timeout=10)
         await worker.run(job["org_id"], job["job_id"])
 
     body, _ = await asyncio.gather(_events(api, user, paper), process())
@@ -60,8 +74,8 @@ async def test_AC12_stream_reports_progress_until_finished(
     assert len(events) >= 2
     ids = [e["id"] for e in events]
     assert ids == sorted(set(ids))  # increasing ids, no repeats
-    assert events[0]["chat_available"] is False
-    assert events[-1]["chat_available"] is True
+    assert events[0]["chat_available"] is False, events[0]
+    assert events[-1]["chat_available"] is True, events[-1]
     assert events[-1]["status"] == "ready"
     assert body.startswith("retry: 3000")
     assert ": keep-alive" in body  # heartbeat

@@ -4,7 +4,7 @@ import secrets
 from functools import lru_cache
 from typing import Literal, Self
 
-from pydantic import Field, SecretStr, model_validator
+from pydantic import AliasChoices, Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 Environment = Literal["development", "test", "production"]
@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     openrouter_api_key: SecretStr | None = None
     google_application_credentials: str | None = None
     gcp_project_id: str | None = None
-    gcp_location: str = "us-central1"
+    gcp_location: str = "global"  # where the D69 Gemini models were benchmarked
 
     # Error monitoring (D37, D76). The DSN is public by design; off when unset.
     sentry_dsn: str | None = None
@@ -63,6 +63,21 @@ class Settings(BaseSettings):
     malware_scan: Literal["fake", "clamav", "guardduty", "disabled-with-sanitization"] | None = None
     clamav_host: str = "clamav"
     clamav_port: int = 3310
+
+    # Tracing (spec 005 AC14, D37): metadata only; off unless both keys are set (EU region).
+    langfuse_public_key: str | None = None
+    langfuse_secret_key: SecretStr | None = None
+    # LANGFUSE_BASE_URL is the SDK's current name; LANGFUSE_HOST is accepted too.
+    langfuse_base_url: str = Field(
+        default="https://cloud.langfuse.com",
+        validation_alias=AliasChoices("langfuse_base_url", "langfuse_host"),
+    )
+    app_release: str | None = None  # e.g. the git SHA; tags traces with the deployed version
+
+    # LLM spend control (spec 005 AC8; owner-approved defaults until plans exist in spec 012).
+    llm_daily_cap_usd: float = Field(default=5.0, ge=0)
+    llm_user_daily_cap_usd: float = Field(default=0.5, ge=0)
+    llm_max_concurrency_per_provider: int = Field(default=8, ge=1, le=256)
 
     # Progress event stream (spec 004 AC12).
     sse_poll_seconds: float = 1.0
@@ -87,6 +102,8 @@ class Settings(BaseSettings):
             raise ValueError(
                 "LLM_PROVIDER=vertex requires GOOGLE_APPLICATION_CREDENTIALS and GCP_PROJECT_ID"
             )
+        if self.llm_provider == "fake" and self.env == "production":
+            raise ValueError("LLM_PROVIDER=fake is for development and tests only")
         if self.resolved_auth_provider == "dev" and self.env == "production":
             raise ValueError("The development auth adapter is not allowed when ENV=production")
         if self.malware_scan == "fake" and self.env == "production":

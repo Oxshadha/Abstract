@@ -16,7 +16,7 @@ every step is idempotent: a re-delivered task rewrites the same rows.
 import hashlib
 import json
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 from uuid import UUID
 
@@ -28,12 +28,14 @@ from app.adapters.pdf.text import PageText, extract_text
 from app.core.config import Settings
 from app.core.logging import get_logger
 from app.core.tenancy import set_tenant
+from app.modules.llm.gateway import set_context as set_llm_context
 from app.modules.papers.chunking import Chunk, chunk_paper
 from app.modules.papers.jobs import transition
 from app.modules.papers.keys import paper_prefix, sanitized_key
 from app.ports.llm import LLMGateway
 from app.ports.scanner import MalwareScanner
 from app.ports.storage import ObjectChangedError, Storage
+from app.ports.tracing import NoTracer, Tracer
 
 EMBED_TASK = "embed"
 EMBEDDING_DIMENSIONS = 1536  # D69: halfvec(1536) in migration 0003
@@ -50,6 +52,7 @@ class Deps:
     settings: Settings
     enqueue: Callable[[str, dict[str, Any]], None]
     scanner: MalwareScanner | None = None
+    tracer: Tracer = field(default_factory=NoTracer)
 
 
 class PaperGoneError(Exception):
@@ -64,13 +67,15 @@ class _Paper:
     filename: str
     quarantine_key: str
     quarantine_etag: str
+    owner_id: UUID
 
 
 async def _load(session: AsyncSession, job_id: UUID) -> _Paper:
     row = (
         await session.execute(
             text(
-                "SELECT p.id, p.sha256, p.title, p.filename, p.quarantine_key, p.quarantine_etag"
+                "SELECT p.id, p.sha256, p.title, p.filename, p.quarantine_key, p.quarantine_etag,"
+                " p.owner_id"
                 " FROM jobs j JOIN papers p ON p.id = j.paper_id WHERE j.id = :job"
             ),
             {"job": job_id},
@@ -126,15 +131,21 @@ async def store_chunks(
     vectors: list[str],
     model: str,
 ) -> None:
+    """Replace the paper's chunks; each records its embedding model and size (AC9 of 005),
+    and the paper records which embedding model its vectors use (re-indexing, 005 AC12)."""
     await session.execute(text("DELETE FROM chunks WHERE paper_id = :p"), {"p": paper_id})
     if not chunks:
         return
     await session.execute(
+        text("UPDATE papers SET embedding_model = :model WHERE id = :p"),
+        {"model": model, "p": paper_id},
+    )
+    await session.execute(
         text(
             "INSERT INTO chunks (org_id, paper_id, ordinal, page_start, page_end, section_path,"
-            " text, token_count, embedding, embedding_model) VALUES (:org, :paper, :ordinal,"
-            " :page_start, :page_end, :section, :text, :tokens, CAST(:embedding AS halfvec),"
-            " :model)"
+            " text, token_count, embedding, embedding_model, embedding_dims) VALUES (:org,"
+            " :paper, :ordinal, :page_start, :page_end, :section, :text, :tokens,"
+            " CAST(:embedding AS halfvec), :model, :dims)"
         ),
         [
             {
@@ -148,6 +159,7 @@ async def store_chunks(
                 "tokens": c.token_count,
                 "embedding": vector,
                 "model": model,
+                "dims": vector.count(",") + 1,
             }
             for c, vector in zip(chunks, vectors, strict=True)
         ],
@@ -182,6 +194,7 @@ async def ingest(deps: Deps, org_id: UUID, job_id: UUID) -> None:
     async with maker() as session, session.begin():
         await set_tenant(session, org_id)
         paper = await _load(session, job_id)
+    set_llm_context(user_id=paper.owner_id, paper_id=paper.id, prompt_version=None)
     try:
         await _run(deps, org_id, job_id, paper)
     except PaperGoneError:
@@ -204,13 +217,22 @@ async def _run(deps: Deps, org_id: UUID, job_id: UUID, paper: _Paper) -> None:
         )
 
     # 2. Structure checks and content disarm (D77).
-    clean = sanitize(original, max_pages=deps.settings.upload_max_pages)
+    with deps.tracer.observe("sanitize-pdf") as step:
+        clean = sanitize(original, max_pages=deps.settings.upload_max_pages)
+        step.update(metadata={"pages": clean.pages, "removed": clean.removed})
     del original
     key = sanitized_key(org_id, paper.id)
     await deps.storage.put_bytes(key, clean.data, "application/pdf")
 
     # 3. Text per page.
-    extracted = extract_text(clean.data)
+    with deps.tracer.observe("extract-text") as step:
+        extracted = extract_text(clean.data)
+        step.update(
+            metadata={
+                "pages": len(extracted.pages),
+                "pages_without_text": sum(not p.has_text_layer for p in extracted.pages),
+            }
+        )
     title = extracted.title or paper.title or paper.filename
     needs_ocr = [p.page_no for p in extracted.pages if not p.has_text_layer]
     async with maker() as session, session.begin():
@@ -235,11 +257,16 @@ async def _run(deps: Deps, org_id: UUID, job_id: UUID, paper: _Paper) -> None:
         await set_step(session, job_id, "sections")
 
     # 4. Chunks and embeddings.
-    chunks = chunk_paper(title, [(p.page_no, p.text) for p in extracted.pages if p.has_text_layer])
+    with deps.tracer.observe("chunk-text") as step:
+        chunks = chunk_paper(
+            title, [(p.page_no, p.text) for p in extracted.pages if p.has_text_layer]
+        )
+        step.update(metadata={"chunks": len(chunks)})
     async with maker() as session, session.begin():
         await set_tenant(session, org_id)
         await set_step(session, job_id, "indexing")
-    vectors, model = await embed_chunks(deps.gateway, chunks)
+    with deps.tracer.observe("embed-chunks", metadata={"chunks": len(chunks)}):
+        vectors, model = await embed_chunks(deps.gateway, chunks)
 
     ocr_job: UUID | None = None
     async with maker() as session, session.begin():

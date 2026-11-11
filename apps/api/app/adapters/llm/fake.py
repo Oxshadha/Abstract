@@ -46,10 +46,10 @@ class FakeLLMGateway:
             return json.dumps(_instance(json_schema, f"fake:{task}:{tag}"))
         return f"[fake:{task}] {tag}"
 
-    def _usage(self, task: str, prompt: str, output: str) -> Usage:
+    def _usage(self, task: str, prompt: str, output: str, model: str | None = None) -> Usage:
         return Usage(
             provider=self.provider,
-            model="fake-1",
+            model=model or "fake-1",
             task=task,
             input_tokens=max(1, len(prompt) // 4),
             output_tokens=max(1, len(output) // 4),
@@ -62,10 +62,12 @@ class FakeLLMGateway:
         messages: list[ChatMessage],
         max_tokens: int | None = None,
         json_schema: JsonSchema | None = None,
+        model: str | None = None,
+        temperature: float | None = None,
     ) -> Completion:
         text = self._answer(task, messages, json_schema)
         prompt = "".join(m.text() for m in messages)
-        return Completion(text=text, usage=self._usage(task, prompt, text))
+        return Completion(text=text, usage=self._usage(task, prompt, text, model))
 
     async def stream(
         self,
@@ -74,15 +76,20 @@ class FakeLLMGateway:
         messages: list[ChatMessage],
         max_tokens: int | None = None,
         json_schema: JsonSchema | None = None,
+        model: str | None = None,
+        temperature: float | None = None,
     ) -> AsyncIterator[StreamChunk]:
         text = self._answer(task, messages, json_schema)
         for i in range(0, len(text), 8):
             yield StreamChunk(text=text[i : i + 8])
-        yield StreamChunk(usage=self._usage(task, "".join(m.text() for m in messages), text))
+        prompt = "".join(m.text() for m in messages)
+        yield StreamChunk(usage=self._usage(task, prompt, text, model))
 
-    async def embed(self, *, task: str, texts: list[str], dimensions: int) -> Embeddings:
+    async def embed(
+        self, *, task: str, texts: list[str], dimensions: int, model: str | None = None
+    ) -> Embeddings:
         vectors = [self._vector(t, dimensions) for t in texts]
-        usage = self._usage(task, "".join(texts), "")
+        usage = self._usage(task, "".join(texts), "", model)
         usage.output_tokens = 0
         return Embeddings(vectors=vectors, usage=usage)
 

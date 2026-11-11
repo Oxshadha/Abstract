@@ -46,6 +46,14 @@ async def test_AC10_digital_paper_becomes_chat_ready_quickly(
     assert chunks.embedded
     assert chunks.indexed
     assert chunks.dims == 1536
+    recorded = await worker.row(
+        "SELECT bool_and(c.embedding_dims = 1536) AS dims, min(c.embedding_model) AS model,"
+        " min(p.embedding_model) AS paper_model FROM chunks c JOIN papers p ON p.id = c.paper_id"
+        " WHERE c.paper_id = :p",
+        p=paper.id,
+    )
+    assert recorded.dims  # 005 AC9: model and size stored per chunk
+    assert recorded.model == recorded.paper_model
     assert chunks.sample.startswith("Attention Mechanisms for Translation · ")
     job_row = await worker.row("SELECT * FROM jobs WHERE id = :j", j=job["job_id"])
     assert job_row.status == "succeeded"

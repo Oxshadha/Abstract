@@ -20,6 +20,11 @@ x-api-env: &api-env
   GCP_LOCATION: ${GCP_LOCATION:-us-central1}
   SENTRY_DSN: ${SENTRY_DSN:-}
   SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-development}
+  # Langfuse tracing (spec 005 AC14): metadata only; off when the keys are empty.
+  LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-}
+  LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-}
+  LANGFUSE_BASE_URL: ${LANGFUSE_BASE_URL:-https://cloud.langfuse.com}
+  APP_RELEASE: ${APP_RELEASE:-dev}
   CORS_ORIGINS: '["http://localhost:${WEB_PORT:-5173}"]'
   # Fake scanner in `make dev`; `make dev-full` sets clamav (D77, spec 004 AC16).
   MALWARE_SCAN: ${MALWARE_SCAN:-fake}

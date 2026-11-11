@@ -172,7 +172,6 @@ async def paper_events(
             first=first,
             last_event_id=last_event_id,
             settings=request.app.state.settings,
-            disconnected=request.is_disconnected,
         ),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},

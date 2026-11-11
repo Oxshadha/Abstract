@@ -29,6 +29,9 @@ from app.ports.llm import (
 )
 
 RETRY_CODES = {408, 429, 500, 502, 503, 504}
+# Models found to merge a list of texts into one embedding (process-wide; learned at runtime).
+SINGLE_TEXT_EMBED_MODELS: set[str] = set()
+EMBED_CONCURRENCY = 16  # one text per call: parallel calls keep a paper's index fast (D73)
 log = get_logger(__name__)
 
 
@@ -76,8 +79,10 @@ class VertexGateway:
         messages: list[ChatMessage],
         max_tokens: int | None,
         json_schema: JsonSchema | None,
+        model: ModelSpec | None = None,
+        temperature: float | None = None,
     ) -> tuple[ModelSpec, list[types.Content], types.GenerateContentConfig]:
-        spec = self.spec_for(task)
+        spec = model or self.spec_for(task)
         system = "\n\n".join(m.text() for m in messages if m.role == "system")
         contents = [
             types.Content(
@@ -92,6 +97,7 @@ class VertexGateway:
         config = types.GenerateContentConfig(
             system_instruction=system or None,
             max_output_tokens=max_tokens,
+            temperature=temperature,
             response_mime_type="application/json" if json_schema is not None else None,
             response_json_schema=json_schema,
             thinking_config=types.ThinkingConfig(thinking_budget=spec.thinking_budget)
@@ -139,9 +145,13 @@ class VertexGateway:
         messages: list[ChatMessage],
         max_tokens: int | None = None,
         json_schema: JsonSchema | None = None,
+        model: ModelSpec | None = None,
+        temperature: float | None = None,
     ) -> Completion:
         started = time.perf_counter()
-        spec, contents, config = self._request(task, messages, max_tokens, json_schema)
+        spec, contents, config = self._request(
+            task, messages, max_tokens, json_schema, model, temperature
+        )
         response = await self._with_retries(
             lambda: self._client.aio.models.generate_content(
                 model=spec.id, contents=contents, config=config
@@ -159,9 +169,13 @@ class VertexGateway:
         messages: list[ChatMessage],
         max_tokens: int | None = None,
         json_schema: JsonSchema | None = None,
+        model: ModelSpec | None = None,
+        temperature: float | None = None,
     ) -> AsyncIterator[StreamChunk]:
         started = time.perf_counter()
-        spec, contents, config = self._request(task, messages, max_tokens, json_schema)
+        spec, contents, config = self._request(
+            task, messages, max_tokens, json_schema, model, temperature
+        )
         response_stream = await self._with_retries(
             lambda: self._client.aio.models.generate_content_stream(
                 model=spec.id, contents=contents, config=config
@@ -175,9 +189,11 @@ class VertexGateway:
                 yield StreamChunk(text=chunk.text)
         yield StreamChunk(usage=self._usage(task, spec, meta, started))
 
-    async def embed(self, *, task: str, texts: list[str], dimensions: int) -> Embeddings:
+    async def embed(
+        self, *, task: str, texts: list[str], dimensions: int, model: ModelSpec | None = None
+    ) -> Embeddings:
         started = time.perf_counter()
-        spec = self.spec_for(task)
+        spec = model or self.spec_for(task)
         config = types.EmbedContentConfig(output_dimensionality=dimensions)
 
         async def call(texts_batch: list[str]) -> list[list[float]]:
@@ -190,22 +206,28 @@ class VertexGateway:
             return [list(e.values) for e in response.embeddings]
 
         vectors: list[list[float]] = []
-        limit = asyncio.Semaphore(8)
+        limit = asyncio.Semaphore(EMBED_CONCURRENCY)
 
         async def one(text: str) -> list[float]:
             async with limit:
                 return (await call([text]))[0]
 
-        # Vertex accepts a limited batch per call; stay well under it.
-        for start in range(0, len(texts), 64):
-            batch = texts[start : start + 64]
-            result = await call(batch)
-            if len(result) != len(batch):
-                # Multimodal embedding models (e.g. gemini-embedding-2) merge a list of texts
-                # into ONE embedding. Never accept a count mismatch: embed each text instead.
-                log.warning("vertex_embed_batch_merged", model=spec.id, sent=len(batch))
-                result = list(await asyncio.gather(*(one(t) for t in batch)))
-            vectors.extend(result)
+        if spec.id in SINGLE_TEXT_EMBED_MODELS:
+            # Known to embed one text per call: skip the batch attempt (it would be merged).
+            vectors = list(await asyncio.gather(*(one(t) for t in texts)))
+        else:
+            # Vertex accepts a limited batch per call; stay well under it.
+            for start in range(0, len(texts), 64):
+                batch = texts[start : start + 64]
+                result = await call(batch)
+                if len(result) != len(batch):
+                    # Multimodal embedding models (e.g. gemini-embedding-2) merge a list of texts
+                    # into ONE embedding. Never accept a count mismatch: embed each text instead,
+                    # and remember it for this process so later papers skip the wasted call.
+                    log.warning("vertex_embed_batch_merged", model=spec.id, sent=len(batch))
+                    SINGLE_TEXT_EMBED_MODELS.add(spec.id)
+                    result = list(await asyncio.gather(*(one(t) for t in batch)))
+                vectors.extend(result)
         est_tokens = sum(len(t) for t in texts) // 4  # Vertex reports characters, not tokens
         usage = Usage(
             provider=self.provider,
