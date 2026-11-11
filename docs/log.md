@@ -15,6 +15,15 @@ Entry format:
 
 ---
 
+## 2026-11-11: Spec 005 implemented (14 of 14)
+**Done:** Spec 004 merged (PR #6, CI green including the ClamAV EICAR job). Spec 005 drafted and approved (caps $5/day global, $0.50/day per user; Langfuse built now, off until keys). Built criterion by criterion on `feat/005-llm-gateway`: registry with seed and 30 s refresh (AC1); routed gateway with task resolution, cross-provider fallback, deadline, registry max_tokens and bulkhead (AC2 to AC6); usage log per attempt (AC7); spend caps with downgrade or stop, a 1.5x hard stop, Redis totals rebuilt from the database, and the kill switch (AC8); metadata-only calls and embedding model per chunk (AC9); real Vertex and OpenRouter wiring, fake refused in production, free models refused in production (AC10); admin API with If-Match and audit (AC11); resumable re-indexing (AC12); versioned prompts with untrusted-text wrapping (AC13); metadata-only Langfuse tracing (AC14).
+**Verified:** real Vertex calls through the router (completion and 1536-d embedding, under $0.00001); OpenRouter fallback IDs exist.
+**Bugs caught:** a spec 004 race: the progress stream's own disconnect check competed with Starlette's listener and closed streams early (fixed, 0 failures in 40 runs); seed JSON double-encoded; the app role could not insert platform settings (used update); flaky usage-order test; home page had no link into the app (owner could not find it).
+**Small decisions:** Vertex location default `global` (as benchmarked); embeddings never fall back to another model; prompts versioned in code; Langfuse via HTTP ingestion (no SDK).
+**Decisions:** none new   **Assumptions:** C12, D9 added   **Specs:** 005 Implemented with notes
+**Next:** PR for spec 005 (owner approval to push), then spec 006 (summaries), 007 (chat), 008 (citations and viewer).
+**Blockers / waiting on owner:** permission to push and open the PR; OpenRouter credits for the fallback (C12); Langfuse keys when tracing is wanted.
+
 ## 2026-11-11: Spec 004 implemented (16 of 16)
 **Done:** Built on `feat/004-upload-ingestion`, one criterion per commit: schema and job state machine (AC6), pre-signed uploads into quarantine (AC1), fast finalize with enqueue after commit (AC4, AC7), per-user dedupe under races (AC5), Idempotency-Key (AC3), CDR-lite sanitizer (AC11), pypdfium2 text and section-aware chunking (AC10), the ingest pipeline on separate queues with retries and limits (AC8, AC9), OCR on the enrichment queue, list/status/file endpoints (AC14, AC12), SSE progress (AC12), deletion including account deletion (AC15), malware scanner port with fake/ClamAV/GuardDuty (AC16), worker sandbox (AC13), and the SPA: processing page, Library list, drop zone with progress and cancel (AC12, AC14, AC2). Playwright happy path at desktop and phone sizes.
 **Verified on the real stack:** finalize 23 to 94 ms; chat available 0.93 s after upload (15 pages) and 2.2 s (77 pages, 14 MB); scanned 12-page paper ready in 14 s (including test-script rate-limit back-off); real ClamAV detects EICAR (arm64 image `clamav/clamav-debian` locally, `clamav/clamav` in CI).
