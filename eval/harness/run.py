@@ -525,11 +525,11 @@ async def _main(
     return 0
 
 
-def rescore(run_dir: Path, *, include_unverified: bool) -> int:
+def rescore(run_dirs: list[Path], *, include_unverified: bool) -> int:
     """Re-score saved summaries against current golden data and metrics. Free: no LLM calls."""
     manifest = load_manifest()
     golden_source = {s["id"]: s["source"] for s in manifest.get("synthetic", [])}
-    rows = [json.loads(line) for line in (run_dir / "results.jsonl").open()]
+    rows = [json.loads(line) for run_dir in run_dirs for line in (run_dir / "results.jsonl").open()]
     results: list[SummaryResult] = []
     references: dict[str, ParsedDoc] = {}
     reading: dict[str, dict[str, float | None]] = {}
@@ -556,7 +556,10 @@ def rescore(run_dir: Path, *, include_unverified: bool) -> int:
     spent = sum(r.cost_usd for r in results) + sum(e.get("cost_usd", 0.0) for e in embeddings)
     report = build_report(results, reading, embeddings, indicative=include_unverified, spent=spent)
     REPORTS_DIR.mkdir(exist_ok=True)
-    path = REPORTS_DIR / f"{run_dir.name[:8]}-rescored.md"
+    path = (
+        REPORTS_DIR
+        / f"{run_dirs[-1].name[:8]}-{'combined' if len(run_dirs) > 1 else 'rescored'}.md"
+    )
     path.write_text(report)
     print(f"Rescored report: {path}")
     return 0
@@ -569,11 +572,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--runs", type=int, help="override runs per paper")
     parser.add_argument("--include-unverified", action="store_true")
     parser.add_argument(
-        "--rescore", metavar="RUN_DIR", help="recompute scores/report from saved results (no LLM)"
+        "--rescore",
+        metavar="RUN_DIR",
+        nargs="+",
+        help="recompute scores and one combined report from saved runs (no LLM calls)",
     )
     args = parser.parse_args(argv)
     if args.rescore:
-        return rescore(Path(args.rescore), include_unverified=args.include_unverified)
+        return rescore([Path(d) for d in args.rescore], include_unverified=args.include_unverified)
     exps = (
         [*SUMMARY_EXPERIMENTS, "E"]
         if args.exp == "all"
