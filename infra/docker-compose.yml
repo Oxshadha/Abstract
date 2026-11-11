@@ -95,17 +95,27 @@ services:
       timeout: 3s
       retries: 20
 
+  # Separate workers per queue group (spec 004 AC8, D73): OCR, scans and deletions never take
+  # a slot from the fast path that makes chat available.
   worker:
     build: { context: ./apps/api, target: dev }
-    command: ["celery", "-A", "app.worker.celery_app", "worker", "--loglevel=INFO", "--concurrency=2"]
-    environment:
+    command: ["celery", "-A", "app.worker.celery_app", "worker", "--loglevel=INFO", "-Q", "fast", "--concurrency=2", "-n", "fast@%h"]
+    environment: &worker-env
       <<: *api-env
       DATABASE_URL: postgresql+asyncpg://abstract_worker:abstract_worker_dev@postgres:5432/${POSTGRES_DB:-abstract}
     volumes: ["./apps/api/app:/app/app"]
     secrets: [gcp_sa]
-    depends_on:
+    depends_on: &worker-deps
       redis: { condition: service_healthy }
       migrate: { condition: service_completed_successfully }
+
+  worker-bg:
+    build: { context: ./apps/api, target: dev }
+    command: ["celery", "-A", "app.worker.celery_app", "worker", "--loglevel=INFO", "-Q", "enrichment,scan,deletion", "--concurrency=1", "-n", "bg@%h"]
+    environment: *worker-env
+    volumes: ["./apps/api/app:/app/app"]
+    secrets: [gcp_sa]
+    depends_on: *worker-deps
 
   web:
     build: { context: ./apps/web, target: dev }
