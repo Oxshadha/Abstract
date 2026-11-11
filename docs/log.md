@@ -15,6 +15,15 @@ Entry format:
 
 ---
 
+## 2026-11-11: Spec 008 PDF viewer and citations implemented
+**Done:** Spec 008 approved (D81: sentence located in the browser; Ask about this region moved to 009). Built: page sizes stored at ingestion with a backfill (AC3); short-lived range-capable file link (AC2); Paper panel viewer with toolbar, zoom and PageUp/PageDown (AC1); citation chips in chat and summary sources open the panel, scroll to the page and highlight the quoted sentence, announced to screen readers, with a calm note when it is not found (AC4, AC5); virtualised rendering, pdf.js worker, range loading, frame-throttled layout (AC6 to AC8); per-panel error with Try again and Download PDF (AC9); page 1 preview on the processing page (AC10).
+**Bugs caught:** a citation on a page already on screen never highlighted (react-pdf reports page text once); react-pdf's default Suspense reset the whole Workspace and cancelled streaming answers; the frame-throttled measure stopped after its first cleanup (clipped pages, frozen virtual window); tapping a citation on a phone mid-answer cancelled the answer (panels now stay mounted); two real WCAG 2.5.3 violations (search and account buttons) surfaced once jsdom gained a canvas.
+**Verified:** Playwright on desktop and phone with real Gemini: answer, citation click, highlighted sentence, answer intact afterwards (4 of 4 sequential runs).
+**Dev note:** `.env` keeps `LLM_PROVIDER=fake`; live runs start the stack with `LLM_PROVIDER=vertex GCP_LOCATION=global`. Recreating a service with a plain `up` silently returns it to the fake provider, whose uncited answers are refused.
+**Decisions:** D81   **Specs:** 008 Implemented
+**Next:** owner reviews and merges PR #9 (007) and the 008 PR; spec 009 (figures and tables, Ask about this region).
+**Blockers / waiting on owner:** Discovery Engine API for experiment R (unchanged).
+
 ## 2026-11-11: Spec 007 chat implemented (17 of 18)
 **Done:** PR #8 (spec 006) merged. Spec 007 approved with owner answers (D80: gemini-3.6-flash for answers after a price check showed 3.5 Flash at twice the cost; hybrid retrieval always; reranker only by measurement). Built: conversations (AC1), streamed answers in the API process with status steps (AC2, AC7), short-term memory and query rewrite (AC3), hybrid paper-scoped retrieval (AC4), validated citations with quotes (AC5), guardrails with an OWASP LLM01-style test set (AC6), per-user answer cache (AC8), Ask Abstract panel (AC9, AC10), idempotent sends, heartbeats, stop with partial save, abort on switch, frame-batched tokens and sentence-level announcements, length cap, paged history (AC11 to AC17), reranker port and adapter off by default (AC18 code).
 **Verified:** Playwright happy path with a real cited answer from Gemini 3.6 Flash (desktop and phone).
