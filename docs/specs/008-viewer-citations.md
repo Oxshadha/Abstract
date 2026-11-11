@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft |
+| **Status** | Approved (owner, 2026-11-11): sentence located in the browser (D81); Ask about this region in 009 |
 | **Week** | W2 |
 | **Decisions** | D23, D56, D60, D77, D79 |
 | **Requirements** | R4, R5, N4 |
@@ -55,5 +55,5 @@ First page visible < 1 s after opening the workspace on a warm cache for a typic
 Unit: quote matching against text-layer items (normalisation, fuzzy, not found). Component: toolbar, zoom, page navigation, virtualisation window, placeholder sizes, citation click opens and highlights, error and download. Integration: file-url and pages endpoints (owner-only, 409 before sanitizing, sizes stored at ingestion). Playwright: click a chat citation and see the highlighted sentence.
 
 ## Open questions (owner)
-- **Q1 — Where the sentence is located:** D23 planned the server (PyMuPDF `search_for`). Proposal: locate it in the browser from the page's text layer that pdf.js already loads: same precision for text PDFs, no server work per click, and no dependency on PyMuPDF's AGPL licence (D64). Recorded as a decision narrowing D23.
-- **Q2 — "Ask about this region":** D71 puts it in v1. Proposal: build it in spec 009 with figures and tables, because it needs the vision model and the same crop pipeline.
+- **Q1 (answered):** locate the sentence in the browser from the text layer (D81).
+- **Q2 (answered):** "Ask about this region" is built in spec 009.
