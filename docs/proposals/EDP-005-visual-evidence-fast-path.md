@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Awaiting owner decision |
+| **Status** | Approved by owner (2026-11-11), option A → recorded as **D71** |
 | **Raised by** | Review agent feedback on `docs/research-figures-tables-ux.md`, checked against the final benchmark |
 | **Affects** | D68 (fast-path summary source), D12, D23, specs 006, 007, 008, 009, 015 |
 
