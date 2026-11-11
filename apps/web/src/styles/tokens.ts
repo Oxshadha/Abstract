@@ -29,7 +29,9 @@ export const lightColors = {
   "error-bg": "#fceae8",
   "info": "#3a5ba0",
   "info-bg": "#eaf0fa",
-  "focus": "#202020"
+  "focus": "#202020",
+  "logo-back": "#b6b6b2",
+  "logo-front": "#222222"
 } as const;
 export const darkColors = {
   "bg": "#151515",
@@ -49,5 +51,7 @@ export const darkColors = {
   "error-bg": "#422321",
   "info": "#93ade6",
   "info-bg": "#253247",
-  "focus": "#f1f1ed"
+  "focus": "#f1f1ed",
+  "logo-back": "#858581",
+  "logo-front": "#f1f1ed"
 } as const;

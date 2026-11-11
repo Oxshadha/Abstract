@@ -30,4 +30,6 @@
   --color-info: var(--abs-color-info);
   --color-info-bg: var(--abs-color-info-bg);
   --color-focus: var(--abs-color-focus);
+  --color-logo-back: var(--abs-color-logo-back);
+  --color-logo-front: var(--abs-color-logo-front);
 }
