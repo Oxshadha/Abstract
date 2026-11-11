@@ -25,6 +25,8 @@ This is lightweight spec-driven development. Each feature gets a one-to-two page
 | 016 | Landing page (prerendered) | W4 | Not started | [practices §3 Spec 016](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 017 | Deploy: EC2 + Vercel + Neon + S3, secrets, backups | W4 | Not started | [practices §3 Spec 017](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 
+**Owner requirements for chat (D74)** are additional binding inputs to spec 007: no queue in the chat path, streamed progress steps, guardrails with an injection test set, and answer/retrieval caching.
+
 **Engineering practices (D67):** when a spec is written, every *v1 must* item for it in `docs/engineering-practices.md` section 3 becomes an acceptance criterion, unless a recorded decision defers it.
 
 Specs are written **just in time**, at most one or two ahead of the build, so they never go stale.
