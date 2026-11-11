@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Awaiting owner decision |
+| **Status** | Approved by owner (2026-11-11), option A → recorded as **D69** |
 | **Raised during** | Spec 000 final verdict (`eval/reports/20261110-A-B-Bp-B-fast-E.md`) |
 | **Affects** | D10, D24 (default provider, embedding model and size), D53 (registry seeds), spec 005 |
 

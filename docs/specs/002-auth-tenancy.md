@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft |
+| **Status** | Approved (owner, 2026-11-11); Q1 approved as D70 |
 | **Week** | W1 to W2 |
 | **Decisions** | D5, D11, D16, D25, D45, D55, D58, D66, D67 |
 | **Requirements** | N1, N2 |
