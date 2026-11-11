@@ -13,6 +13,7 @@ from redis.asyncio import Redis
 from app.adapters.auth import build_auth_provider
 from app.adapters.storage.s3 import S3Storage
 from app.api.v1 import debug, dev_auth, health
+from app.core.body_limit import BodyLimitMiddleware
 from app.core.config import Settings, get_settings
 from app.core.db import build_engine, build_sessionmaker, ping_db
 from app.core.errors import install_error_handlers
@@ -86,6 +87,7 @@ def create_app(
         allow_headers=["*"],
         expose_headers=["x-request-id"],
     )
+    app.add_middleware(BodyLimitMiddleware)
     app.add_middleware(RequestContextMiddleware)
     app.state.auth = auth
     app.state.settings = settings
