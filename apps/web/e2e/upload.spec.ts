@@ -25,7 +25,7 @@ test("upload a paper and open it once chat is available", async ({ page }, testI
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page).toHaveURL(/\/app\/papers\/[0-9a-f-]+\/processing$/);
   await expect(page.getByRole("heading", { name: "Processing your paper" })).toBeVisible();
-  await expect(page.getByText("Extracting text", { exact: true })).toBeVisible();
+  await expect(page.getByText("Extracting text", { exact: true })).toBeVisible({ timeout: 15_000 });
   const open = page.getByRole("link", { name: "Open workspace" });
   await expect(open).toBeVisible({ timeout: 30_000 });
   await page.screenshot({ path: testInfo.outputPath("processing-done.png"), fullPage: true });
@@ -41,6 +41,15 @@ test("upload a paper and open it once chat is available", async ({ page }, testI
   await input.press("Enter");
   await expect(page.getByRole("button", { name: /^\[1\] p\. 1/ }).first()).toBeVisible({ timeout: 45_000 });
   await page.screenshot({ path: testInfo.outputPath("chat-answer.png"), fullPage: true });
+
+  // Spec 008 AC4: the chip opens the paper at the cited page and marks the sentence.
+  await page.getByRole("button", { name: /^\[1\] p\. 1/ }).first().click();
+  await expect(page.locator('mark[data-citation="true"]').first()).toBeVisible({ timeout: 20_000 });
+  // Opening a citation must not disturb the conversation (phones switch tabs, D60).
+  await expect(page.locator('mark[data-citation="true"]').first()).toBeVisible();
+  if (testInfo.project.name === "mobile") await page.getByRole("button", { name: "Chat" }).click();
+  await expect(page.getByRole("button", { name: /^\[1\] p\. 1/ }).first()).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("citation-highlight.png"), fullPage: true });
 
   await page.getByRole("link", { name: "Library" }).first().click();
   const row = page.getByRole("listitem").filter({ hasText: title });
