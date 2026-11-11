@@ -22,6 +22,7 @@ from app.adapters.llm.retry import backoff_delay
 from app.adapters.pdf.sanitize import PdfRejectedError
 from app.core.logging import get_logger
 from app.core.tenancy import set_tenant
+from app.modules.llm.gateway import set_context as set_llm_context
 from app.modules.papers.ingest import PaperGoneError
 from app.modules.papers.jobs import InvalidTransitionError, transition
 
@@ -113,6 +114,7 @@ async def run_job(
     out; the malware scan uses it so a scanner outage never fails the paper (D77)."""
     if not await claim(maker, org_id, job_id):
         return Outcome("skipped")
+    set_llm_context(org_id=org_id, job_id=job_id)
     try:
         await work()
     except PaperGoneError:

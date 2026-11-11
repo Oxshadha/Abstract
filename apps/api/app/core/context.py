@@ -14,6 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.auth import CurrentPrincipal
 from app.modules.identity.service import RequestContext, provision
+from app.modules.llm.gateway import set_context as set_llm_context
 
 
 @dataclass(frozen=True)
@@ -29,6 +30,7 @@ async def get_context(request: Request, principal: CurrentPrincipal) -> AsyncIte
         structlog.contextvars.bind_contextvars(
             user_id=str(identity.user_id), org_id=str(identity.org_id)
         )
+        set_llm_context(org_id=identity.org_id, user_id=identity.user_id)
         yield Context(identity=identity, session=session)
 
 
@@ -44,4 +46,5 @@ async def get_identity(request: Request, principal: CurrentPrincipal) -> Request
     structlog.contextvars.bind_contextvars(
         user_id=str(identity.user_id), org_id=str(identity.org_id)
     )
+    set_llm_context(org_id=identity.org_id, user_id=identity.user_id)
     return identity

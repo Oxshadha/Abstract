@@ -28,6 +28,7 @@ from app.adapters.pdf.text import PageText, extract_text
 from app.core.config import Settings
 from app.core.logging import get_logger
 from app.core.tenancy import set_tenant
+from app.modules.llm.gateway import set_context as set_llm_context
 from app.modules.papers.chunking import Chunk, chunk_paper
 from app.modules.papers.jobs import transition
 from app.modules.papers.keys import paper_prefix, sanitized_key
@@ -64,13 +65,15 @@ class _Paper:
     filename: str
     quarantine_key: str
     quarantine_etag: str
+    owner_id: UUID
 
 
 async def _load(session: AsyncSession, job_id: UUID) -> _Paper:
     row = (
         await session.execute(
             text(
-                "SELECT p.id, p.sha256, p.title, p.filename, p.quarantine_key, p.quarantine_etag"
+                "SELECT p.id, p.sha256, p.title, p.filename, p.quarantine_key, p.quarantine_etag,"
+                " p.owner_id"
                 " FROM jobs j JOIN papers p ON p.id = j.paper_id WHERE j.id = :job"
             ),
             {"job": job_id},
@@ -182,6 +185,7 @@ async def ingest(deps: Deps, org_id: UUID, job_id: UUID) -> None:
     async with maker() as session, session.begin():
         await set_tenant(session, org_id)
         paper = await _load(session, job_id)
+    set_llm_context(user_id=paper.owner_id, paper_id=paper.id, prompt_version=None)
     try:
         await _run(deps, org_id, job_id, paper)
     except PaperGoneError:

@@ -13,6 +13,7 @@ from app.adapters.pdf.ocr import ocr_pages
 from app.adapters.pdf.text import PageText, title_from_text
 from app.core.logging import get_logger
 from app.core.tenancy import set_tenant
+from app.modules.llm.gateway import set_context as set_llm_context
 from app.modules.papers.chunking import chunk_paper
 from app.modules.papers.ingest import (
     Deps,
@@ -34,7 +35,7 @@ async def run_ocr(deps: Deps, org_id: UUID, job_id: UUID) -> None:
         paper = (
             await session.execute(
                 text(
-                    "SELECT p.id, p.title, p.filename, p.storage_key FROM jobs j"
+                    "SELECT p.id, p.title, p.filename, p.storage_key, p.owner_id FROM jobs j"
                     " JOIN papers p ON p.id = j.paper_id WHERE j.id = :job"
                 ),
                 {"job": job_id},
@@ -54,6 +55,7 @@ async def run_ocr(deps: Deps, org_id: UUID, job_id: UUID) -> None:
             ).scalars()
         )
 
+    set_llm_context(user_id=paper.owner_id, paper_id=paper.id)
     data = await deps.storage.get_bytes(paper.storage_key)  # the sanitized copy only (D77)
     texts = await asyncio.to_thread(ocr_pages, data, missing)
 
