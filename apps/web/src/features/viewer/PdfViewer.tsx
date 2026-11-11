@@ -1,10 +1,12 @@
 import "react-pdf/dist/Page/TextLayer.css";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import workerUrl from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url"; // legacy: see vite.config.ts
 import { ChevronLeft, ChevronRight, Download, Minus, Plus, RotateCcw } from "lucide-react";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
+
+import { Select } from "@/components/menu/Select";
 
 import { useCitations } from "./citations";
 import { getFileUrl, getPageSizes, viewerKeys, type PageSize } from "./api";
@@ -149,14 +151,16 @@ export function PdfViewer({ paperId }: { paperId: string }) {
           <span className="sr-only">Page</span>
           <input
             key={current}
-            type="number"
-            min={1}
-            max={pages.length || 1}
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
             defaultValue={current}
+            onFocus={(e) => { e.currentTarget.select(); }}
             onKeyDown={(e) => {
-              if (e.key === "Enter") goTo(Math.min(pages.length, Math.max(1, Number(e.currentTarget.value))));
+              const n = Number.parseInt(e.currentTarget.value, 10);
+              if (e.key === "Enter" && Number.isFinite(n)) goTo(Math.min(pages.length, Math.max(1, n)));
             }}
-            className="h-9 w-12 rounded-md border border-border bg-surface text-center"
+            className="h-9 w-11 rounded-md border border-border bg-surface text-center tabular-nums"
           />
           <span className="text-text-secondary">{`/ ${String(pages.length)}`}</span>
         </label>
@@ -167,17 +171,13 @@ export function PdfViewer({ paperId }: { paperId: string }) {
           <button type="button" aria-label="Zoom out" onClick={() => { setZoom(ZOOMS.filter((z) => z < scale - 0.01).at(-1) ?? ZOOMS[0] ?? 0.5); }} className="inline-flex size-11 items-center justify-center rounded-md hover:bg-muted">
             <Minus aria-hidden className="size-4" />
           </button>
-          <select
-            aria-label="Zoom"
+          <Select
+            label="Zoom"
             value={zoom === "fit" ? "fit" : String(zoom)}
-            onChange={(e) => { setZoom(e.target.value === "fit" ? "fit" : Number(e.target.value)); }}
-            className="h-9 rounded-md border border-border bg-surface px-2 text-sm"
-          >
-            <option value="fit">Fit width</option>
-            {ZOOMS.map((z) => (
-              <option key={z} value={String(z)}>{`${String(Math.round(z * 100))}%`}</option>
-            ))}
-          </select>
+            options={[{ value: "fit", label: "Fit width" }, ...ZOOMS.map((z) => ({ value: String(z), label: `${String(Math.round(z * 100))}%` }))]}
+            onChange={(v) => { setZoom(v === "fit" ? "fit" : Number(v)); }}
+            width="w-36"
+          />
           <button type="button" aria-label="Zoom in" onClick={() => { setZoom(ZOOMS.find((z) => z > scale + 0.01) ?? ZOOMS.at(-1) ?? 2); }} className="inline-flex size-11 items-center justify-center rounded-md hover:bg-muted">
             <Plus aria-hidden className="size-4" />
           </button>

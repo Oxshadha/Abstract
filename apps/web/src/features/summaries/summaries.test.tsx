@@ -97,7 +97,7 @@ describe("AC8: summary panel", () => {
     vi.mocked(createSummary).mockResolvedValue({ id: "s2", template_id: DETAILED_ID, template_name: "Detailed Research Analysis", status: "queued" });
     await renderAt("/app/papers/p1");
     fireEvent.click(await screen.findByRole("button", { name: /Quick Summary/ }));
-    fireEvent.click(screen.getByRole("button", { name: /Detailed Research Analysis/ }));
+    fireEvent.click(screen.getByRole("option", { name: /Detailed Research Analysis/ }));
     await vi.waitFor(() => {
       expect(createSummary).toHaveBeenCalledWith("p1", DETAILED_ID);
     });

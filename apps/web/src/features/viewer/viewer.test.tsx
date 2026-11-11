@@ -104,9 +104,17 @@ describe("PdfViewer", () => {
     expect(screen.getByRole("toolbar", { name: "Paper viewer" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Next page" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Previous page" })).toBeDisabled();
-    expect(screen.getByRole("combobox", { name: "Zoom" })).toHaveValue("fit");
+    const zoom = screen.getByRole("button", { name: /^Zoom:\s*Fit width$/ });
     fireEvent.click(screen.getByRole("button", { name: "Zoom in" }));
-    expect(screen.getByRole("combobox", { name: "Zoom" })).not.toHaveValue("fit");
+    expect(zoom).not.toHaveAccessibleName(/^Zoom:\s*Fit width$/);
+    // The app's own dropdown, keyboard operable like a native select.
+    fireEvent.click(zoom);
+    const list = screen.getByRole("listbox", { name: "Zoom" });
+    fireEvent.keyDown(list, { key: "Home" });
+    fireEvent.keyDown(list, { key: "Enter" });
+    expect(screen.queryByRole("listbox")).toBeNull();
+    expect(zoom).toHaveAccessibleName(/^Zoom:\s*Fit width$/);
+    expect(document.querySelector('input[type="number"], select')).toBeNull(); // no native widgets
   });
 
   it("AC6: renders only the visible pages plus a buffer; the rest are sized placeholders", async () => {
