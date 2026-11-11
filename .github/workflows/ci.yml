@@ -73,9 +73,11 @@ jobs:
         run: |
           pnpm tokens
           git diff --exit-code -- src/styles/tokens.css src/styles/theme.css src/styles/tokens.ts
-      - name: No em/en dashes or emojis in UI source (D62)
+      - name: UI source rules (D62 text, 003 AC2 tokens only)
         working-directory: .
-        run: scripts/check-ui-text.sh
+        run: |
+          scripts/check-ui-text.sh --self-test
+          scripts/check-ui-text.sh
 
   contract:
     name: API client is up to date
