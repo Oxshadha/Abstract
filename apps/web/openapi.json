@@ -1,6 +1,24 @@
 {
   "components": {
     "schemas": {
+      "DevToken": {
+        "properties": {
+          "token": {
+            "title": "Token",
+            "type": "string"
+          },
+          "token_type": {
+            "default": "bearer",
+            "title": "Token Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "title": "DevToken",
+        "type": "object"
+      },
       "Health": {
         "properties": {
           "status": {
@@ -81,6 +99,27 @@
         "summary": "Round-trip a task through the worker",
         "tags": [
           "debug"
+        ]
+      }
+    },
+    "/api/v1/dev/token": {
+      "post": {
+        "operationId": "dev_token_api_v1_dev_token_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevToken"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Issue a token for the demo user",
+        "tags": [
+          "dev"
         ]
       }
     },

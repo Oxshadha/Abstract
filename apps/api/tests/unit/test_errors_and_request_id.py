@@ -25,7 +25,7 @@ def test_AC5_unhandled_error_is_problem_json_with_request_id(
 
 
 def test_AC5_production_hides_internal_details(client_factory: Callable[..., TestClient]) -> None:
-    client = client_factory(env="production")
+    client = client_factory(env="production", clerk_issuer="https://x.clerk.accounts.dev")
     _add_boom(client)
     body = client.get("/boom").json()
     assert body["detail"] == "An unexpected error occurred."

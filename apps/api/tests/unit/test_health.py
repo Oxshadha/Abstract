@@ -48,4 +48,9 @@ def test_AC4_debug_routes_not_mounted_in_production(
         .json()["paths"]
         .get("/api/v1/_debug/ping")
     )
-    assert client_factory(env="production").get("/api/v1/_debug/ping").status_code == 404
+    assert (
+        client_factory(env="production", clerk_issuer="https://x.clerk.accounts.dev")
+        .get("/api/v1/_debug/ping")
+        .status_code
+        == 404
+    )

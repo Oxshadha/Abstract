@@ -1,5 +1,6 @@
 """Typed application settings. The only place environment variables are read (spec 001 AC7)."""
 
+import secrets
 from functools import lru_cache
 from typing import Literal, Self
 
@@ -40,6 +41,13 @@ class Settings(BaseSettings):
     gcp_project_id: str | None = None
     gcp_location: str = "us-central1"
 
+    # Authentication (spec 002, D70). "auto": Clerk when configured, otherwise the dev
+    # adapter in development/test. Production must use Clerk.
+    auth_provider: Literal["auto", "clerk", "dev"] = "auto"
+    clerk_issuer: str | None = None  # e.g. https://<instance>.clerk.accounts.dev
+    clerk_authorized_parties: list[str] = Field(default_factory=list)
+    dev_auth_secret: SecretStr = Field(default_factory=lambda: SecretStr(secrets.token_urlsafe(32)))
+
     @model_validator(mode="after")
     def _provider_credentials(self) -> Self:
         if self.llm_provider == "openrouter" and not self.openrouter_api_key:
@@ -50,7 +58,19 @@ class Settings(BaseSettings):
             raise ValueError(
                 "LLM_PROVIDER=vertex requires GOOGLE_APPLICATION_CREDENTIALS and GCP_PROJECT_ID"
             )
+        if self.resolved_auth_provider == "dev" and self.env == "production":
+            raise ValueError("The development auth adapter is not allowed when ENV=production")
+        if self.resolved_auth_provider == "clerk" and not self.clerk_issuer:
+            raise ValueError("Clerk auth requires CLERK_ISSUER")
         return self
+
+    @property
+    def resolved_auth_provider(self) -> Literal["clerk", "dev"]:
+        if self.auth_provider != "auto":
+            return self.auth_provider
+        if self.clerk_issuer or self.env == "production":
+            return "clerk"
+        return "dev"
 
     @property
     def is_production(self) -> bool:

@@ -10,14 +10,16 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from redis.asyncio import Redis
 
+from app.adapters.auth import build_auth_provider
 from app.adapters.storage.s3 import S3Storage
-from app.api.v1 import debug, health
+from app.api.v1 import debug, dev_auth, health
 from app.core.config import Settings, get_settings
 from app.core.db import build_engine, ping_db
 from app.core.errors import install_error_handlers
 from app.core.logging import configure_logging, get_logger
 from app.core.middleware import RequestContextMiddleware
 from app.core.readiness import ReadinessCheck
+from app.ports.auth import AuthProvider
 
 API_PREFIX = "/api/v1"
 log = get_logger(__name__)
@@ -27,9 +29,11 @@ def create_app(
     settings: Settings | None = None,
     *,
     readiness_checks: dict[str, ReadinessCheck] | None = None,
+    auth_provider: AuthProvider | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
     configure_logging(settings.log_level)
+    auth = auth_provider or build_auth_provider(settings)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -80,9 +84,13 @@ def create_app(
         expose_headers=["x-request-id"],
     )
     app.add_middleware(RequestContextMiddleware)
+    app.state.auth = auth
     install_error_handlers(app, production=settings.is_production)
 
     app.include_router(health.router, prefix=API_PREFIX)
     if not settings.is_production:
         app.include_router(debug.router, prefix=API_PREFIX)
+    if auth.name == "dev":
+        log.warning("dev_auth_enabled", note="development login adapter active (D70)")
+        app.include_router(dev_auth.router, prefix=API_PREFIX)
     return app
