@@ -14,12 +14,12 @@ This is lightweight spec-driven development. Each feature gets a one-to-two page
 | 005 | LLM Gateway & Model Registry: OpenRouter, Vertex, fake providers, usage log | W1–W2 | Implemented | [practices §3 Spec 005](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 006 | Summary templates & generation: Quick/Detailed, streaming, verification, gap-fill, versions | W2 | Implemented (AC6 experiment pending) | [practices §3 Spec 006](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 007 | Chat (RAG): conversations, rewrite, router, hybrid search, rerank, streaming | W2 | Implemented (AC18 experiment pending) | [practices §3 Spec 007](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
-| 008 | [Citations & PDF viewer: sentence-level highlighting, citation chips](008-viewer-citations.md) | W2 | In progress | [practices §3 Spec 008](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
+| 008 | [Citations & PDF viewer: sentence-level highlighting, citation chips](008-viewer-citations.md) | W2 | Implemented | [practices §3 Spec 008](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 009 | Enrichment & multimodal: Docling, tables, figures, vision, Figures tab, provisional→verified | W3 | Not started | [practices §3 Spec 009](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 010 | Template builder: drag-and-drop, versioning, live preview | W3 | Not started | [practices §3 Spec 010](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 011 | Admin v1: registry, flags, users, usage dashboard, jobs | W3 | Not started | [practices §3 Spec 011](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 012 | Entitlements & quotas: plans, counters, rate limits | W3 | Not started | [practices §3 Spec 012](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
-| 013 | Library, collections, star, ⌘K search | W3–W4 | Not started | [practices §3 Spec 013](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
+| 013 | [Library, collections, star, search](013-library-search.md) (built next, D82) | W3 | Draft | [practices §3 Spec 013](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 014 | Notes & references tab (Semantic Scholar) | W4 | Not started | [practices §3 Spec 014](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 015 | Reading aids: suggested questions, select → Explain/Ask, export MD/PDF/BibTeX | W4 | Not started | [practices §3 Spec 015](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 016 | Landing page (prerendered) | W4 | Not started | [practices §3 Spec 016](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
