@@ -68,11 +68,16 @@ async def test_AC7_each_attempt_is_recorded_with_context_tokens_and_outcome(
             )
         ).all()
     await admin.dispose()
-    assert [(r.provider, r.outcome) for r in rows] == [("vertex", "fallback"), ("openrouter", "ok")]
-    ok = rows[1]
+    # Background writes may land in any order.
+    assert sorted((r.provider, r.outcome) for r in rows) == [
+        ("openrouter", "ok"),
+        ("vertex", "fallback"),
+    ]
+    ok = next(r for r in rows if r.outcome == "ok")
+    fallback = next(r for r in rows if r.outcome == "fallback")
     assert (ok.input_tokens, ok.output_tokens, ok.prompt_version) == (10, 5, "summarize@1")
     assert (ok.user_id, ok.paper_id) == (user, paper)
-    assert rows[0].error_type == "ConnectionError"
+    assert fallback.error_type == "ConnectionError"
     assert ok.latency_ms >= 0
     await engine.dispose()
 
