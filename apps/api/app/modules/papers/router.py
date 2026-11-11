@@ -1,17 +1,22 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, Request, Response
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Depends, Header, Query, Request, Response
+from fastapi.responses import JSONResponse, RedirectResponse
+from sqlalchemy import text
 
 from app.core import idempotency
 from app.core.context import Context
+from app.core.errors import ProblemError
 from app.core.policy import require
 from app.core.ratelimit import user_rate_limit
-from app.modules.papers import finalize, service
+from app.modules.papers import finalize, queries, service
 from app.modules.papers.schemas import (
     FinalizeRequest,
     FinalizeResponse,
+    PaperOut,
+    PaperPage,
+    PaperStatus,
     UploadRequest,
     UploadTicket,
 )
@@ -76,3 +81,68 @@ async def finalize_upload(
         await remember(result)  # duplicates don't commit inside finalize; the request does
         response.status_code = 200
     return result
+
+
+@router.get(
+    "",
+    response_model=PaperPage,
+    summary="The caller's papers, newest first (cursor pagination)",
+    dependencies=[Depends(user_rate_limit("read"))],
+)
+async def list_papers(
+    ctx: Annotated[Context, Depends(require("paper.read"))],
+    limit: Annotated[int, Query(ge=1, le=queries.MAX_PAGE_SIZE)] = 20,
+    cursor: Annotated[str | None, Query(max_length=200)] = None,
+) -> PaperPage:
+    return await queries.list_papers(ctx.session, ctx.identity.user_id, limit=limit, cursor=cursor)
+
+
+@router.get(
+    "/{paper_id}",
+    response_model=PaperOut,
+    summary="One paper",
+    dependencies=[Depends(user_rate_limit("read"))],
+)
+async def get_paper(
+    paper_id: UUID, ctx: Annotated[Context, Depends(require("paper.read"))]
+) -> PaperOut:
+    return await queries.get_paper(ctx.session, ctx.identity.user_id, paper_id)
+
+
+@router.get(
+    "/{paper_id}/status",
+    response_model=PaperStatus,
+    summary="Processing status and steps (polling fallback for the event stream)",
+    dependencies=[Depends(user_rate_limit("read"))],
+)
+async def get_status(
+    paper_id: UUID, ctx: Annotated[Context, Depends(require("paper.read"))]
+) -> PaperStatus:
+    return await queries.paper_status(ctx.session, ctx.identity.user_id, paper_id)
+
+
+@router.get(
+    "/{paper_id}/file",
+    status_code=302,
+    response_class=RedirectResponse,
+    summary="Redirect to a short-lived link to the sanitized PDF (the original is never served)",
+    responses={409: {"description": "Not sanitized yet"}},
+    dependencies=[Depends(user_rate_limit("read"))],
+)
+async def get_file(
+    paper_id: UUID,
+    request: Request,
+    ctx: Annotated[Context, Depends(require("paper.read"))],
+) -> RedirectResponse:
+    key = (
+        await ctx.session.execute(
+            text("SELECT storage_key FROM papers WHERE id = :id AND owner_id = :owner"),
+            {"id": paper_id, "owner": ctx.identity.user_id},
+        )
+    ).first()
+    if key is None:
+        raise ProblemError(404, "paper-not-found", "This paper was not found.")
+    if key.storage_key is None:
+        raise ProblemError(409, "not-ready", "This PDF is still being prepared.")
+    url = await request.app.state.storage.presigned_get_url(key.storage_key, expires_seconds=300)
+    return RedirectResponse(url, status_code=302, headers={"Cache-Control": "no-store"})

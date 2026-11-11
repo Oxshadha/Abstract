@@ -298,6 +298,99 @@
         "title": "PaperOut",
         "type": "object"
       },
+      "PaperPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/PaperOut"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "PaperPage",
+        "type": "object"
+      },
+      "PaperStatus": {
+        "description": "Polling fallback and SSE payload (AC12). Labels belong to the UI; the API sends keys.",
+        "properties": {
+          "chat_available": {
+            "title": "Chat Available",
+            "type": "boolean"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "paper_id": {
+            "format": "uuid",
+            "title": "Paper Id",
+            "type": "string"
+          },
+          "seq": {
+            "title": "Seq",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "processing",
+              "ready",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "steps": {
+            "items": {
+              "$ref": "#/components/schemas/StepOut"
+            },
+            "title": "Steps",
+            "type": "array"
+          },
+          "text_status": {
+            "enum": [
+              "pending",
+              "ready",
+              "failed"
+            ],
+            "title": "Text Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "paper_id",
+          "seq",
+          "status",
+          "text_status",
+          "chat_available",
+          "error_message",
+          "steps"
+        ],
+        "title": "PaperStatus",
+        "type": "object"
+      },
       "Pong": {
         "properties": {
           "pong": {
@@ -372,6 +465,37 @@
           "platform_role"
         ],
         "title": "RoleChange",
+        "type": "object"
+      },
+      "StepOut": {
+        "properties": {
+          "key": {
+            "enum": [
+              "uploading",
+              "extracting",
+              "sections",
+              "indexing",
+              "ocr"
+            ],
+            "title": "Key",
+            "type": "string"
+          },
+          "state": {
+            "enum": [
+              "done",
+              "active",
+              "pending",
+              "failed"
+            ],
+            "title": "State",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "state"
+        ],
+        "title": "StepOut",
         "type": "object"
       },
       "UploadRequest": {
@@ -661,6 +785,66 @@
       }
     },
     "/api/v1/papers": {
+      "get": {
+        "operationId": "list_papers_api_v1_papers_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 20,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 200,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "The caller's papers, newest first (cursor pagination)",
+        "tags": [
+          "papers"
+        ]
+      },
       "post": {
         "operationId": "finalize_upload_api_v1_papers_post",
         "parameters": [
@@ -759,6 +943,131 @@
           }
         },
         "summary": "Start an upload: a short-lived pre-signed form to send one PDF directly to storage",
+        "tags": [
+          "papers"
+        ]
+      }
+    },
+    "/api/v1/papers/{paper_id}": {
+      "get": {
+        "operationId": "get_paper_api_v1_papers__paper_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "One paper",
+        "tags": [
+          "papers"
+        ]
+      }
+    },
+    "/api/v1/papers/{paper_id}/file": {
+      "get": {
+        "operationId": "get_file_api_v1_papers__paper_id__file_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Successful Response"
+          },
+          "409": {
+            "description": "Not sanitized yet"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Redirect to a short-lived link to the sanitized PDF (the original is never served)",
+        "tags": [
+          "papers"
+        ]
+      }
+    },
+    "/api/v1/papers/{paper_id}/status": {
+      "get": {
+        "operationId": "get_status_api_v1_papers__paper_id__status_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Processing status and steps (polling fallback for the event stream)",
         "tags": [
           "papers"
         ]

@@ -113,7 +113,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** The caller's papers, newest first (cursor pagination) */
+        get: operations["list_papers_api_v1_papers_get"];
         put?: never;
         /** Finish an upload: validate the stored file and start processing */
         post: operations["finalize_upload_api_v1_papers_post"];
@@ -134,6 +135,57 @@ export interface paths {
         put?: never;
         /** Start an upload: a short-lived pre-signed form to send one PDF directly to storage */
         post: operations["create_upload_api_v1_papers_uploads_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/papers/{paper_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One paper */
+        get: operations["get_paper_api_v1_papers__paper_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/papers/{paper_id}/file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Redirect to a short-lived link to the sanitized PDF (the original is never served) */
+        get: operations["get_file_api_v1_papers__paper_id__file_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/papers/{paper_id}/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Processing status and steps (polling fallback for the event stream) */
+        get: operations["get_status_api_v1_papers__paper_id__status_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -306,6 +358,42 @@ export interface components {
             /** Title */
             title: string | null;
         };
+        /** PaperPage */
+        PaperPage: {
+            /** Items */
+            items: components["schemas"]["PaperOut"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /**
+         * PaperStatus
+         * @description Polling fallback and SSE payload (AC12). Labels belong to the UI; the API sends keys.
+         */
+        PaperStatus: {
+            /** Chat Available */
+            chat_available: boolean;
+            /** Error Message */
+            error_message: string | null;
+            /**
+             * Paper Id
+             * Format: uuid
+             */
+            paper_id: string;
+            /** Seq */
+            seq: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "processing" | "ready" | "failed";
+            /** Steps */
+            steps: components["schemas"]["StepOut"][];
+            /**
+             * Text Status
+             * @enum {string}
+             */
+            text_status: "pending" | "ready" | "failed";
+        };
         /** Pong */
         Pong: {
             /** Pong */
@@ -342,6 +430,19 @@ export interface components {
              * Format: uuid
              */
             user_id: string;
+        };
+        /** StepOut */
+        StepOut: {
+            /**
+             * Key
+             * @enum {string}
+             */
+            key: "uploading" | "extracting" | "sections" | "indexing" | "ocr";
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "done" | "active" | "pending" | "failed";
         };
         /** UploadRequest */
         UploadRequest: {
@@ -541,6 +642,38 @@ export interface operations {
             };
         };
     };
+    list_papers_api_v1_papers_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     finalize_upload_api_v1_papers_post: {
         parameters: {
             query?: never;
@@ -605,6 +738,104 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["UploadTicket"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_paper_api_v1_papers__paper_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_file_api_v1_papers__paper_id__file_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            302: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Not sanitized yet */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_status_api_v1_papers__paper_id__status_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperStatus"];
                 };
             };
             /** @description Validation Error */
