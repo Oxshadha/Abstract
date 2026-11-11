@@ -41,6 +41,7 @@ async def worker_deps() -> AsyncIterator[Deps]:
             settings=settings,
             enqueue=_enqueue,
             scanner=build_scanner(settings),
+            tracer=llm.gateway.tracer,
         )
     finally:
         await llm.flush()  # usage rows are written before the task's loop closes

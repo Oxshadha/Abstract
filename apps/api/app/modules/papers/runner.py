@@ -25,6 +25,7 @@ from app.core.tenancy import set_tenant
 from app.modules.llm.gateway import set_context as set_llm_context
 from app.modules.papers.ingest import PaperGoneError
 from app.modules.papers.jobs import InvalidTransitionError, transition
+from app.ports.tracing import NoTracer, Tracer
 
 GENERIC_FAILURE = "We could not process this PDF. Please try uploading it again."
 TIMEOUT_FAILURE = "This PDF took too long to process. Please try a smaller file."
@@ -109,12 +110,57 @@ async def run_job(
     retries: int,
     max_retries: int,
     give_up: Callable[[str], Awaitable[None]] | None = None,
+    tracer: Tracer | None = None,
+    trace_name: str = "run-job",
 ) -> Outcome:
     """`give_up(reason)` replaces the default failure (job and paper failed) when retries run
     out; the malware scan uses it so a scanner outage never fails the paper (D77)."""
     if not await claim(maker, org_id, job_id):
         return Outcome("skipped")
     set_llm_context(org_id=org_id, job_id=job_id)
+    paper_id, owner_id = await _job_subject(maker, org_id, job_id)
+    with (tracer or NoTracer()).trace(
+        trace_name,
+        user_id=str(owner_id) if owner_id else None,
+        session_id=str(paper_id) if paper_id else None,  # all work on one paper, grouped
+        tags=[trace_name],
+        metadata={"job_id": str(job_id), "org_id": str(org_id), "attempt": retries + 1},
+    ) as trace:
+        outcome = await _attempt(maker, org_id, job_id, work, retries, max_retries, give_up)
+        if outcome.kind in ("failed", "retry"):
+            trace.update(
+                level="ERROR" if outcome.kind == "failed" else "WARNING",
+                status_message=outcome.kind,
+            )
+        return outcome
+
+
+async def _job_subject(
+    maker: async_sessionmaker[AsyncSession], org_id: UUID, job_id: UUID
+) -> tuple[UUID | None, UUID | None]:
+    async with maker() as session, session.begin():
+        await set_tenant(session, org_id)
+        row = (
+            await session.execute(
+                text(
+                    "SELECT p.id, p.owner_id FROM jobs j JOIN papers p ON p.id = j.paper_id"
+                    " WHERE j.id = :j"
+                ),
+                {"j": job_id},
+            )
+        ).first()
+    return (row.id, row.owner_id) if row else (None, None)
+
+
+async def _attempt(
+    maker: async_sessionmaker[AsyncSession],
+    org_id: UUID,
+    job_id: UUID,
+    work: Callable[[], Awaitable[None]],
+    retries: int,
+    max_retries: int,
+    give_up: Callable[[str], Awaitable[None]] | None,
+) -> Outcome:
     try:
         await work()
     except PaperGoneError:

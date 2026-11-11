@@ -15,15 +15,14 @@ import contextvars
 import time
 from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass, field, replace
-from datetime import UTC, datetime, timedelta
 from typing import Any, Literal, Protocol
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from app.adapters.llm.vertex import ModelSpec
 from app.core.logging import get_logger
 from app.modules.llm.registry import ModelRoute, Registry, RegistryEntry
 from app.ports.llm import ChatMessage, Completion, Embeddings, JsonSchema, StreamChunk, Usage
-from app.ports.tracing import NoTracer, TraceEvent, Tracer
+from app.ports.tracing import NoTracer, Tracer
 
 log = get_logger(__name__)
 Outcome = Literal["ok", "error", "fallback", "blocked"]
@@ -174,10 +173,6 @@ class RoutedGateway:
                 await hook(attempt)
             except Exception as exc:  # recording must never fail a model call (AC7)
                 log.warning("llm_usage_record_failed", error=type(exc).__name__)
-        try:
-            self.tracer.emit(_trace_event(attempt, started))
-        except Exception as exc:  # tracing must never fail a model call (AC14)
-            log.warning("llm_trace_failed", error=type(exc).__name__)
 
     async def _run(
         self,
@@ -198,21 +193,60 @@ class RoutedGateway:
                 errors.append(f"{route.provider}: not configured")
                 continue
             started = time.perf_counter()
-            try:
-                async with self._bulkhead(route.provider), asyncio.timeout(entry.deadline_seconds):
-                    result = await call(adapter, route, entry)
-            except Exception as exc:
-                last = index == len(routes) - 1
-                errors.append(f"{route.provider}/{route.model}: {type(exc).__name__}")
+            last = index == len(routes) - 1
+            # One generation (or embedding) observation per attempt, nested in the current trace
+            # or step; metadata only (D76), never the prompt or the answer.
+            with self.tracer.observe(
+                task,
+                as_type="embedding" if task == "embed" else "generation",
+                model=route.model,
+                model_parameters=entry.params.model_dump(exclude_none=True),
+                version=current_context().prompt_version,
+                metadata={"provider": route.provider, "route": index},
+            ) as observation:
+                try:
+                    async with (
+                        self._bulkhead(route.provider),
+                        asyncio.timeout(entry.deadline_seconds),
+                    ):
+                        result = await call(adapter, route, entry)
+                except Exception as exc:
+                    observation.update(
+                        level="ERROR" if last else "WARNING",
+                        status_message=type(exc).__name__,
+                        metadata={
+                            "provider": route.provider,
+                            "route": index,
+                            "outcome": "error" if last else "fallback",
+                        },
+                    )
+                    failure: Exception | None = exc
+                else:
+                    failure = None
+                    usage = getattr(result, "usage", None)
+                    if usage is not None:
+                        observation.update(
+                            model=usage.model,
+                            usage={
+                                "input": usage.input_tokens,
+                                "output": usage.output_tokens,
+                                "input_cached": usage.cached_tokens,
+                            },
+                            cost_usd=usage.cost_usd,
+                        )
+            if failure is not None:
+                errors.append(f"{route.provider}/{route.model}: {type(failure).__name__}")
                 log.warning(
                     "llm_route_failed",
                     task=task,
                     provider=route.provider,
                     model=route.model,
-                    error=type(exc).__name__,
+                    error=type(failure).__name__,
                     fallback=not last,
                 )
-                await self._note(task, route, "error" if last else "fallback", None, started, exc)
+                await self._note(
+                    task, route, "error" if last else "fallback", None, started, failure
+                )
                 continue
             if isinstance(result, _Opened):
                 result.started = started  # streams are recorded when they end
@@ -294,25 +328,3 @@ class _Opened:
     rest: AsyncIterator[StreamChunk]
     first: StreamChunk
     started: float = 0.0
-
-
-def _trace_event(attempt: Attempt, started: float) -> TraceEvent:
-    ended = datetime.now(UTC)
-    ctx, usage = attempt.context, attempt.usage
-    return TraceEvent(
-        trace_id=str(ctx.job_id or uuid4()),
-        task=attempt.task,
-        provider=attempt.route.provider,
-        model=usage.model if usage else attempt.route.model,
-        outcome=attempt.outcome,
-        started_at=ended - timedelta(milliseconds=attempt.latency_ms),
-        ended_at=ended,
-        input_tokens=usage.input_tokens if usage else 0,
-        output_tokens=usage.output_tokens if usage else 0,
-        cost_usd=usage.cost_usd if usage else 0.0,
-        prompt_version=ctx.prompt_version,
-        org_id=str(ctx.org_id) if ctx.org_id else None,
-        user_id=str(ctx.user_id) if ctx.user_id else None,
-        paper_id=str(ctx.paper_id) if ctx.paper_id else None,
-        error_type=attempt.error_type,
-    )

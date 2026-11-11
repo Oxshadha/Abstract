@@ -16,7 +16,7 @@ every step is idempotent: a re-delivered task rewrites the same rows.
 import hashlib
 import json
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any
 from uuid import UUID
 
@@ -35,6 +35,7 @@ from app.modules.papers.keys import paper_prefix, sanitized_key
 from app.ports.llm import LLMGateway
 from app.ports.scanner import MalwareScanner
 from app.ports.storage import ObjectChangedError, Storage
+from app.ports.tracing import NoTracer, Tracer
 
 EMBED_TASK = "embed"
 EMBEDDING_DIMENSIONS = 1536  # D69: halfvec(1536) in migration 0003
@@ -51,6 +52,7 @@ class Deps:
     settings: Settings
     enqueue: Callable[[str, dict[str, Any]], None]
     scanner: MalwareScanner | None = None
+    tracer: Tracer = field(default_factory=NoTracer)
 
 
 class PaperGoneError(Exception):
@@ -215,13 +217,22 @@ async def _run(deps: Deps, org_id: UUID, job_id: UUID, paper: _Paper) -> None:
         )
 
     # 2. Structure checks and content disarm (D77).
-    clean = sanitize(original, max_pages=deps.settings.upload_max_pages)
+    with deps.tracer.observe("sanitize-pdf") as step:
+        clean = sanitize(original, max_pages=deps.settings.upload_max_pages)
+        step.update(metadata={"pages": clean.pages, "removed": clean.removed})
     del original
     key = sanitized_key(org_id, paper.id)
     await deps.storage.put_bytes(key, clean.data, "application/pdf")
 
     # 3. Text per page.
-    extracted = extract_text(clean.data)
+    with deps.tracer.observe("extract-text") as step:
+        extracted = extract_text(clean.data)
+        step.update(
+            metadata={
+                "pages": len(extracted.pages),
+                "pages_without_text": sum(not p.has_text_layer for p in extracted.pages),
+            }
+        )
     title = extracted.title or paper.title or paper.filename
     needs_ocr = [p.page_no for p in extracted.pages if not p.has_text_layer]
     async with maker() as session, session.begin():
@@ -246,11 +257,16 @@ async def _run(deps: Deps, org_id: UUID, job_id: UUID, paper: _Paper) -> None:
         await set_step(session, job_id, "sections")
 
     # 4. Chunks and embeddings.
-    chunks = chunk_paper(title, [(p.page_no, p.text) for p in extracted.pages if p.has_text_layer])
+    with deps.tracer.observe("chunk-text") as step:
+        chunks = chunk_paper(
+            title, [(p.page_no, p.text) for p in extracted.pages if p.has_text_layer]
+        )
+        step.update(metadata={"chunks": len(chunks)})
     async with maker() as session, session.begin():
         await set_tenant(session, org_id)
         await set_step(session, job_id, "indexing")
-    vectors, model = await embed_chunks(deps.gateway, chunks)
+    with deps.tracer.observe("embed-chunks", metadata={"chunks": len(chunks)}):
+        vectors, model = await embed_chunks(deps.gateway, chunks)
 
     ocr_job: UUID | None = None
     async with maker() as session, session.begin():

@@ -4,7 +4,7 @@ import secrets
 from functools import lru_cache
 from typing import Literal, Self
 
-from pydantic import Field, SecretStr, model_validator
+from pydantic import AliasChoices, Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 Environment = Literal["development", "test", "production"]
@@ -67,7 +67,12 @@ class Settings(BaseSettings):
     # Tracing (spec 005 AC14, D37): metadata only; off unless both keys are set (EU region).
     langfuse_public_key: str | None = None
     langfuse_secret_key: SecretStr | None = None
-    langfuse_host: str = "https://cloud.langfuse.com"
+    # LANGFUSE_BASE_URL is the SDK's current name; LANGFUSE_HOST is accepted too.
+    langfuse_base_url: str = Field(
+        default="https://cloud.langfuse.com",
+        validation_alias=AliasChoices("langfuse_base_url", "langfuse_host"),
+    )
+    app_release: str | None = None  # e.g. the git SHA; tags traces with the deployed version
 
     # LLM spend control (spec 005 AC8; owner-approved defaults until plans exist in spec 012).
     llm_daily_cap_usd: float = Field(default=5.0, ge=0)

@@ -1,23 +1,70 @@
-"""Langfuse adapter (spec 005 AC14, D37): metadata-only generations via the public ingestion API.
+"""Langfuse tracing with the official Python SDK v5 (spec 005 AC14, D37).
 
-Enabled only when keys are configured. Events are buffered and sent in batches by a background
-task; a failed send is logged and dropped. Inputs and outputs are never sent (D76): the
-generation carries model, tokens, cost, latency, outcome, prompt version and IDs.
+Follows Langfuse's trace best practices: one trace per unit of work with a verb-first name,
+nested spans for pipeline steps, `generation`/`embedding` observations with model, token usage
+and cost, user and session IDs, tags, environment and release.
+
+Privacy (D76): input and output are never set; only metadata leaves the process. Langfuse runs
+on its own isolated OpenTelemetry provider and exports only spans created through this adapter,
+so auto-instrumented libraries (for example a model SDK) can never export prompt text through it.
+Tracing failures are logged and never affect the observed work.
 """
 
-import asyncio
-import contextlib
-import uuid
+from collections.abc import Iterator
+from contextlib import ExitStack, contextmanager
 from typing import Any
 
-import httpx
+from opentelemetry.sdk.trace import ReadableSpan, TracerProvider
+from opentelemetry.sdk.trace.export import SpanExporter
 
 from app.core.logging import get_logger
-from app.ports.tracing import TraceEvent
+from app.ports.tracing import Level, Observation, ObservationType
 
 log = get_logger(__name__)
-MAX_BUFFER = 1000
-BATCH = 50
+LANGFUSE_SCOPE = "langfuse-sdk"
+
+
+def only_langfuse_spans(span: ReadableSpan) -> bool:
+    scope = span.instrumentation_scope
+    return scope is not None and scope.name.startswith(LANGFUSE_SCOPE)
+
+
+class _Observation:
+    def __init__(self, inner: Any) -> None:
+        self._inner = inner
+
+    def update(
+        self,
+        *,
+        model: str | None = None,
+        usage: dict[str, int] | None = None,
+        cost_usd: float | None = None,
+        level: Level | None = None,
+        status_message: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> None:
+        fields: dict[str, Any] = {}
+        if model is not None:
+            fields["model"] = model
+        if usage is not None:
+            fields["usage_details"] = usage
+        if cost_usd is not None:
+            fields["cost_details"] = {"total": cost_usd}
+        if level is not None:
+            fields["level"] = level
+        if status_message is not None:
+            fields["status_message"] = status_message
+        if metadata is not None:
+            fields["metadata"] = metadata
+        try:
+            self._inner.update(**fields)
+        except Exception as exc:
+            log.warning("langfuse_update_failed", error=type(exc).__name__)
+
+
+class _Null:
+    def update(self, **_: Any) -> None:
+        return None
 
 
 class LangfuseTracer:
@@ -25,76 +72,94 @@ class LangfuseTracer:
         self,
         public_key: str,
         secret_key: str,
-        host: str,
+        base_url: str,
         *,
-        interval_seconds: float = 5.0,
-        transport: httpx.AsyncBaseTransport | None = None,
+        environment: str,
+        release: str | None = None,
+        span_exporter: SpanExporter | None = None,
     ) -> None:
-        self._client = httpx.AsyncClient(
-            base_url=host.rstrip("/"),
-            auth=(public_key, secret_key),
-            timeout=5.0,
-            transport=transport,
+        from langfuse import Langfuse
+
+        self._client = Langfuse(
+            public_key=public_key,
+            secret_key=secret_key,
+            base_url=base_url,
+            environment=environment,
+            release=release,
+            tracer_provider=TracerProvider(),  # isolated: never the global provider
+            should_export_span=only_langfuse_spans,
+            span_exporter=span_exporter,
         )
-        self._buffer: list[dict[str, Any]] = []
-        self._interval = interval_seconds
-        self._task: asyncio.Task[None] | None = None
 
-    @staticmethod
-    def _payload(event: TraceEvent) -> dict[str, Any]:
-        return {
-            "id": str(uuid.uuid4()),
-            "timestamp": event.ended_at.isoformat(),
-            "type": "generation-create",
-            "body": {
-                "id": str(uuid.uuid4()),
-                "traceId": event.trace_id,
-                "name": event.task,
-                "model": event.model,
-                "startTime": event.started_at.isoformat(),
-                "endTime": event.ended_at.isoformat(),
-                "usage": {
-                    "input": event.input_tokens,
-                    "output": event.output_tokens,
-                    "unit": "TOKENS",
-                },
-                "costDetails": {"total": event.cost_usd},
-                "level": "DEFAULT" if event.outcome == "ok" else "WARNING",
-                "statusMessage": event.error_type,
-                "version": event.prompt_version,
-                "metadata": {
-                    "provider": event.provider,
-                    "outcome": event.outcome,
-                    "org_id": event.org_id,
-                    "user_id": event.user_id,
-                    "paper_id": event.paper_id,
-                },
-            },
-        }
-
-    def emit(self, event: TraceEvent) -> None:
-        if len(self._buffer) >= MAX_BUFFER:
-            return  # never grow without bound if Langfuse is unreachable
-        self._buffer.append(self._payload(event))
-        if self._task is None or self._task.done():
-            with contextlib.suppress(RuntimeError):  # no running loop: sent on flush()
-                self._task = asyncio.get_running_loop().create_task(self._later())
-
-    async def _later(self) -> None:
-        await asyncio.sleep(self._interval)
-        await self.flush()
-
-    async def flush(self) -> None:
-        while self._buffer:
-            batch, self._buffer = self._buffer[:BATCH], self._buffer[BATCH:]
+    @contextmanager
+    def _guard(self, enter: Any) -> Iterator[Observation]:
+        """Enter a Langfuse context; if that fails, run the work untraced."""
+        with ExitStack() as stack:
             try:
-                response = await self._client.post("/api/public/ingestion", json={"batch": batch})
-                if response.status_code >= 400:
-                    log.warning("langfuse_rejected", status=response.status_code)
-            except httpx.HTTPError as exc:
-                log.warning("langfuse_unreachable", error=type(exc).__name__)
+                inner = stack.enter_context(enter())
+            except Exception as exc:
+                log.warning("langfuse_observe_failed", error=type(exc).__name__)
+                yield _Null()
                 return
+            yield _Observation(inner)
 
-    async def aclose(self) -> None:
-        await self.flush()
-        await self._client.aclose()
+    @contextmanager
+    def trace(
+        self,
+        name: str,
+        *,
+        user_id: str | None = None,
+        session_id: str | None = None,
+        tags: list[str] | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> Iterator[Observation]:
+        from langfuse import propagate_attributes
+
+        @contextmanager
+        def enter() -> Iterator[Any]:
+            with (
+                self._client.start_as_current_observation(
+                    name=name, as_type="span", metadata=metadata
+                ) as root,
+                propagate_attributes(
+                    user_id=user_id, session_id=session_id, tags=tags, trace_name=name
+                ),
+            ):
+                yield root
+
+        with self._guard(enter) as observation:
+            yield observation
+
+    @contextmanager
+    def observe(
+        self,
+        name: str,
+        *,
+        as_type: ObservationType = "span",
+        model: str | None = None,
+        model_parameters: dict[str, Any] | None = None,
+        version: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> Iterator[Observation]:
+        def enter() -> Any:
+            client: Any = self._client  # the SDK's per-type overloads are too many for mypy
+            return client.start_as_current_observation(
+                name=name,
+                as_type=as_type,
+                model=model,
+                model_parameters=model_parameters,
+                version=version,
+                metadata=metadata,
+            )
+
+        with self._guard(enter) as observation:
+            yield observation
+
+    def flush(self) -> None:
+        try:
+            self._client.flush()
+        except Exception as exc:
+            log.warning("langfuse_flush_failed", error=type(exc).__name__)
+
+    def auth_check(self) -> bool:
+        return bool(self._client.auth_check())

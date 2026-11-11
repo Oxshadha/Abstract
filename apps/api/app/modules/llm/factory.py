@@ -5,6 +5,7 @@ no paid calls). Any other value routes by the registry; each provider with crede
 available: Vertex (default, service account) and OpenRouter (always `data_collection: deny`).
 """
 
+import os
 from dataclasses import dataclass
 from typing import Any
 
@@ -52,16 +53,25 @@ def build_adapters(settings: Settings) -> dict[str, Any]:
     return adapters
 
 
+_TRACERS: dict[tuple[int, str], Tracer] = {}
+
+
 def build_tracer(settings: Settings) -> Tracer:
-    if settings.langfuse_public_key and settings.langfuse_secret_key:
+    """One Langfuse client per process (it owns an exporter thread); off without keys."""
+    if not (settings.langfuse_public_key and settings.langfuse_secret_key):
+        return NoTracer()
+    key = (os.getpid(), settings.langfuse_public_key)
+    if key not in _TRACERS:
         from app.adapters.tracing.langfuse import LangfuseTracer
 
-        return LangfuseTracer(
+        _TRACERS[key] = LangfuseTracer(
             settings.langfuse_public_key,
             settings.langfuse_secret_key.get_secret_value(),
-            settings.langfuse_host,
+            settings.langfuse_base_url,
+            environment=settings.env,
+            release=settings.app_release,
         )
-    return NoTracer()
+    return _TRACERS[key]
 
 
 @dataclass
@@ -85,7 +95,7 @@ class LLM:
 
     async def flush(self) -> None:
         await self.usage.flush()
-        await self.gateway.tracer.flush()
+        self.gateway.tracer.flush()
 
 
 def build_llm(

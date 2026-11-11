@@ -23,7 +23,7 @@ Step = Callable[[Deps, UUID, UUID], Awaitable[None]]
 
 
 async def _run(
-    step: Step, job_id: UUID, org_id: UUID, retries: int, *, scan: bool = False
+    step: Step, job_id: UUID, org_id: UUID, retries: int, *, name: str, scan: bool = False
 ) -> Outcome:
     async with worker_deps() as deps:
 
@@ -44,11 +44,17 @@ async def _run(
             retries=retries,
             max_retries=MAX_RETRIES,
             give_up=scan_give_up if scan else None,
+            tracer=deps.tracer,
+            trace_name=name,
         )
 
 
-def _job_task(task: Any, step: Step, job_id: str, org_id: str, *, scan: bool = False) -> str:
-    outcome = asyncio.run(_run(step, UUID(job_id), UUID(org_id), task.request.retries, scan=scan))
+def _job_task(
+    task: Any, step: Step, job_id: str, org_id: str, *, name: str, scan: bool = False
+) -> str:
+    outcome = asyncio.run(
+        _run(step, UUID(job_id), UUID(org_id), task.request.retries, name=name, scan=scan)
+    )
     if outcome.kind == "retry":
         raise task.retry(countdown=outcome.retry_in)
     return outcome.kind
@@ -57,24 +63,27 @@ def _job_task(task: Any, step: Step, job_id: str, org_id: str, *, scan: bool = F
 @celery_app.task(bind=True, name="app.worker.tasks.ingest_paper", max_retries=MAX_RETRIES)  # type: ignore[untyped-decorator]
 def ingest_paper(self: Any, job_id: str, org_id: str) -> str:
     """Fast path for one uploaded PDF (spec 004 AC10, AC11)."""
-    return _job_task(self, ingest_module.ingest, job_id, org_id)
+    return _job_task(self, ingest_module.ingest, job_id, org_id, name="ingest-paper")
 
 
 @celery_app.task(bind=True, name="app.worker.tasks.ocr_pages", max_retries=MAX_RETRIES)  # type: ignore[untyped-decorator]
 def ocr_pages(self: Any, job_id: str, org_id: str) -> str:
     """OCR for pages without a text layer, on the enrichment queue (spec 004 AC10)."""
-    return _job_task(self, ocr_module.run_ocr, job_id, org_id)
+    return _job_task(self, ocr_module.run_ocr, job_id, org_id, name="ocr-pages")
 
 
 @celery_app.task(bind=True, name="app.worker.tasks.scan_paper", max_retries=MAX_RETRIES)  # type: ignore[untyped-decorator]
 def scan_paper(self: Any, job_id: str, org_id: str) -> str:
     """Background malware scan on its own queue (D77, spec 004 AC16)."""
-    return _job_task(self, scan_module.run_scan, job_id, org_id, scan=True)
+    return _job_task(self, scan_module.run_scan, job_id, org_id, name="scan-paper", scan=True)
 
 
 async def _reindex(run_id: UUID) -> bool:
     async with worker_deps() as deps:
-        return await reindex_module.reindex_batch(deps, run_id)
+        with deps.tracer.trace(
+            "reindex-embeddings", tags=["reindex-embeddings"], metadata={"run_id": str(run_id)}
+        ):
+            return await reindex_module.reindex_batch(deps, run_id)
 
 
 @celery_app.task(  # type: ignore[untyped-decorator]
