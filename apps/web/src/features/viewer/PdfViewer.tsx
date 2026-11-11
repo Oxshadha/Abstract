@@ -8,7 +8,7 @@ import { Document, Page, pdfjs } from "react-pdf";
 
 import { Select } from "@/components/menu/Select";
 
-import { useCitations } from "./citations";
+import { useCitations } from "./citation-context";
 import { getFileUrl, getPageSizes, viewerKeys, type PageSize } from "./api";
 import { locate, markItem, type Located, type TextPiece } from "./locate";
 import { visibleWindow } from "./virtual";

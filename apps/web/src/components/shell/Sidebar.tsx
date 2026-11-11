@@ -1,14 +1,15 @@
 import { Link } from "@tanstack/react-router";
 
 import { Logo } from "@/components/brand/Logo";
+import { SidebarCollections } from "@/features/library/SidebarCollections";
 
 import { NAV_ITEMS } from "./navigation";
 
-/** Sidebar from the Library mockup (spec 003 AC6). */
+/** Sidebar from the Library mockup (spec 003 AC6); collections as folders (spec 013, D82). */
 export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
   return (
-    <nav aria-label="Main" className="flex h-full flex-col gap-6 p-4">
-      <Link to="/app/library" onClick={onNavigate} className="px-2">
+    <nav aria-label="Main" className="flex h-full min-h-0 flex-col gap-6 p-4">
+      <Link to="/app/home" onClick={onNavigate} className="px-2">
         <Logo />
       </Link>
       <ul className="flex flex-col gap-1">
@@ -26,12 +27,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           </li>
         ))}
       </ul>
-      <section aria-labelledby="recent-heading" className="border-t border-border pt-4">
-        <h2 id="recent-heading" className="px-3 text-xs font-medium tracking-wide text-text-secondary uppercase">
-          Recent
-        </h2>
-        <p className="px-3 pt-2 text-sm text-text-secondary">Papers you open will show up here.</p>
-      </section>
+      <SidebarCollections onNavigate={onNavigate} />
     </nav>
   );
 }

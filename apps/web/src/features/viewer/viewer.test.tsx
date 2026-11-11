@@ -6,7 +6,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { seriousViolations } from "@/test/axe";
 
 import { getFileUrl, getPageSizes } from "./api";
-import { CitationProvider, useCitations } from "./citations";
+import { CitationProvider } from "./citations";
+import { useCitations } from "./citation-context";
 import { escapeHtml, locate, markItem, type TextPiece } from "./locate";
 import { PdfViewer } from "./PdfViewer";
 import { visibleWindow } from "./virtual";

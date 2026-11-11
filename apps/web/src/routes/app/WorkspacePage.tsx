@@ -1,14 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, useParams } from "@tanstack/react-router";
+import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { ArrowLeft, FileText, MessageSquare, Sparkles } from "lucide-react";
-import { useCallback, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 
 import { ErrorBoundary } from "@/components/feedback/ErrorBoundary";
 import { getPaper, paperKeys } from "@/features/papers/api";
 import { listSummaries, summaryKeys, type Summary } from "@/features/summaries/api";
 import { ChatPanel } from "@/features/chat/ChatPanel";
 import { SummaryPanel } from "@/features/summaries/SummaryPanel";
+import { markOpened } from "@/features/library/api";
+import { StarButton } from "@/features/library/PaperActions";
 import { CitationProvider } from "@/features/viewer/citations";
+import { useCitations } from "@/features/viewer/citation-context";
 import { PdfViewer } from "@/features/viewer/PdfViewer";
 import { useIsDesktop, useWorkspaceLayout } from "@/features/workspace/layout";
 
@@ -24,6 +27,21 @@ function byline(summary: Summary | undefined): string {
   const first = summary.authors[0];
   const authors = first ? (summary.authors.length > 1 ? `${first.split(" ").pop() ?? first} et al.` : first) : "";
   return [authors, summary.year ? String(summary.year) : ""].filter(Boolean).join(" · ");
+}
+
+/** Arriving from a search passage: open the Paper panel at that page and highlight it, once. */
+function OpenFromUrl({ paperId }: { paperId: string }) {
+  const { page, quote } = useSearch({ from: "/app/papers/$paperId" });
+  const citations = useCitations();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!page || !citations) return;
+    citations.open(page, quote ?? "");
+    // Drop the params so a reload or back navigation does not reopen it.
+    void navigate({ to: "/app/papers/$paperId", params: { paperId }, search: {}, replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, quote]);
+  return null;
 }
 
 function PaperPanel({ paperId }: { paperId: string }) {
@@ -115,6 +133,10 @@ export default function WorkspacePage() {
   });
   const both = layout.paper && layout.summary;
   const desktop = useIsDesktop();
+  // "Recently opened" sort (spec 013 AC3): once per visit, failures are harmless.
+  useEffect(() => {
+    void markOpened(paperId).catch(() => undefined);
+  }, [paperId]);
   // A citation click shows the Paper panel (desktop) or the Paper tab (phones), spec 008 AC4.
   const openPaper = useCallback(() => {
     if (desktop) showPaper();
@@ -123,6 +145,7 @@ export default function WorkspacePage() {
 
   return (
     <CitationProvider onOpen={openPaper}>
+    <OpenFromUrl paperId={paperId} />
     <div className="flex h-full flex-col">
       <header className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-4">
         <Link to="/app/library" aria-label="Back to your library" className="inline-flex size-11 items-center justify-center rounded-md hover:bg-muted">
@@ -132,6 +155,7 @@ export default function WorkspacePage() {
           {paper.data?.title ?? paper.data?.filename ?? " "}
         </h1>
         <span className="rounded-sm border border-border px-1.5 text-xs text-text-secondary">PDF</span>
+        {paper.data && <StarButton paper={paper.data} />}
         <span className="text-sm text-text-secondary">{byline(headerSummary.data)}</span>
         {desktop && (
         <div role="toolbar" aria-label="Panels" className="ml-auto flex items-center gap-2">

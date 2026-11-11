@@ -34,7 +34,7 @@ describe("AC15: no serious or critical accessibility violations", () => {
   it.each([
     "/",
     "/app/library",
-    "/app/collections",
+    "/app/home",
     "/app/templates",
     "/app/settings",
     "/app/papers/p1",
