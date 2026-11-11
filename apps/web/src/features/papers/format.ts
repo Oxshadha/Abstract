@@ -1,3 +1,7 @@
+export function formatPages(pages: number): string {
+  return pages === 1 ? "1 page" : `${String(pages)} pages`;
+}
+
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${String(bytes)} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;

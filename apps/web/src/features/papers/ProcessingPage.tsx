@@ -1,12 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { Check, ChevronLeft, Circle, ExternalLink, FileText, Layers, Loader2, X } from "lucide-react";
 
 import { Loading, SummaryCardSkeleton } from "@/components/feedback/Skeleton";
 import { StatusPill } from "@/components/status/StatusPill";
 
 import { getPaper, paperKeys, type PaperStatus } from "./api";
-import { formatBytes } from "./format";
+import { formatBytes, formatPages } from "./format";
 import { isFinished, useProcessingStatus } from "./progress";
 
 type Step = PaperStatus["steps"][number];
@@ -57,12 +58,14 @@ function Steps({ status }: { status: PaperStatus }) {
             <span aria-hidden className="absolute top-8 bottom-0 left-3.5 w-px bg-border" />
           )}
           <StepIcon state={step.state} />
-          <div className="flex min-w-0 flex-1 flex-wrap items-start justify-between gap-x-4">
+          <div className="flex min-w-0 flex-1 items-start justify-between gap-4">
             <div className="min-w-0">
               <p className="font-display text-lg font-bold">{STEPS[step.key].label}</p>
               <p className="text-sm text-text-secondary">{STEPS[step.key].detail}</p>
             </div>
-            <span className="text-sm text-text-secondary">{STATE_TEXT[step.state]}</span>
+            <span className="shrink-0 pt-1 text-sm whitespace-nowrap text-text-secondary">
+              {STATE_TEXT[step.state]}
+            </span>
           </div>
         </li>
       ))}
@@ -90,6 +93,12 @@ function Processing({ paperId }: { paperId: string }) {
   const status = useProcessingStatus(paperId);
   const data = status.data;
   const failed = data?.status === "failed";
+  const finished = data ? isFinished(data) : false;
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    // Pages and the extracted title are known only after processing: refresh them once.
+    if (finished) void queryClient.invalidateQueries({ queryKey: paperKeys.detail(paperId), exact: true });
+  }, [finished, paperId, queryClient]);
   const title = paper.data?.title ?? paper.data?.filename ?? "Your paper";
 
   return (
@@ -137,7 +146,7 @@ function Processing({ paperId }: { paperId: string }) {
       </header>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <section aria-label="File" className="rounded-xl border border-border bg-surface p-4 shadow-card">
+        <section aria-label="File" className="self-start rounded-xl border border-border bg-surface p-4 shadow-card">
           <div className="flex items-center gap-3">
             <span className="flex size-11 shrink-0 items-center justify-center rounded-md bg-muted">
               <FileText aria-hidden className="size-5" />
@@ -147,7 +156,7 @@ function Processing({ paperId }: { paperId: string }) {
                 {paper.data?.filename ?? " "}
               </p>
               <p className="text-sm text-text-secondary">
-                {[paper.data?.pages ? `${String(paper.data.pages)} pages` : null,
+                {[paper.data?.pages ? formatPages(paper.data.pages) : null,
                   paper.data ? formatBytes(paper.data.size_bytes) : null]
                   .filter(Boolean)
                   .join(" · ")}
@@ -168,7 +177,11 @@ function Processing({ paperId }: { paperId: string }) {
               <h2 id="progress-heading" className="font-display text-xl font-bold">
                 {failed ? "Processing stopped" : data && isFinished(data) ? "Your paper is ready." : "Your paper is being analyzed."}
               </h2>
-              <p className="text-text-secondary">This may take a few moments depending on the document size.</p>
+              <p className="text-text-secondary">
+                {data && isFinished(data) && !failed
+                  ? "Open the workspace to read and ask questions about it."
+                  : "This may take a few moments depending on the document size."}
+              </p>
             </div>
           </div>
           {data ? (

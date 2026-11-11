@@ -8,7 +8,7 @@ import { StatusPill, type Status } from "@/components/status/StatusPill";
 
 import { listPapers, paperKeys, type Paper } from "./api";
 import { DropZone } from "./DropZone";
-import { formatBytes, timeAgo } from "./format";
+import { formatBytes, formatPages, timeAgo } from "./format";
 
 const PILL: Record<Paper["status"], { status: Status; label: string }> = {
   processing: { status: "processing", label: "Processing" },
@@ -18,7 +18,7 @@ const PILL: Record<Paper["status"], { status: Status; label: string }> = {
 
 function PaperRow({ paper }: { paper: Paper }) {
   const pill = PILL[paper.status];
-  const meta = [paper.pages ? `${String(paper.pages)} pages` : null, formatBytes(paper.size_bytes)]
+  const meta = [paper.pages ? formatPages(paper.pages) : null, formatBytes(paper.size_bytes)]
     .filter(Boolean)
     .join(" · ");
   const ready = paper.status === "ready";
@@ -27,7 +27,7 @@ function PaperRow({ paper }: { paper: Paper }) {
       <span className="flex size-11 shrink-0 items-center justify-center rounded-md bg-muted">
         <FileText aria-hidden className="size-5" />
       </span>
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 basis-[calc(100%-3.5rem)] sm:basis-auto">
         <Link
           to={ready ? "/app/papers/$paperId" : "/app/papers/$paperId/processing"}
           params={{ paperId: paper.id }}
@@ -42,7 +42,9 @@ function PaperRow({ paper }: { paper: Paper }) {
         )}
       </div>
       <StatusPill status={pill.status}>{pill.label}</StatusPill>
-      <span className="w-16 text-right text-sm text-text-secondary">{timeAgo(paper.created_at)}</span>
+      <span className="ml-auto text-sm whitespace-nowrap text-text-secondary sm:ml-0 sm:w-16 sm:text-right">
+        {timeAgo(paper.created_at)}
+      </span>
       {ready ? (
         <Link
           to="/app/papers/$paperId"
