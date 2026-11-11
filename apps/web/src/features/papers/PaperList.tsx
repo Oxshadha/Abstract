@@ -7,6 +7,7 @@ import { ListRowSkeleton, Loading } from "@/components/feedback/Skeleton";
 import { StatusPill, type Status } from "@/components/status/StatusPill";
 
 import { listPapers, paperKeys, type Paper } from "./api";
+import { DropZone } from "./DropZone";
 import { formatBytes, timeAgo } from "./format";
 
 const PILL: Record<Paper["status"], { status: Status; label: string }> = {
@@ -102,7 +103,7 @@ export function PaperList() {
       <EmptyState
         icon={FileUp}
         title="No papers yet"
-        description="Papers you upload will appear here, ready for summaries and questions."
+        description="Upload your first PDF above to get a structured summary and ask questions about it."
       />
     );
   }
@@ -130,6 +131,7 @@ export function PaperList() {
 export function LibraryContent() {
   return (
     <div className="flex flex-col gap-8 px-4 pb-10 md:px-8">
+      <DropZone />
       <section aria-labelledby="recent-papers" className="flex flex-col gap-4">
         <h2 id="recent-papers" className="font-display text-2xl font-bold">
           Recent papers

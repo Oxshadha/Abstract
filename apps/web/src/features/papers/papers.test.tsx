@@ -9,6 +9,7 @@ import { seriousViolations } from "@/test/axe";
 
 import { getPaper, getStatus, listPapers } from "./api";
 import { paper, status } from "./fixtures";
+import { uploadPaper } from "./upload";
 
 vi.mock("@/api/me", () => ({
   fetchMe: vi.fn(() =>
@@ -24,6 +25,10 @@ vi.mock("./api", async (importOriginal) => ({
   listPapers: vi.fn(),
   getPaper: vi.fn(),
   getStatus: vi.fn(),
+}));
+vi.mock("./upload", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("./upload")>()),
+  uploadPaper: vi.fn(),
 }));
 
 async function renderAt(path: string) {
@@ -90,6 +95,54 @@ describe("AC14: Library list", () => {
       await Promise.resolve();
     });
     expect(await screen.findByText("No papers yet")).toBeInTheDocument();
+  });
+});
+
+describe("AC2: drop zone", () => {
+  it("rejects a non-PDF before uploading", async () => {
+    await renderAt("/app/library");
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]');
+    if (!input) throw new Error("no file input");
+    fireEvent.change(input, { target: { files: [new File(["x"], "notes.txt", { type: "text/plain" })] } });
+    expect(await screen.findByRole("alert")).toHaveTextContent("Please choose a PDF file.");
+    expect(uploadPaper).not.toHaveBeenCalled();
+  });
+
+  it("is keyboard reachable and accepts a dropped PDF, then opens the processing page", async () => {
+    vi.mocked(getPaper).mockResolvedValue(paper({ status: "processing" }));
+    vi.mocked(getStatus).mockResolvedValue(status());
+    vi.mocked(uploadPaper).mockImplementation((_file, { onPhase, onProgress }) => {
+      onPhase("uploading");
+      onProgress(0.4);
+      return Promise.resolve({ paper: paper({ status: "processing" }), job: null, duplicate: false });
+    });
+    const { router } = await renderAt("/app/library");
+    const choose = await screen.findByRole("button", { name: "Choose PDF" });
+    choose.focus();
+    expect(choose).toHaveFocus();
+    const zone = choose.closest("div") as HTMLElement;
+    fireEvent.drop(zone, { dataTransfer: { files: [new File(["%PDF-"], "a.pdf", { type: "application/pdf" })] } });
+    await vi.waitFor(() => {
+      expect(router.state.location.pathname).toBe("/app/papers/p1/processing");
+    });
+  });
+
+  it("shows progress and a cancel button while uploading", async () => {
+    let signal: AbortSignal | undefined;
+    vi.mocked(uploadPaper).mockImplementation((_file, callbacks) => {
+      signal = callbacks.signal;
+      callbacks.onPhase("uploading");
+      callbacks.onProgress(0.42);
+      return new Promise(() => undefined);
+    });
+    await renderAt("/app/library");
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]');
+    if (!input) throw new Error("no file input");
+    fireEvent.change(input, { target: { files: [new File(["%PDF-"], "a.pdf", { type: "application/pdf" })] } });
+    const bar = await screen.findByRole("progressbar", { name: "Upload progress" });
+    expect(bar).toHaveAttribute("aria-valuenow", "42");
+    fireEvent.click(screen.getByRole("button", { name: "Cancel upload" }));
+    expect(signal?.aborted).toBe(true);
   });
 });
 
