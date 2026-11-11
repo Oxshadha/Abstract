@@ -6,7 +6,7 @@ steps process exactly these bytes. Structure, encryption and page count are chec
 worker's first step. The job is enqueued only after the transaction commits.
 """
 
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from typing import Any
 from uuid import UUID
 
@@ -79,7 +79,9 @@ async def finalize(
     settings: Settings,
     sessionmaker: async_sessionmaker[AsyncSession],
     enqueue: Callable[[str, dict[str, Any]], None],
+    before_commit: Callable[[FinalizeResponse], Awaitable[None]],
 ) -> FinalizeResponse:
+    """Returns a duplicate (session still open, caller commits) or a new paper (committed)."""
     session, identity = ctx.session, ctx.identity
     upload = (
         await session.execute(
@@ -163,6 +165,7 @@ async def finalize(
         paper=await _paper(session, paper_id),
         job=JobOut(id=job_id, status="queued", step="extracting"),
     )
+    await before_commit(response)
     # AC7: commit first, then enqueue, so a rolled-back change never has a job. The request's
     # session must not be used after this commit.
     await session.commit()

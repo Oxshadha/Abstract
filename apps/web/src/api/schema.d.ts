@@ -106,6 +106,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/papers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Finish an upload: validate the stored file and start processing */
+        post: operations["finalize_upload_api_v1_papers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/papers/uploads": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Start an upload: a short-lived pre-signed form to send one PDF directly to storage */
+        post: operations["create_upload_api_v1_papers_uploads_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/readyz": {
         parameters: {
             query?: never;
@@ -154,6 +188,24 @@ export interface components {
              */
             token_type: string;
         };
+        /** FinalizeRequest */
+        FinalizeRequest: {
+            /**
+             * Upload Id
+             * Format: uuid
+             */
+            upload_id: string;
+        };
+        /** FinalizeResponse */
+        FinalizeResponse: {
+            /**
+             * Duplicate
+             * @default false
+             */
+            duplicate: boolean;
+            job?: components["schemas"]["JobOut"] | null;
+            paper: components["schemas"]["PaperOut"];
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -166,6 +218,18 @@ export interface components {
              * @constant
              */
             status: "ok";
+        };
+        /** JobOut */
+        JobOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Status */
+            status: string;
+            /** Step */
+            step: string;
         };
         /** Me */
         Me: {
@@ -209,6 +273,39 @@ export interface components {
              */
             platform_role: "user" | "admin";
         };
+        /** PaperOut */
+        PaperOut: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Error Message */
+            error_message: string | null;
+            /** Filename */
+            filename: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Pages */
+            pages: number | null;
+            /** Size Bytes */
+            size_bytes: number;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "processing" | "ready" | "failed";
+            /**
+             * Text Status
+             * @enum {string}
+             */
+            text_status: "pending" | "ready" | "failed";
+            /** Title */
+            title: string | null;
+        };
         /** Pong */
         Pong: {
             /** Pong */
@@ -245,6 +342,40 @@ export interface components {
              * Format: uuid
              */
             user_id: string;
+        };
+        /** UploadRequest */
+        UploadRequest: {
+            /**
+             * Content Type
+             * @default application/pdf
+             * @constant
+             */
+            content_type: "application/pdf";
+            /** Filename */
+            filename: string;
+            /** Sha256 */
+            sha256: string;
+            /** Size Bytes */
+            size_bytes: number;
+        };
+        /** UploadTicket */
+        UploadTicket: {
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Fields */
+            fields: {
+                [key: string]: string;
+            };
+            /**
+             * Upload Id
+             * Format: uuid
+             */
+            upload_id: string;
+            /** Url */
+            url: string;
         };
         /** ValidationError */
         ValidationError: {
@@ -406,6 +537,83 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Me"];
+                };
+            };
+        };
+    };
+    finalize_upload_api_v1_papers_post: {
+        parameters: {
+            query?: never;
+            header: {
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FinalizeRequest"];
+            };
+        };
+        responses: {
+            /** @description Already uploaded (duplicate) */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinalizeResponse"];
+                };
+            };
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FinalizeResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_upload_api_v1_papers_uploads_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UploadRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadTicket"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
