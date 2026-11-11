@@ -4,8 +4,11 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import "./index.css";
+import { initSentry } from "./observability/sentry";
 import { AuthBoundary } from "./auth/AuthBoundary";
 import { router } from "./router";
+
+initSentry();
 
 const queryClient = new QueryClient();
 

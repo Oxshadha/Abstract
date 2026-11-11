@@ -41,6 +41,10 @@ class Settings(BaseSettings):
     gcp_project_id: str | None = None
     gcp_location: str = "us-central1"
 
+    # Error monitoring (D37, D76). The DSN is public by design; off when unset.
+    sentry_dsn: str | None = None
+    sentry_environment: str | None = None
+
     # Baseline rate limits per minute by route group (spec 002 AC15; plans in spec 012).
     rate_limits: dict[str, int] = Field(
         default_factory=lambda: {"auth": 30, "read": 300, "write": 60}

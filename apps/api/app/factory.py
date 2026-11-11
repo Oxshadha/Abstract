@@ -20,6 +20,7 @@ from app.core.db import build_engine, build_sessionmaker, ping_db
 from app.core.errors import install_error_handlers
 from app.core.logging import configure_logging, get_logger
 from app.core.middleware import RequestContextMiddleware
+from app.core.observability import init_sentry
 from app.core.ratelimit import CounterStore, RedisCounterStore
 from app.core.readiness import ReadinessCheck
 from app.modules.admin import router as admin_router
@@ -49,6 +50,7 @@ def create_app(
 ) -> FastAPI:
     settings = settings or get_settings()
     configure_logging(settings.log_level)
+    init_sentry(settings)
     auth = auth_provider or build_auth_provider(settings)
 
     @asynccontextmanager

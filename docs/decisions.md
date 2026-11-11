@@ -144,6 +144,8 @@ The agent was right that dark mode needs lighter text variants: the original sha
 
 | D75 | **Abuse protection and input safety in the security foundation (owner request; added to spec 002 as AC15 to AC17).** Baseline per-user/per-IP rate limits by route group from day one (plan-aware limits in spec 012); strict request schemas (unknown fields forbidden, bounded sizes, 1 MB JSON cap, NFC + control-character stripping); identity, org, ownership and roles never accepted from the client, enforced by an OpenAPI scan test; cross-org ids return 404. | Closes abuse, mass-assignment and tampering gaps before any feature exists. |
 
+| D76 | **What error monitoring may store (resolves the engineering-practices "Sentry data" item conservatively).** Sentry (web and API, EU region) receives errors and technical metadata only: no personal data, no request or response bodies (they can contain paper text, questions or answers), no cookies, headers or query strings, no local variables in stack traces, no session replay. Langfuse traces (spec 005) follow the same rule unless the owner decides otherwise. | User content never leaves our system through monitoring; loosening it later is an explicit, reviewable change. |
+
 ## Audit backfill (2026-11-10)
 These were agreed in conversation but not yet logged. Recorded now so the log is complete.
 

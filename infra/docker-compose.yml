@@ -17,6 +17,8 @@ x-api-env: &api-env
   GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/gcp_sa
   GCP_PROJECT_ID: ${GCP_PROJECT_ID:-}
   GCP_LOCATION: ${GCP_LOCATION:-us-central1}
+  SENTRY_DSN: ${SENTRY_DSN:-}
+  SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-development}
   CORS_ORIGINS: '["http://localhost:${WEB_PORT:-5173}"]'
 
 services:
