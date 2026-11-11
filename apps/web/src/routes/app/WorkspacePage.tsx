@@ -178,9 +178,11 @@ export default function WorkspacePage() {
       <>
       {/* Phones and tablets: one panel at a time (D60). */}
       <div className="flex-1 p-4 pb-20">
-        {mobile === "paper" && <Panel label="Paper"><PaperPanel paperId={paperId} /></Panel>}
-        {mobile === "summary" && <Panel label="Summary"><SummaryPanel paperId={paperId} /></Panel>}
-        {mobile === "chat" && <Panel label="Ask Abstract"><ChatPanel paperId={paperId} /></Panel>}
+        {/* Hidden, not unmounted: a citation tapped mid-answer switches to Paper without
+            cancelling the streaming answer, and the viewer keeps its place. */}
+        <div hidden={mobile !== "paper"}><Panel label="Paper"><PaperPanel paperId={paperId} /></Panel></div>
+        <div hidden={mobile !== "summary"}><Panel label="Summary"><SummaryPanel paperId={paperId} /></Panel></div>
+        <div hidden={mobile !== "chat"}><Panel label="Ask Abstract"><ChatPanel paperId={paperId} /></Panel></div>
       </div>
       <nav aria-label="Workspace panels" className="fixed inset-x-0 bottom-0 grid grid-cols-3 border-t border-border bg-surface">
         {MOBILE_TABS.map(({ id, label, Icon }) => (
