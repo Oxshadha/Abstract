@@ -4,7 +4,7 @@ API := cd apps/api &&
 WEB := cd apps/web &&
 
 .DEFAULT_GOAL := help
-.PHONY: help check-env dev dev-full down logs ps migrate test test-api test-web test-eval lint fmt api-client tokens eval eval-corpus eval-golden eval-verify install hooks
+.PHONY: help check-env dev dev-full e2e down logs ps migrate test test-api test-web test-eval lint fmt api-client tokens eval eval-corpus eval-golden eval-verify install hooks
 
 help: ## Show available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[1m%-12s\033[0m %s\n", $$1, $$2}'
@@ -13,14 +13,15 @@ check-env:
 	@test -f .env || (echo "Missing .env: run  cp .env.example .env" && exit 1)
 
 dev: check-env ## Start the full local stack (web, api, worker, postgres, redis, s3)
-	$(COMPOSE) up --build -d --wait
+	# -V renews anonymous volumes (web node_modules) so rebuilt images never run stale deps.
+	$(COMPOSE) up --build -d --wait -V
 	@echo ""
 	@echo "  Web:  http://localhost:5173"
 	@echo "  API:  http://localhost:8000/api/v1/docs"
 	@echo "  Logs: make logs"
 
 dev-full: check-env ## Like dev, plus real ClamAV scanning (needs about 3 GiB more RAM)
-	MALWARE_SCAN=clamav $(COMPOSE) --profile full up --build -d --wait
+	MALWARE_SCAN=clamav $(COMPOSE) --profile full up --build -d --wait -V
 
 down: check-env ## Stop the stack (keeps data volumes)
 	$(COMPOSE) down
@@ -48,6 +49,9 @@ test-api:
 
 test-web:
 	$(WEB) pnpm test
+
+e2e: ## Browser happy path against the running stack (run `make dev` first)
+	$(WEB) pnpm e2e
 
 EVAL := cd eval && PYTHONPATH=../apps/api uv run --project ../apps/api --group eval
 test-eval:

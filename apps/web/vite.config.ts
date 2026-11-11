@@ -36,6 +36,7 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     setupFiles: ["./src/test/setup.ts"],
+    include: ["src/**/*.test.{ts,tsx}"], // e2e/ runs with Playwright against the real stack
     css: false,
   },
 });
