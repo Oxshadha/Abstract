@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import workerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+import workerUrl from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url"; // legacy: see vite.config.ts
 import { useMemo } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 

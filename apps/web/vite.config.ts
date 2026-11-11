@@ -27,7 +27,15 @@ export default defineConfig({
   envDir: "../..",
   build: { sourcemap: "hidden" },
   plugins: [react(), tailwindcss(), ...sentryUpload],
-  resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
+  resolve: {
+    alias: [
+      { find: "@", replacement: fileURLToPath(new URL("./src", import.meta.url)) },
+      // pdf.js 6's modern build calls APIs newer than Safari 18 and older Chrome
+      // (Map.prototype.getOrInsertComputed, Math.sumPrecise); the legacy build polyfills them.
+      // Exact match only, so react-pdf's `import "pdfjs-dist"` gets it too.
+      { find: /^pdfjs-dist$/, replacement: "pdfjs-dist/legacy/build/pdf.mjs" },
+    ],
+  },
   server: {
     port: 5173,
     strictPort: true,
