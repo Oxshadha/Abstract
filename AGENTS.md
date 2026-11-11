@@ -97,7 +97,7 @@ make api-client # regenerate the TS client from FastAPI's OpenAPI schema
 **TypeScript:** `strict: true`, TanStack Router + Query, shadcn/ui, Tailwind v4. Use the generated API client only; no hand-written fetch types. No `any`.
 **Design:**
 - Colours, fonts, radius, spacing and shadows come **only from tokens** (CSS variables / Tailwind theme). No hex values or font names in components.
-- **Colour discipline:** the UI is monochrome. Semantic colours (success, warning, error, info) appear only in status pills, form errors, toasts and the citation highlight. Pending/processing states are neutral grey. Never colour buttons, links, icons or headings.
+- **Colour discipline:** the UI is monochrome. Semantic colours (success, warning, error, info) appear only in status pills, form errors, toasts, the citation highlight and destructive menu items (Delete, Sign out: error colour, D84). Pending/processing states are neutral grey. Never colour buttons, links, icons or headings.
 - Fonts: Google Sans Flex = headings, Google Sans = UI, Nunito Sans = reading text.
 - **No em dashes (U+2014) or en dashes (U+2013) in any user-facing text** (UI copy, labels, placeholders, toasts, error messages, generated-summary rendering). Use a comma, colon, period or plain hyphen instead. Ranges use "to" ("pages 2 to 5") or a hyphen ("p. 2-5"). CI greps `apps/web/src` for them.
 - **No emojis in the UI.** Use icons from the icon set (Lucide, matching the mockups), always with an accessible label or `aria-hidden` when decorative.
