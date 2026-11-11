@@ -15,7 +15,9 @@ def make_settings(**overrides: object) -> Settings:
     values: dict[str, object] = {
         "env": "test",
         "database_url": "postgresql+asyncpg://test:test@localhost:5432/test",
-        "redis_url": "redis://localhost:6379/0",
+        # Unreachable on purpose: tests must not share the dev stack's Redis on localhost.
+        # Tests that need Redis start their own container.
+        "redis_url": "redis://127.0.0.1:1/0",
         "s3_bucket": "test-bucket",
         "_env_file": None,
     }

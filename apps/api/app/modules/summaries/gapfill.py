@@ -15,13 +15,13 @@ from sqlalchemy import text
 from app.core.logging import get_logger
 from app.core.tenancy import set_tenant
 from app.modules.llm.prompts import Prompt, register, using, wrap_untrusted
-from app.modules.papers.ingest import EMBEDDING_DIMENSIONS, Deps, _vector_literal
+from app.modules.papers.ingest import Deps
+from app.modules.retrieval.hybrid import retrieve
 from app.modules.summaries.templates import TemplateField
 from app.ports.llm import ChatMessage, JsonSchema
 
 log = get_logger(__name__)
 TOP_K = 6
-RRF_K = 60
 
 GAP_FILL = register(
     Prompt(
@@ -60,64 +60,9 @@ _SCHEMA: JsonSchema = {
 
 
 async def _retrieve(deps: Deps, org_id: UUID, paper_id: UUID, query: str) -> list[Any]:
-    """Full-text and vector rankings fused (RRF); exact scan per paper (D50)."""
-    vector: str | None = None
-    try:
-        embedded = await deps.gateway.embed(
-            task="embed", texts=[query], dimensions=EMBEDDING_DIMENSIONS
-        )
-        vector = _vector_literal(embedded.vectors[0])
-    except Exception as exc:  # keyword search alone still helps (D78)
-        log.warning("gap_fill_embed_failed", error=type(exc).__name__)
-    async with deps.sessionmaker() as session, session.begin():
-        await set_tenant(session, org_id)
-        lexical = (
-            (
-                await session.execute(
-                    text(
-                        "SELECT id FROM chunks WHERE paper_id = :p AND tsv @@"
-                        " websearch_to_tsquery('english', :q) ORDER BY ts_rank_cd(tsv,"
-                        " websearch_to_tsquery('english', :q)) DESC LIMIT 20"
-                    ),
-                    {"p": paper_id, "q": query},
-                )
-            )
-            .scalars()
-            .all()
-        )
-        semantic: list[Any] = []
-        if vector is not None:
-            semantic = list(
-                (
-                    await session.execute(
-                        text(
-                            "SELECT id FROM chunks WHERE paper_id = :p AND embedding IS NOT NULL"
-                            " ORDER BY embedding <=> CAST(:v AS halfvec) LIMIT 20"
-                        ),
-                        {"p": paper_id, "v": vector},
-                    )
-                )
-                .scalars()
-                .all()
-            )
-        scores: dict[Any, float] = {}
-        for ranking in (lexical, semantic):
-            for rank, chunk_id in enumerate(ranking):
-                scores[chunk_id] = scores.get(chunk_id, 0.0) + 1.0 / (RRF_K + rank + 1)
-        best = sorted(scores, key=lambda c: scores[c], reverse=True)[:TOP_K]
-        if not best:
-            return []
-        return list(
-            (
-                await session.execute(
-                    text(
-                        "SELECT id, page_start, page_end, text FROM chunks"
-                        " WHERE id = ANY(:ids) ORDER BY ordinal"
-                    ),
-                    {"ids": best},
-                )
-            ).all()
-        )
+    """Shared hybrid retrieval (full-text + vector, RRF), top passages in page order."""
+    found = await retrieve(deps, org_id, paper_id, query, top_k=TOP_K)
+    return sorted(found.chunks, key=lambda c: c.ordinal)
 
 
 async def gap_fill(
