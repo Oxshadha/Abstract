@@ -30,7 +30,10 @@ export function configureDevAuth(): void {
   devConfigured = true;
   const dev = devTokenSource(apiBaseUrl);
   // A 401 in dev means the API restarted with a new secret: refetch the token silently.
-  configureAuth(dev.source, dev.reset);
+  configureAuth(dev.source, dev.reset, () => {
+    dev.reset();
+    return dev.source();
+  });
   setAuthState({
     provider: "dev",
     status: readDevFlag() ? "signed-in" : "signed-out",

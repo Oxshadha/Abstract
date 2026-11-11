@@ -33,12 +33,36 @@ describe("AC14: token on every API call", () => {
     expect(fetchMock.mock.calls[0]?.[0].headers.has("Authorization")).toBe(false);
   });
 
-  it("ends the session on 401", async () => {
+  it("a single 401 refreshes the token, retries and keeps the session", async () => {
+    const fetchMock = vi
+      .fn<(request: Request) => Promise<Response>>()
+      .mockResolvedValueOnce(json({ status: 401 }, 401))
+      .mockResolvedValueOnce(json({ status: "ok" }));
+    vi.stubGlobal("fetch", fetchMock);
+    const onUnauthorized = vi.fn();
+    configureAuth(() => Promise.resolve("stale"), onUnauthorized, () => Promise.resolve("fresh"));
+    const { response } = await api.GET("/api/v1/healthz");
+    expect(response.status).toBe(200);
+    expect(onUnauthorized).not.toHaveBeenCalled();
+    expect(fetchMock.mock.calls[1]?.[0].headers.get("Authorization")).toBe("Bearer fresh");
+  });
+
+  it("ends the session only when the retry is also rejected", async () => {
     vi.stubGlobal("fetch", vi.fn(() => Promise.resolve(json({ status: 401 }, 401))));
     const onUnauthorized = vi.fn();
-    configureAuth(() => Promise.resolve("expired"), onUnauthorized);
+    configureAuth(() => Promise.resolve("expired"), onUnauthorized, () => Promise.resolve("also-bad"));
     await api.GET("/api/v1/me");
     expect(onUnauthorized).toHaveBeenCalledOnce();
+  });
+
+  it("ends the session when no fresh token can be obtained", async () => {
+    const fetchMock = vi.fn(() => Promise.resolve(json({ status: 401 }, 401)));
+    vi.stubGlobal("fetch", fetchMock);
+    const onUnauthorized = vi.fn();
+    configureAuth(() => Promise.resolve("expired"), onUnauthorized, () => Promise.resolve(null));
+    await api.GET("/api/v1/me");
+    expect(onUnauthorized).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
 
