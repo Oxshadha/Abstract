@@ -105,9 +105,11 @@ class OpenRouterGateway:
         json_schema: JsonSchema | None,
         *,
         stream: bool,
+        model: str | None = None,
+        temperature: float | None = None,
     ) -> dict[str, Any]:
         body: dict[str, Any] = {
-            "model": self.model_for(task),
+            "model": model or self.model_for(task),
             "messages": [
                 {
                     "role": m.role,
@@ -122,6 +124,8 @@ class OpenRouterGateway:
         }
         if max_tokens is not None:
             body["max_tokens"] = max_tokens
+        if temperature is not None:
+            body["temperature"] = temperature
         if json_schema is not None:
             body["response_format"] = {
                 "type": "json_schema",
@@ -181,9 +185,19 @@ class OpenRouterGateway:
         messages: list[ChatMessage],
         max_tokens: int | None = None,
         json_schema: JsonSchema | None = None,
+        model: str | None = None,
+        temperature: float | None = None,
     ) -> Completion:
         started = time.perf_counter()
-        body = self._body(task, messages, max_tokens, json_schema, stream=False)
+        body = self._body(
+            task,
+            messages,
+            max_tokens,
+            json_schema,
+            stream=False,
+            model=model,
+            temperature=temperature,
+        )
         payload = (await self._post("/chat/completions", body)).json()
         if "error" in payload:
             raise LLMProviderError(int(payload["error"].get("code", 500)), str(payload["error"]))
@@ -198,9 +212,19 @@ class OpenRouterGateway:
         messages: list[ChatMessage],
         max_tokens: int | None = None,
         json_schema: JsonSchema | None = None,
+        model: str | None = None,
+        temperature: float | None = None,
     ) -> AsyncIterator[StreamChunk]:
         started = time.perf_counter()
-        body = self._body(task, messages, max_tokens, json_schema, stream=True)
+        body = self._body(
+            task,
+            messages,
+            max_tokens,
+            json_schema,
+            stream=True,
+            model=model,
+            temperature=temperature,
+        )
         model = body["model"]
         usage_raw: Mapping[str, Any] | None = None
         async with self._client.stream("POST", "/chat/completions", json=body) as response:
@@ -228,9 +252,11 @@ class OpenRouterGateway:
                         yield StreamChunk(text=delta)
         yield StreamChunk(usage=self._usage(task, model, usage_raw, started))
 
-    async def embed(self, *, task: str, texts: list[str], dimensions: int) -> Embeddings:
+    async def embed(
+        self, *, task: str, texts: list[str], dimensions: int, model: str | None = None
+    ) -> Embeddings:
         started = time.perf_counter()
-        body = {"model": self.model_for(task), "input": texts, "dimensions": dimensions}
+        body = {"model": model or self.model_for(task), "input": texts, "dimensions": dimensions}
         payload = (await self._post("/embeddings", body)).json()
         ordered = sorted(payload["data"], key=lambda d: d["index"])
         usage = self._usage(

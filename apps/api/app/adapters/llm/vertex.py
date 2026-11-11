@@ -76,8 +76,10 @@ class VertexGateway:
         messages: list[ChatMessage],
         max_tokens: int | None,
         json_schema: JsonSchema | None,
+        model: ModelSpec | None = None,
+        temperature: float | None = None,
     ) -> tuple[ModelSpec, list[types.Content], types.GenerateContentConfig]:
-        spec = self.spec_for(task)
+        spec = model or self.spec_for(task)
         system = "\n\n".join(m.text() for m in messages if m.role == "system")
         contents = [
             types.Content(
@@ -92,6 +94,7 @@ class VertexGateway:
         config = types.GenerateContentConfig(
             system_instruction=system or None,
             max_output_tokens=max_tokens,
+            temperature=temperature,
             response_mime_type="application/json" if json_schema is not None else None,
             response_json_schema=json_schema,
             thinking_config=types.ThinkingConfig(thinking_budget=spec.thinking_budget)
@@ -139,9 +142,13 @@ class VertexGateway:
         messages: list[ChatMessage],
         max_tokens: int | None = None,
         json_schema: JsonSchema | None = None,
+        model: ModelSpec | None = None,
+        temperature: float | None = None,
     ) -> Completion:
         started = time.perf_counter()
-        spec, contents, config = self._request(task, messages, max_tokens, json_schema)
+        spec, contents, config = self._request(
+            task, messages, max_tokens, json_schema, model, temperature
+        )
         response = await self._with_retries(
             lambda: self._client.aio.models.generate_content(
                 model=spec.id, contents=contents, config=config
@@ -159,9 +166,13 @@ class VertexGateway:
         messages: list[ChatMessage],
         max_tokens: int | None = None,
         json_schema: JsonSchema | None = None,
+        model: ModelSpec | None = None,
+        temperature: float | None = None,
     ) -> AsyncIterator[StreamChunk]:
         started = time.perf_counter()
-        spec, contents, config = self._request(task, messages, max_tokens, json_schema)
+        spec, contents, config = self._request(
+            task, messages, max_tokens, json_schema, model, temperature
+        )
         response_stream = await self._with_retries(
             lambda: self._client.aio.models.generate_content_stream(
                 model=spec.id, contents=contents, config=config
@@ -175,9 +186,11 @@ class VertexGateway:
                 yield StreamChunk(text=chunk.text)
         yield StreamChunk(usage=self._usage(task, spec, meta, started))
 
-    async def embed(self, *, task: str, texts: list[str], dimensions: int) -> Embeddings:
+    async def embed(
+        self, *, task: str, texts: list[str], dimensions: int, model: ModelSpec | None = None
+    ) -> Embeddings:
         started = time.perf_counter()
-        spec = self.spec_for(task)
+        spec = model or self.spec_for(task)
         config = types.EmbedContentConfig(output_dimensionality=dimensions)
 
         async def call(texts_batch: list[str]) -> list[list[float]]:
