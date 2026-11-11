@@ -81,3 +81,18 @@ class PaperStatus(BaseModel):
     chat_available: bool
     error_message: str | None
     steps: list[StepOut]
+
+
+class FileUrl(BaseModel):
+    url: str
+    expires_at: datetime
+
+
+class PageSize(BaseModel):
+    page: int
+    width: float
+    height: float
+
+
+class PageSizes(BaseModel):
+    items: list[PageSize]

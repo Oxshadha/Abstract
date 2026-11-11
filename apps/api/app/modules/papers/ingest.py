@@ -172,8 +172,8 @@ async def _store_pages(
     await session.execute(text("DELETE FROM paper_pages WHERE paper_id = :p"), {"p": paper_id})
     await session.execute(
         text(
-            "INSERT INTO paper_pages (org_id, paper_id, page_no, text, has_text_layer)"
-            " VALUES (:org, :paper, :page_no, :text, :has_text)"
+            "INSERT INTO paper_pages (org_id, paper_id, page_no, text, has_text_layer, width,"
+            " height) VALUES (:org, :paper, :page_no, :text, :has_text, :w, :h)"
         ),
         [
             {
@@ -182,6 +182,8 @@ async def _store_pages(
                 "page_no": p.page_no,
                 "text": p.text,
                 "has_text": p.has_text_layer,
+                "w": p.width or None,
+                "h": p.height or None,
             }
             for p in pages
         ],

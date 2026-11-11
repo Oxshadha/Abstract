@@ -316,6 +316,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/papers/{paper_id}/file-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A 5-minute link to the sanitized PDF for the viewer (supports range requests) */
+        get: operations["get_file_url_api_v1_papers__paper_id__file_url_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/papers/{paper_id}/pages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Page sizes in PDF points, so the viewer can lay out every page before rendering */
+        get: operations["get_pages_api_v1_papers__paper_id__pages_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/papers/{paper_id}/status": {
         parameters: {
             query?: never;
@@ -612,6 +646,16 @@ export interface components {
              */
             verification: "verified" | "provisional";
         };
+        /** FileUrl */
+        FileUrl: {
+            /**
+             * Expires At
+             * Format: date-time
+             */
+            expires_at: string;
+            /** Url */
+            url: string;
+        };
         /** FinalizeRequest */
         FinalizeRequest: {
             /**
@@ -768,6 +812,20 @@ export interface components {
              * @enum {string}
              */
             provider: "vertex" | "openrouter" | "fake";
+        };
+        /** PageSize */
+        PageSize: {
+            /** Height */
+            height: number;
+            /** Page */
+            page: number;
+            /** Width */
+            width: number;
+        };
+        /** PageSizes */
+        PageSizes: {
+            /** Items */
+            items: components["schemas"]["PageSize"][];
         };
         /** PaperOut */
         PaperOut: {
@@ -1898,6 +1956,75 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_file_url_api_v1_papers__paper_id__file_url_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileUrl"];
+                };
+            };
+            /** @description Not sanitized yet */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_pages_api_v1_papers__paper_id__pages_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PageSizes"];
+                };
             };
             /** @description Validation Error */
             422: {

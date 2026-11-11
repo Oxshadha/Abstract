@@ -80,8 +80,15 @@ class S3Storage:
                 "CORSRules": [
                     {
                         "AllowedOrigins": self._settings.cors_origins,
-                        "AllowedMethods": ["POST", "GET"],
+                        "AllowedMethods": ["POST", "GET", "HEAD"],
                         "AllowedHeaders": ["*"],
+                        # pdf.js loads the viewer's PDF with range requests (spec 008 AC2, AC7).
+                        "ExposeHeaders": [
+                            "Accept-Ranges",
+                            "Content-Range",
+                            "Content-Length",
+                            "ETag",
+                        ],
                         "MaxAgeSeconds": 3600,
                     }
                 ]

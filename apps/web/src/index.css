@@ -25,3 +25,10 @@
     outline-offset: 2px;
   }
 }
+
+/* Cited sentence in the PDF text layer (spec 008 AC5; the citation highlight token, D44). */
+.citation-highlight {
+  background: color-mix(in srgb, var(--color-highlight) 60%, transparent);
+  border-radius: 2px;
+  color: transparent;
+}
