@@ -26,6 +26,7 @@ from app.core.readiness import ReadinessCheck
 from app.modules.admin import router as admin_router
 from app.modules.identity import router as identity_router
 from app.modules.identity import webhooks as identity_webhooks
+from app.modules.llm import admin as llm_admin
 from app.modules.llm.factory import build_llm
 from app.modules.papers import router as papers_router
 from app.ports.auth import AuthProvider
@@ -122,6 +123,7 @@ def create_app(
     app.include_router(identity_webhooks.router, prefix=API_PREFIX)
     app.include_router(admin_router.router, prefix=API_PREFIX)
     app.include_router(papers_router.router, prefix=API_PREFIX)
+    app.include_router(llm_admin.router, prefix=API_PREFIX)
     if not settings.is_production:
         app.include_router(debug.router, prefix=API_PREFIX)
     if auth.name == "dev":

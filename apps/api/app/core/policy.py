@@ -27,6 +27,9 @@ POLICY: dict[str, frozenset[str]] = {
     "paper.delete": MEMBERS,
     "admin.access": frozenset(),
     "admin.role.update": frozenset(),
+    "admin.models.read": frozenset(),
+    "admin.models.update": frozenset(),
+    "admin.usage.read": frozenset(),
 }
 
 AUTHORIZE_MARKER = "__authorize_action__"

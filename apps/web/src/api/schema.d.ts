@@ -21,6 +21,75 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/llm/kill-switch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether paid model calls are enabled */
+        get: operations["get_kill_switch_api_v1_admin_llm_kill_switch_get"];
+        /** Enable or pause every paid model call */
+        put: operations["set_kill_switch_api_v1_admin_llm_kill_switch_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/llm/usage/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Today's model usage and cost (aggregates only) */
+        get: operations["usage_summary_api_v1_admin_llm_usage_summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/models": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Model Registry entries */
+        get: operations["list_models_api_v1_admin_models_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/models/{task}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update one task's models, limits and fallbacks */
+        put: operations["update_model_api_v1_admin_models__task__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/users/{user_id}/grant-admin": {
         parameters: {
             query?: never;
@@ -301,6 +370,11 @@ export interface components {
             /** Step */
             step: string;
         };
+        /** KillSwitch */
+        KillSwitch: {
+            /** Paid Calls Enabled */
+            paid_calls_enabled: boolean;
+        };
         /** Me */
         Me: {
             org: components["schemas"]["MeOrg"];
@@ -342,6 +416,37 @@ export interface components {
              * @enum {string}
              */
             platform_role: "user" | "admin";
+        };
+        /** ModelParams */
+        ModelParams: {
+            /** Dimensions */
+            dimensions?: number | null;
+            /** Max Tokens */
+            max_tokens: number;
+            /** Temperature */
+            temperature?: number | null;
+            /** Thinking Budget */
+            thinking_budget?: number | null;
+        };
+        /** ModelRoute */
+        ModelRoute: {
+            /**
+             * Input Usd Per M
+             * @default 0
+             */
+            input_usd_per_m: number;
+            /** Model */
+            model: string;
+            /**
+             * Output Usd Per M
+             * @default 0
+             */
+            output_usd_per_m: number;
+            /**
+             * Provider
+             * @enum {string}
+             */
+            provider: "vertex" | "openrouter" | "fake";
         };
         /** PaperOut */
         PaperOut: {
@@ -436,6 +541,66 @@ export interface components {
             /** Received */
             received: boolean;
         };
+        /** RegistryEntryOut */
+        RegistryEntryOut: {
+            /** Deadline Seconds */
+            deadline_seconds: number;
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled: boolean;
+            /**
+             * On Budget
+             * @default downgrade
+             * @enum {string}
+             */
+            on_budget: "downgrade" | "stop";
+            params: components["schemas"]["ModelParams"];
+            /** Routes */
+            routes: components["schemas"]["ModelRoute"][];
+            /** Task */
+            task: string;
+            /**
+             * Updated At
+             * Format: date-time
+             */
+            updated_at: string;
+            /**
+             * Version
+             * @default 1
+             */
+            version: number;
+        };
+        /** RegistryList */
+        RegistryList: {
+            /** Items */
+            items: components["schemas"]["RegistryEntryOut"][];
+        };
+        /** RegistryUpdate */
+        RegistryUpdate: {
+            /**
+             * Confirm Reindex
+             * @default false
+             */
+            confirm_reindex: boolean;
+            /** Deadline Seconds */
+            deadline_seconds: number;
+            /**
+             * Enabled
+             * @default true
+             */
+            enabled: boolean;
+            /**
+             * On Budget
+             * @default downgrade
+             * @enum {string}
+             */
+            on_budget: "downgrade" | "stop";
+            params: components["schemas"]["ModelParams"];
+            /** Routes */
+            routes: components["schemas"]["ModelRoute"][];
+        };
         /** RoleChange */
         RoleChange: {
             /**
@@ -496,6 +661,39 @@ export interface components {
             /** Url */
             url: string;
         };
+        /** UsageRow */
+        UsageRow: {
+            /** Calls */
+            calls: number;
+            /** Cost Usd */
+            cost_usd: number;
+            /** Input Tokens */
+            input_tokens: number;
+            /** Model */
+            model: string;
+            /** Outcome */
+            outcome: string;
+            /** Output Tokens */
+            output_tokens: number;
+            /** Provider */
+            provider: string;
+            /** Task */
+            task: string;
+        };
+        /** UsageSummary */
+        UsageSummary: {
+            /** Calls */
+            calls: number;
+            /** Cost Usd */
+            cost_usd: number;
+            /** Rows */
+            rows: components["schemas"]["UsageRow"][];
+            /**
+             * Since
+             * Format: date-time
+             */
+            since: string;
+        };
         /** ValidationError */
         ValidationError: {
             /** Context */
@@ -534,6 +732,150 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Pong"];
+                };
+            };
+        };
+    };
+    get_kill_switch_api_v1_admin_llm_kill_switch_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KillSwitch"];
+                };
+            };
+        };
+    };
+    set_kill_switch_api_v1_admin_llm_kill_switch_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KillSwitch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KillSwitch"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    usage_summary_api_v1_admin_llm_usage_summary_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UsageSummary"];
+                };
+            };
+        };
+    };
+    list_models_api_v1_admin_models_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistryList"];
+                };
+            };
+        };
+    };
+    update_model_api_v1_admin_models__task__put: {
+        parameters: {
+            query?: never;
+            header: {
+                "If-Match": string;
+            };
+            path: {
+                task: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RegistryUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RegistryEntryOut"];
+                };
+            };
+            /** @description Re-index confirmation needed */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Stale */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
