@@ -64,6 +64,11 @@ class Settings(BaseSettings):
     clamav_host: str = "clamav"
     clamav_port: int = 3310
 
+    # LLM spend control (spec 005 AC8; owner-approved defaults until plans exist in spec 012).
+    llm_daily_cap_usd: float = Field(default=5.0, ge=0)
+    llm_user_daily_cap_usd: float = Field(default=0.5, ge=0)
+    llm_max_concurrency_per_provider: int = Field(default=8, ge=1, le=256)
+
     # Progress event stream (spec 004 AC12).
     sse_poll_seconds: float = 1.0
     sse_heartbeat_seconds: float = 15.0

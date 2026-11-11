@@ -181,7 +181,11 @@ class RoutedGateway:
         routes = self._routes(entry)
         errors: list[str] = []
         for index, planned in enumerate(routes):
-            route = await self.budget.choose(entry, planned)
+            try:
+                route = await self.budget.choose(entry, planned)
+            except Exception as exc:  # over budget or paused: refuse, do not fall back
+                await self._note(task, planned, "blocked", None, time.perf_counter(), exc)
+                raise
             adapter = self.adapters.get(route.provider)
             if adapter is None:
                 errors.append(f"{route.provider}: not configured")
