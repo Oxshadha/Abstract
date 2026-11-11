@@ -15,6 +15,13 @@ Entry format:
 
 ---
 
+## 2026-11-11: Langfuse tracing with the official SDK (owner request)
+**Done:** Installed and followed the `langfuse/skills` skill (read before use; docs fetched fresh). Replaced the hand-written ingestion client with Langfuse Python SDK 5.0.4: a trace per job with verb-first names, user ID, the paper as session, tags, environment and release; nested step spans; generation and embedding observations with model, parameters, prompt version, usage, cost and levels. Metadata only per D76, with an isolated OpenTelemetry provider exporting only Langfuse spans. Ran the instrumented path end to end on `make dev` (real Vertex), fetched the traces back through the v2 observations API and audited them against the best-practices page.
+**Found through the trace:** embedding dominates ingestion (about 4 s of 5 s); a wasted batch call per paper removed (about 1.7 s saved); remaining gap to D73 recorded as R9 for an EDP.
+**Not applied from the skill:** trace input/output content (paper text, questions, answers), because D76 keeps monitoring metadata-only; raised with the owner.
+**Assumptions:** D9 verified, R9 added   **Decisions:** none
+**Next:** owner decisions on trace content and R9; merge PR #7; continue spec 006.
+
 ## 2026-11-11: Spec 005 implemented (14 of 14)
 **Done:** Spec 004 merged (PR #6, CI green including the ClamAV EICAR job). Spec 005 drafted and approved (caps $5/day global, $0.50/day per user; Langfuse built now, off until keys). Built criterion by criterion on `feat/005-llm-gateway`: registry with seed and 30 s refresh (AC1); routed gateway with task resolution, cross-provider fallback, deadline, registry max_tokens and bulkhead (AC2 to AC6); usage log per attempt (AC7); spend caps with downgrade or stop, a 1.5x hard stop, Redis totals rebuilt from the database, and the kill switch (AC8); metadata-only calls and embedding model per chunk (AC9); real Vertex and OpenRouter wiring, fake refused in production, free models refused in production (AC10); admin API with If-Match and audit (AC11); resumable re-indexing (AC12); versioned prompts with untrusted-text wrapping (AC13); metadata-only Langfuse tracing (AC14).
 **Verified:** real Vertex calls through the router (completion and 1536-d embedding, under $0.00001); OpenRouter fallback IDs exist.
