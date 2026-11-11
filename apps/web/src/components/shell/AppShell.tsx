@@ -90,7 +90,6 @@ export function AppShell() {
           >
             <Search aria-hidden className="size-4 shrink-0" />
             <span className="truncate">Search papers, collections, or keywords</span>
-            <kbd aria-hidden className="ml-auto hidden rounded-sm bg-muted px-1.5 text-xs sm:inline">⌘K</kbd>
           </button>
           <div className="ml-auto flex items-center gap-1">
             <button
