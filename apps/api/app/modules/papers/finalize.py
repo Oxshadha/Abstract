@@ -19,6 +19,7 @@ from app.core.errors import ProblemError
 from app.core.logging import get_logger
 from app.core.tenancy import set_tenant
 from app.modules.papers.jobs import transition
+from app.modules.papers.keys import paper_prefix
 from app.modules.papers.schemas import FinalizeResponse, JobOut, PaperOut
 from app.ports.storage import Storage
 
@@ -39,6 +40,30 @@ async def _paper(session: AsyncSession, paper_id: UUID) -> PaperOut:
         )
     ).one()
     return PaperOut.model_validate(row._asdict())
+
+
+async def _existing(session: AsyncSession, owner_id: UUID, sha256: str) -> Any:
+    return (
+        await session.execute(
+            text(
+                "SELECT id, status, quarantine_key FROM papers"
+                " WHERE owner_id = :owner AND sha256 = :sha"
+            ),
+            {"owner": owner_id, "sha": sha256},
+        )
+    ).first()
+
+
+async def _duplicate(
+    session: AsyncSession, storage: Storage, upload_id: UUID, key: str, paper_id: UUID
+) -> FinalizeResponse:
+    """Per-user dedupe (D16, AC5): return the existing paper, no reprocessing, no extra cost."""
+    await session.execute(
+        text("UPDATE uploads SET consumed_at = now(), paper_id = :p WHERE id = :id"),
+        {"p": paper_id, "id": upload_id},
+    )
+    await storage.delete([key])  # the duplicate bytes are not needed
+    return FinalizeResponse(paper=await _paper(session, paper_id), duplicate=True)
 
 
 async def _reject(storage: Storage, key: str, status: int, slug: str, detail: str) -> ProblemError:
@@ -88,12 +113,22 @@ async def finalize(
     if await storage.read_prefix(key, len(PDF_MAGIC), etag=info.etag) != PDF_MAGIC:
         raise await _reject(storage, key, 400, "not-a-pdf", "This file is not a PDF.")
 
+    existing = await _existing(session, identity.user_id, upload.declared_sha256)
+    if existing is not None and existing.status == "failed":
+        # A failed earlier attempt must not block a retry of the same file.
+        await session.execute(text("DELETE FROM papers WHERE id = :id"), {"id": existing.id})
+        await storage.delete([existing.quarantine_key])
+        await storage.delete_prefix(paper_prefix(identity.org_id, existing.id))
+        existing = None
+    if existing is not None:
+        return await _duplicate(session, storage, upload_id, key, existing.id)
+
     paper_id = (
         await session.execute(
             text(
                 "INSERT INTO papers (org_id, owner_id, sha256, filename, title, size_bytes,"
                 " quarantine_key, quarantine_etag) VALUES (:org, :owner, :sha, :name, :title,"
-                " :size, :key, :etag) RETURNING id"
+                " :size, :key, :etag) ON CONFLICT (owner_id, sha256) DO NOTHING RETURNING id"
             ),
             {
                 "org": identity.org_id,
@@ -106,7 +141,11 @@ async def finalize(
                 "etag": info.etag,
             },
         )
-    ).scalar_one()
+    ).scalar_one_or_none()
+    if paper_id is None:  # lost a race with a parallel upload of the same file (AC5)
+        winner = await _existing(session, identity.user_id, upload.declared_sha256)
+        assert winner is not None
+        return await _duplicate(session, storage, upload_id, key, winner.id)
     job_id = (
         await session.execute(
             text(
