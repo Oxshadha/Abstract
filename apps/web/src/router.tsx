@@ -27,13 +27,14 @@ const libraryRoute = createRoute({ getParentRoute: () => appRoute, path: "/libra
 const collectionsRoute = createRoute({ getParentRoute: () => appRoute, path: "/collections", component: CollectionsPage });
 const templatesRoute = createRoute({ getParentRoute: () => appRoute, path: "/templates", component: TemplatesPage });
 const settingsRoute = createRoute({ getParentRoute: () => appRoute, path: "/settings", component: SettingsPage });
+const processingRoute = createRoute({ getParentRoute: () => appRoute, path: "/papers/$paperId/processing", component: lazyRouteComponent(() => import("@/features/papers/ProcessingPage")) });
 const workspaceRoute = createRoute({ getParentRoute: () => appRoute, path: "/papers/$paperId", component: lazyRouteComponent(() => import("@/routes/app/WorkspacePage")) });
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
   signInRoute,
   signUpRoute,
-  appRoute.addChildren([libraryRoute, collectionsRoute, templatesRoute, settingsRoute, workspaceRoute]),
+  appRoute.addChildren([libraryRoute, collectionsRoute, templatesRoute, settingsRoute, processingRoute, workspaceRoute]),
 ]);
 
 export function createAppRouter(history?: RouterHistory) {

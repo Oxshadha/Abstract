@@ -8,6 +8,7 @@ x-api-env: &api-env
   DATABASE_URL: postgresql+asyncpg://abstract_app:abstract_app_dev@postgres:5432/${POSTGRES_DB:-abstract}
   REDIS_URL: redis://redis:6379/0
   S3_ENDPOINT_URL: http://s3:8333
+  S3_PUBLIC_ENDPOINT_URL: http://localhost:${S3_PORT:-8333}
   S3_BUCKET: ${S3_BUCKET:-abstract-dev}
   S3_REGION: ${S3_REGION:-us-east-1}
   S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-abstract-dev}
@@ -20,6 +21,9 @@ x-api-env: &api-env
   SENTRY_DSN: ${SENTRY_DSN:-}
   SENTRY_ENVIRONMENT: ${SENTRY_ENVIRONMENT:-development}
   CORS_ORIGINS: '["http://localhost:${WEB_PORT:-5173}"]'
+  # Fake scanner in `make dev`; `make dev-full` sets clamav (D77, spec 004 AC16).
+  MALWARE_SCAN: ${MALWARE_SCAN:-fake}
+  CLAMAV_HOST: clamav
 
 services:
   postgres:
@@ -59,6 +63,12 @@ services:
       timeout: 3s
       retries: 30
 
+  # Real antivirus for `make dev-full` (D77). Needs about 3 GiB RAM; off in `make dev`.
+  clamav:
+    image: clamav/clamav-debian:1.4
+    profiles: ["full"]
+    ports: ["${CLAMAV_PORT:-3310}:3310"]
+
   # Creates the runtime roles (idempotent) before migrations run.
   db-init:
     image: pgvector/pgvector:0.8.7-pg17
@@ -95,17 +105,38 @@ services:
       timeout: 3s
       retries: 20
 
+  # Separate workers per queue group (spec 004 AC8, D73): OCR, scans and deletions never take
+  # a slot from the fast path that makes chat available.
   worker:
     build: { context: ./apps/api, target: dev }
-    command: ["celery", "-A", "app.worker.celery_app", "worker", "--loglevel=INFO", "--concurrency=2"]
-    environment:
+    command: ["celery", "-A", "app.worker.celery_app", "worker", "--loglevel=INFO", "-Q", "fast", "--concurrency=2", "-n", "fast@%h"]
+    # Hardened sandbox for untrusted PDFs (spec 004 AC13, D77): no host ports, read-only root,
+    # scratch space in memory only, no Linux capabilities, no privilege escalation, capped RAM.
+    <<: &worker-hardening
+      read_only: true
+      tmpfs: ["/tmp:size=512m,mode=1777"]
+      cap_drop: [ALL]
+      security_opt: ["no-new-privileges:true"]
+      pids_limit: 256
+    mem_limit: 1g
+    environment: &worker-env
       <<: *api-env
       DATABASE_URL: postgresql+asyncpg://abstract_worker:abstract_worker_dev@postgres:5432/${POSTGRES_DB:-abstract}
     volumes: ["./apps/api/app:/app/app"]
     secrets: [gcp_sa]
-    depends_on:
+    depends_on: &worker-deps
       redis: { condition: service_healthy }
       migrate: { condition: service_completed_successfully }
+
+  worker-bg:
+    build: { context: ./apps/api, target: dev }
+    command: ["celery", "-A", "app.worker.celery_app", "worker", "--loglevel=INFO", "-Q", "enrichment,scan,deletion", "--concurrency=1", "-n", "bg@%h"]
+    <<: *worker-hardening
+    mem_limit: 2g  # OCR renders pages at 300 dpi
+    environment: *worker-env
+    volumes: ["./apps/api/app:/app/app"]
+    secrets: [gcp_sa]
+    depends_on: *worker-deps
 
   web:
     build: { context: ./apps/web, target: dev }

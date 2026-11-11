@@ -11,9 +11,13 @@ dependencies = [
     "fastapi>=0.162.4",
     "google-genai>=3.0.0",
     "httpx>=0.28.1",
+    "pikepdf>=10",
+    "pillow>=11",
     "pydantic>=2",
     "pydantic-settings>=2.16.2",
     "pyjwt[crypto]>=2.15.1",
+    "pypdfium2>=5.15.2",
+    "pytesseract>=0.3.13",
     "redis>=8.1.0",
     "sentry-sdk[fastapi]>=2.74.0",
     "sqlalchemy[asyncio]>=2",
@@ -29,8 +33,10 @@ dev = [
     "pytest>=9.2.0",
     "pytest-asyncio>=1.4.1.post1",
     "pytest-socket>=0.8.1",
+    "pyyaml>=6.0.3",
     "ruff>=0.17.4",
     "testcontainers[postgres]>=4.15.0",
+    "types-pyyaml>=6.0.12,<6.0.12.20261001",
 ]
 eval = [
     "pillow>=13.0.0",
@@ -64,7 +70,10 @@ plugins = ["pydantic.mypy"]
 files = ["app", "tests"]
 
 [[tool.mypy.overrides]]
-module = ["celery.*", "testcontainers.*", "boto3.*", "botocore.*", "pytest_socket.*"]
+module = [
+    "celery.*", "testcontainers.*", "boto3.*", "botocore.*", "pytest_socket.*",
+    "pypdfium2.*", "pytesseract.*",
+]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

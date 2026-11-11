@@ -8,6 +8,8 @@ from app.core.ratelimit import MemoryCounterStore
 from app.core.readiness import ReadinessCheck
 from app.factory import create_app
 
+pytest_plugins = ["tests.integration.papers_fixtures"]
+
 
 def make_settings(**overrides: object) -> Settings:
     values: dict[str, object] = {
@@ -18,6 +20,8 @@ def make_settings(**overrides: object) -> Settings:
         "_env_file": None,
     }
     values.update(overrides)
+    if values.get("env") == "production":  # explicit opt-out unless a test chooses (D77)
+        values.setdefault("malware_scan", "disabled-with-sanitization")
     return Settings(**values)  # type: ignore[arg-type]
 
 

@@ -19,9 +19,13 @@ dependencies = [
     { name = "fastapi" },
     { name = "google-genai" },
     { name = "httpx" },
+    { name = "pikepdf" },
+    { name = "pillow" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "pyjwt", extra = ["crypto"] },
+    { name = "pypdfium2" },
+    { name = "pytesseract" },
     { name = "redis" },
     { name = "sentry-sdk", extra = ["fastapi"] },
     { name = "sqlalchemy", extra = ["asyncio"] },
@@ -37,8 +41,10 @@ dev = [
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-socket" },
+    { name = "pyyaml" },
     { name = "ruff" },
     { name = "testcontainers" },
+    { name = "types-pyyaml" },
 ]
 eval = [
     { name = "pillow" },
@@ -60,9 +66,13 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.162.4" },
     { name = "google-genai", specifier = ">=3.0.0" },
     { name = "httpx", specifier = ">=0.28.1" },
+    { name = "pikepdf", specifier = ">=10" },
+    { name = "pillow", specifier = ">=11" },
     { name = "pydantic", specifier = ">=2" },
     { name = "pydantic-settings", specifier = ">=2.16.2" },
     { name = "pyjwt", extras = ["crypto"], specifier = ">=2.15.1" },
+    { name = "pypdfium2", specifier = ">=5.15.2" },
+    { name = "pytesseract", specifier = ">=0.3.13" },
     { name = "redis", specifier = ">=8.1.0" },
     { name = "sentry-sdk", extras = ["fastapi"], specifier = ">=2.74.0" },
     { name = "sqlalchemy", extras = ["asyncio"], specifier = ">=2" },
@@ -78,8 +88,10 @@ dev = [
     { name = "pytest", specifier = ">=9.2.0" },
     { name = "pytest-asyncio", specifier = ">=1.4.1.post1" },
     { name = "pytest-socket", specifier = ">=0.8.1" },
+    { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "ruff", specifier = ">=0.17.4" },
     { name = "testcontainers", extras = ["postgres"], specifier = ">=4.15.0" },
+    { name = "types-pyyaml", specifier = ">=6.0.12,<6.0.12.20261001" },
 ]
 eval = [
     { name = "pillow", specifier = ">=13.0.0" },
@@ -1674,6 +1686,33 @@ wheels = [
 ]
 
 [[package]]
+name = "pikepdf"
+version = "10.18.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "lxml" },
+    { name = "packaging" },
+    { name = "pillow" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/2e/5c/db56403f493bae2e35a0d5d2c9ad358b011f142b760282698a9f2732941e/pikepdf-10.18.0.tar.gz", hash = "sha256:cb555ebff93482e8a6eb55881488b469bbb2b5675161c1b93a0510a8642d98d0", size = 10084218, upload-time = "2026-11-08T00:16:02.7Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/12/3e/13203e639005bb5434a79515c42333295a51784d7ecd14b6a9f8a11d1844/pikepdf-10.18.0-cp312-cp312-macosx_15_0_arm64.whl", hash = "sha256:f93c79686915ea02e0879588659d1e4ba7a2ccea1f638cf5db19dfa8b4d50291", size = 2200628, upload-time = "2026-11-08T00:15:08.633Z" },
+    { url = "https://files.pythonhosted.org/packages/8c/d1/e71a45b319bbb5b739ab5e088aff4be95c3359040993b757eafa8fb7c415/pikepdf-10.18.0-cp312-cp312-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:82c9d788f6cf5ed98d391482b21ada55c29b20c2fed2aa75add83dacd6165b38", size = 2558921, upload-time = "2026-11-08T00:15:10.189Z" },
+    { url = "https://files.pythonhosted.org/packages/78/d2/b1a8c0bc60679d243fbb0d7effa87d2c5cf52c3c7e4b1262a9fddfb8c6e6/pikepdf-10.18.0-cp312-cp312-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:bb8b5505a55a0b15e0468759c19531bd0c7aac4b7f8938dca94f62525eb79b04", size = 2783021, upload-time = "2026-11-08T00:15:12.319Z" },
+    { url = "https://files.pythonhosted.org/packages/c1/7c/de24be4613673987215f793a272c6a9130787c69b15623b718e9dfe84d4b/pikepdf-10.18.0-cp312-cp312-musllinux_1_2_aarch64.whl", hash = "sha256:6aa9d0ecc3e179d26ad33ff1166d66a4c46469bd1164c7259e4bed538873ef8e", size = 4200003, upload-time = "2026-11-08T00:15:13.857Z" },
+    { url = "https://files.pythonhosted.org/packages/23/09/424855691880c28f3ed3e6467f94df56c1571e4d6ec18aca501e88700505/pikepdf-10.18.0-cp312-cp312-musllinux_1_2_x86_64.whl", hash = "sha256:89fb52399dee9126519a7a9f773938c1d7b6188f6bd24a3571c11ebfa1bb50a4", size = 4426797, upload-time = "2026-11-08T00:15:15.775Z" },
+    { url = "https://files.pythonhosted.org/packages/99/77/d568c1dad4c1e8c0b6926e454d5487a09c0857ce6e9db3c3e1f68bb5846e/pikepdf-10.18.0-cp312-cp312-win_amd64.whl", hash = "sha256:d566923d457c6133660ee8b8e1933b908e743069354fc66cfe4e8ecdc313833f", size = 3892843, upload-time = "2026-11-08T00:15:17.297Z" },
+    { url = "https://files.pythonhosted.org/packages/8d/c7/166deb4c1d1d2683e9ae7f0b028199005fa0d41d68cb3fcbacb246539777/pikepdf-10.18.0-cp312-cp312-win_arm64.whl", hash = "sha256:77295e0fe075b6fe8f69c449eb4437bf97c0f4ba0fc11a7b1f8f1ea57e572d24", size = 4377697, upload-time = "2026-11-08T00:15:18.79Z" },
+    { url = "https://files.pythonhosted.org/packages/e9/67/a2a493faad728d642ba9e115d19047d5e9b2457ab217267fcdad34ca1c41/pikepdf-10.18.0-cp314-abi3-macosx_15_0_arm64.whl", hash = "sha256:4beb6566a6d349acff33ed90300effcda4be80be1abce8c4e3059c781cc8a45a", size = 2199858, upload-time = "2026-11-08T00:15:35.177Z" },
+    { url = "https://files.pythonhosted.org/packages/bc/52/b623ca8a8e39043507e54bc54beffab525ec61e5c1cc237fdb49ad08ea21/pikepdf-10.18.0-cp314-abi3-manylinux_2_26_aarch64.manylinux_2_28_aarch64.whl", hash = "sha256:ec8008c69dc37339c91d3629aea696426206652f0a9e259b0603924d3d5bf3c9", size = 2556276, upload-time = "2026-11-08T00:15:37.029Z" },
+    { url = "https://files.pythonhosted.org/packages/88/b4/df80147752d43f42a73fd6f4568f801280543fd999d37e406fbf8351bbe6/pikepdf-10.18.0-cp314-abi3-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:df011432627c188e2ca81dc9dccb6c23d007122f2f60c29f6f7f558d368fbc8a", size = 2779534, upload-time = "2026-11-08T00:15:38.506Z" },
+    { url = "https://files.pythonhosted.org/packages/8f/14/a8e308aaa23b04e2e57d9af996c135385eb88888d1e8ab9f20b1d34f3355/pikepdf-10.18.0-cp314-abi3-musllinux_1_2_aarch64.whl", hash = "sha256:b727b17fd5efa943f5ac5952ab2b4ff57093b20d8f232ac3efed01a9d63213e2", size = 4198322, upload-time = "2026-11-08T00:15:39.934Z" },
+    { url = "https://files.pythonhosted.org/packages/30/16/50817132d9b73c045eccb72daf9ff772d9ce242332e9b055a23dcb0fe86e/pikepdf-10.18.0-cp314-abi3-musllinux_1_2_x86_64.whl", hash = "sha256:5b0f739b6aef47d322c0b243f1487ddb5933e4189a8940bd6cc46f96f7caa766", size = 4424624, upload-time = "2026-11-08T00:15:41.597Z" },
+    { url = "https://files.pythonhosted.org/packages/73/f2/df99cbb596abacb47436e7c1ef3cf5cfce9f42aef19e5d0b66c01b440612/pikepdf-10.18.0-cp314-abi3-win_amd64.whl", hash = "sha256:6953e9977c214c52c3bf2c9c872d91641fd4f3a631fbf3ed0c948efac1e544dd", size = 3994486, upload-time = "2026-11-08T00:15:43.136Z" },
+    { url = "https://files.pythonhosted.org/packages/f8/0f/c6c9760e3b98b662f2f529c09bb8bc4df7b05e30a2206a523c0e20fb4c50/pikepdf-10.18.0-cp314-abi3-win_arm64.whl", hash = "sha256:bdac22a3192f797a9cf6e7232086e62cbe32cd519113665d7da8aa61251f172a", size = 4492475, upload-time = "2026-11-08T00:15:44.609Z" },
+]
+
+[[package]]
 name = "pillow"
 version = "13.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1995,6 +2034,19 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/8b/3b/37e7bfcb6a51e967e7a4c6e3698c73548f4455176c7e352a31ee7011c2dc/pypdfium2-5.15.2-py3-none-win32.whl", hash = "sha256:4cfc5ae26b600f92c5be0a0dccb949c10bd8bd3c93e440b75a362f9c1453fd93", size = 4015242, upload-time = "2026-11-09T15:33:22.919Z" },
     { url = "https://files.pythonhosted.org/packages/fe/7f/8aa446529fa14523e5c18f89e823afc95526689f76a75efe68a82a10d850/pypdfium2-5.15.2-py3-none-win_amd64.whl", hash = "sha256:74d1bace34fb01c660d0b64344d5a4b7d276942b7c6623c88ab59ea21c5acfbd", size = 4187589, upload-time = "2026-11-09T15:33:24.718Z" },
     { url = "https://files.pythonhosted.org/packages/e7/20/edc21f0b086aba3162a33e5725a4f224dcabb46f67a051e1a1be81e3cbbc/pypdfium2-5.15.2-py3-none-win_arm64.whl", hash = "sha256:a20398367f188eb817be156bfd00077dcb5f8ad06c093849f3fa70b8087b4a87", size = 3907705, upload-time = "2026-11-09T15:33:26.624Z" },
+]
+
+[[package]]
+name = "pytesseract"
+version = "0.3.13"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "packaging" },
+    { name = "pillow" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/9f/a6/7d679b83c285974a7cb94d739b461fa7e7a9b17a3abfd7bf6cbc5c2394b0/pytesseract-0.3.13.tar.gz", hash = "sha256:4bf5f880c99406f52a3cfc2633e42d9dc67615e69d8a509d74867d3baddb5db9", size = 17689, upload-time = "2024-08-16T02:33:56.762Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/7a/33/8312d7ce74670c9d39a532b2c246a853861120486be9443eebf048043637/pytesseract-0.3.13-py3-none-any.whl", hash = "sha256:7a99c6c2ac598360693d83a416e36e0b33a67638bb9d77fdcac094a3589d4b34", size = 14705, upload-time = "2024-08-16T02:36:10.09Z" },
 ]
 
 [[package]]
@@ -2802,6 +2854,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/03/51/d33db42cc72ffd8c30777547b42d01f0cbf9d95a770457698d0174b3ed71/typer-0.27.3.tar.gz", hash = "sha256:d0396f770a560ab1b0a8504e13b5f254b728cedb05c61cf0359e944e50ce8901", size = 205303, upload-time = "2026-10-06T17:24:16.61Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/07/ea/2e31b67051e91a133189e9c000c222502ddc6969856416de0d095de4c0b0/typer-0.27.3-py3-none-any.whl", hash = "sha256:e50022f28b82a86313e54501317a1db64bf8f8d036ff8cfe5ca7e47675454aff", size = 123312, upload-time = "2026-10-06T17:24:15.054Z" },
+]
+
+[[package]]
+name = "types-pyyaml"
+version = "6.0.12.20260906"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/90/6e/abec85b9013db5b934b0280a6dd104904d84f7bcbaab2e2f3def87ac7463/types_pyyaml-6.0.12.20260906.tar.gz", hash = "sha256:f59c1cc05010b833d2d72287bbaa72610106b28d42d89a907313117faba85212", size = 18649, upload-time = "2026-09-06T06:35:35.362Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/15/c0/fc0644b7ddcfb969e95845837143cb5173ddd6e06ee4ba5fc493cd9329b7/types_pyyaml-6.0.12.20260906-py3-none-any.whl", hash = "sha256:bca893ff0d51df5c9053137d5d0e6ccd36e939a196356f1d5c16372422f5137b", size = 21282, upload-time = "2026-09-06T06:35:34.372Z" },
 ]
 
 [[package]]

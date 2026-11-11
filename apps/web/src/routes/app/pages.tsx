@@ -1,3 +1,5 @@
+import { LibraryContent } from "@/features/papers/PaperList";
+
 
 function PageHeader({ title, description }: { title: string; description: string }) {
   return (
@@ -9,7 +11,12 @@ function PageHeader({ title, description }: { title: string; description: string
 }
 
 export function LibraryPage() {
-  return <PageHeader title="Your Library" description="Upload, organize, summarize, and explore your research papers." />;
+  return (
+    <>
+      <PageHeader title="Your Library" description="Upload, organize, summarize, and explore your research papers." />
+      <LibraryContent />
+    </>
+  );
 }
 
 export function CollectionsPage() {

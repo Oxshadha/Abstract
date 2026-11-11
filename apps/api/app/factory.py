@@ -26,7 +26,9 @@ from app.core.readiness import ReadinessCheck
 from app.modules.admin import router as admin_router
 from app.modules.identity import router as identity_router
 from app.modules.identity import webhooks as identity_webhooks
+from app.modules.papers import router as papers_router
 from app.ports.auth import AuthProvider
+from app.ports.storage import Storage
 
 API_PREFIX = "/api/v1"
 
@@ -47,6 +49,7 @@ def create_app(
     auth_provider: AuthProvider | None = None,
     rate_store: CounterStore | None = None,
     enqueue: Callable[[str, dict[str, Any]], None] | None = None,
+    storage: Storage | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
     configure_logging(settings.log_level)
@@ -58,10 +61,10 @@ def create_app(
         # Clients connect lazily, so building them is cheap even in unit tests.
         engine = build_engine(settings.database_url)
         redis = Redis.from_url(settings.redis_url)
-        storage = S3Storage(settings)
-        if settings.env == "development":
+        s3 = S3Storage(settings)
+        if storage is None and settings.env == "development":
             try:
-                await storage.ensure_bucket()
+                await s3.ensure_bucket()
             except Exception as exc:  # readiness will report it; don't block startup
                 log.warning("ensure_bucket_failed", error=str(exc))
 
@@ -72,11 +75,12 @@ def create_app(
         app.state.sessionmaker = build_sessionmaker(engine)
         app.state.redis = redis
         app.state.rate_store = rate_store or RedisCounterStore(redis)
-        app.state.storage = storage
+        store: Storage = storage or s3
+        app.state.storage = store
         app.state.readiness_checks = (
             readiness_checks
             if readiness_checks is not None
-            else {"db": lambda: ping_db(engine), "redis": check_redis, "storage": storage.ping}
+            else {"db": lambda: ping_db(engine), "redis": check_redis, "storage": store.ping}
         )
         log.info("startup", env=settings.env, llm_provider=settings.llm_provider, auth=auth.name)
         try:
@@ -112,6 +116,7 @@ def create_app(
     app.include_router(identity_router.router, prefix=API_PREFIX)
     app.include_router(identity_webhooks.router, prefix=API_PREFIX)
     app.include_router(admin_router.router, prefix=API_PREFIX)
+    app.include_router(papers_router.router, prefix=API_PREFIX)
     if not settings.is_production:
         app.include_router(debug.router, prefix=API_PREFIX)
     if auth.name == "dev":

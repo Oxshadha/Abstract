@@ -15,6 +15,22 @@ Entry format:
 
 ---
 
+## 2026-11-11: Spec 004 implemented (16 of 16)
+**Done:** Built on `feat/004-upload-ingestion`, one criterion per commit: schema and job state machine (AC6), pre-signed uploads into quarantine (AC1), fast finalize with enqueue after commit (AC4, AC7), per-user dedupe under races (AC5), Idempotency-Key (AC3), CDR-lite sanitizer (AC11), pypdfium2 text and section-aware chunking (AC10), the ingest pipeline on separate queues with retries and limits (AC8, AC9), OCR on the enrichment queue, list/status/file endpoints (AC14, AC12), SSE progress (AC12), deletion including account deletion (AC15), malware scanner port with fake/ClamAV/GuardDuty (AC16), worker sandbox (AC13), and the SPA: processing page, Library list, drop zone with progress and cancel (AC12, AC14, AC2). Playwright happy path at desktop and phone sizes.
+**Verified on the real stack:** finalize 23 to 94 ms; chat available 0.93 s after upload (15 pages) and 2.2 s (77 pages, 14 MB); scanned 12-page paper ready in 14 s (including test-script rate-limit back-off); real ClamAV detects EICAR (arm64 image `clamav/clamav-debian` locally, `clamav/clamav` in CI).
+**Bugs caught by running it for real:** pre-signed links used the Docker-internal S3 host (now `S3_PUBLIC_ENDPOINT_URL` plus bucket CORS); the web container ran stale node_modules after a rebuild (`make dev` now renews anonymous volumes); mobile rows collapsed titles; titles of scanned papers stayed the filename; every corpus paper reported a harmless OpenAction (now only executing actions are removed); pikepdf's object list skipped nested action dictionaries (now a full graph walk).
+**Small decisions:** browser-computed SHA-256 verified by the worker; `uploads` table; `/app/papers/$paperId/processing` route; fake scanner by default in dev, explicit `MALWARE_SCAN` required in production; scan failures never fail a paper; deps added: pikepdf (MPL-2.0), pypdfium2, pytesseract, Pillow, Playwright 1.64.1, PyYAML for tests.
+**Decisions:** none new (D77 applied)   **Assumptions:** D8, R8 added   **Specs:** 004 Implemented with notes
+**Next:** PR for spec 004 (owner to approve push), then spec 005 (Model Registry: wires Vertex embeddings, required before real users) and 006 (summaries).
+**Blockers / waiting on owner:** permission to push and open the PR.
+
+## 2026-11-11: Upload security decided (D77); spec 004 approved
+**Done:** Spec 003 merged (PR #4) and the spec 002 review hardening merged (PR #5: 401 refresh and retry, deletion job queued after commit, last-admin race, query budgets). Spec 004 drafted and approved. The malware strategy went through EDP-006: ClamAV needs at least 3 GiB RAM and GuardDuty needs AWS, which isn't available before EC2, so the owner approved "sanitize and sandbox now, scan later".
+**Decisions:** D77 added (supersedes the scanner and gating parts of D65)   **Assumptions:** D6, D7, R6, R7 added   **Specs:** 004 Approved (AC11 rewritten, AC12 stage timings, AC16 scanner port)
+**Artifacts:** docs/proposals/EDP-006-upload-malware-strategy.md, docs/specs/004-upload-ingestion.md
+**Next:** Build spec 004 criterion by criterion on `feat/004-upload-ingestion`, starting with migration 0003 and the upload endpoints.
+**Blockers / waiting on owner:** none for 004; hosting choice (Railway vs EC2) at spec 017.
+
 ## 2026-11-11: Spec 002 merged; spec 003 design system implemented (15 of 15)
 **Done:** Spec 002 merged (PR #3, CI green). Spec 003 on `feat/003-design-system`: one token source with WCAG checks (AC1), raw colours/fonts and status colours outside status components rejected by a self-tested checker (AC2, AC5), flash-free theme toggle (AC3), Latin-only self-hosted fonts, 84 to 5 files (AC4), shell and routes from the Library mockup with a mobile drawer and workspace tab bar (AC6, AC7), sign-in modal over the inert blurred app plus split-screen fallbacks (AC8), query defaults (AC9), lazy Clerk/Sentry/Workspace with a 200 KB budget, entry 185 to 112 KB gzip (AC10), error boundaries (AC11), Sentry web and API live in the EU region with privacy-first defaults (AC12, AC13, D76), skeleton/empty/offline states (AC14), axe on every screen (AC15).
 **Owner input:** Sentry DSNs provided and verified with one test event per project; Sentry auth token still needed at deployment for readable production stack traces.

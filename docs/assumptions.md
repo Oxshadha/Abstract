@@ -49,6 +49,9 @@ Agents: add an entry **before** acting on a new assumption. When the owner confi
 | D3 | **Verified 2026-11-11:** `@fontsource/google-sans`, `@fontsource-variable/google-sans-flex` and `@fontsource-variable/nunito-sans` are all published under OFL-1.1 and self-hosted (spec 003). | Font licensing (resolved) |
 | D4 | Clerk `appearance.variables` supports `colorPrimary` and `fontFamily`; the text-colour variable name differs by version (`colorForeground` vs `colorText`). | Auth theming |
 | D5 | Docling needs about 4–8 GB RAM on CPU (third-party sizing; no official figure found). | EC2 instance size |
+| D6 | **Verified 2026-11-11 (official ClamAV docs):** clamd needs at least 3 GiB RAM, and about double while reloading signatures unless concurrent reload is disabled. | Always-on ClamAV too costly on small hosts (D77) |
+| D8 | **Deployment checklist from spec 004:** production bucket CORS rule for the web origin (POST, GET); lifecycle rules for `quarantine/` orphans (24 h) and `infected/` (7 days); `S3_PUBLIC_ENDPOINT_URL` unset on AWS; `MALWARE_SCAN` set explicitly. | Uploads or retention break silently if missed (spec 017) |
+| D7 | **Verified 2026-11-11 (official AWS pricing):** GuardDuty Malware Protection for S3 has a free tier of 1,000 objects and 1 GB scanned per month per region (all accounts, not only the first year), then $0.09/GB and $0.215 per 1,000 objects in US East; small extra costs for S3 object tagging, GET requests and EventBridge. Needs AWS. | Cost of enabling scanning later (D77) |
 
 ## E. Risks
 | ID | Risk | Mitigation |
@@ -58,3 +61,6 @@ Agents: add an entry **before** acting on a new assumption. When the owner confi
 | R3 | Single EC2 instance is a single point of failure. | Accepted for v1; documented path to ECS in roadmap |
 | R4 | LLM provider outage or rate limit. | Registry fallbacks, Vertex as second provider, retries, partial results |
 | R5 | PyMuPDF / pymupdf4llm are AGPL-3.0: a closed-source network service must offer its source or buy a commercial licence. | EDP-002; parser isolated behind the `Parser` port |
+| R6 | v1 ships without antivirus scanning (D77): a malicious PDF could exploit a parser bug in the worker. | Sanitized copy only, hardened sandboxed worker (004 AC13), scanner port ready; scanning mandatory before any sharing feature |
+| R8 | Worker network egress is not restricted in compose (004 AC13): a compromised parser could reach the internet. | Restrict egress to Postgres, Redis, S3 and the LLM provider with security groups or firewall rules at deployment (spec 017) |
+| R7 | Free or small hosting (e.g. Railway) may not fit Docling (4–8 GB) or ClamAV (3 GiB+) memory, and may not allow every worker hardening option (read-only root, cap_drop). | Hosting decision raised as an EDP at spec 017; enrichment and scanning can run on a separate, larger worker |
