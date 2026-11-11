@@ -7,7 +7,8 @@ import {
   type RouterHistory,
 } from "@tanstack/react-router";
 
-import { AppShell } from "@/components/shell/AppShell";
+import { GatedAppShell } from "@/components/shell/GatedAppShell";
+import { SignInPage, SignUpPage } from "@/routes/auth/AuthPages";
 import {
   CollectionsPage,
   LibraryPage,
@@ -19,7 +20,9 @@ import { HomePage } from "@/routes/HomePage";
 
 const rootRoute = createRootRoute({ component: Outlet, notFoundComponent: NotFoundPage });
 const indexRoute = createRoute({ getParentRoute: () => rootRoute, path: "/", component: HomePage });
-const appRoute = createRoute({ getParentRoute: () => rootRoute, path: "/app", component: AppShell });
+const appRoute = createRoute({ getParentRoute: () => rootRoute, path: "/app", component: GatedAppShell });
+const signInRoute = createRoute({ getParentRoute: () => rootRoute, path: "/sign-in/$", component: SignInPage });
+const signUpRoute = createRoute({ getParentRoute: () => rootRoute, path: "/sign-up/$", component: SignUpPage });
 const libraryRoute = createRoute({ getParentRoute: () => appRoute, path: "/library", component: LibraryPage });
 const collectionsRoute = createRoute({ getParentRoute: () => appRoute, path: "/collections", component: CollectionsPage });
 const templatesRoute = createRoute({ getParentRoute: () => appRoute, path: "/templates", component: TemplatesPage });
@@ -28,6 +31,8 @@ const workspaceRoute = createRoute({ getParentRoute: () => appRoute, path: "/pap
 
 const routeTree = rootRoute.addChildren([
   indexRoute,
+  signInRoute,
+  signUpRoute,
   appRoute.addChildren([libraryRoute, collectionsRoute, templatesRoute, settingsRoute, workspaceRoute]),
 ]);
 

@@ -3,7 +3,7 @@ import { LogOut } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { fetchMe } from "@/api/me";
-import { notifyUnauthorized } from "@/auth/session";
+import { useAuthState } from "@/auth/state";
 import { ThemeToggle } from "@/theme/ThemeToggle";
 
 function initials(name: string | null | undefined): string {
@@ -13,7 +13,8 @@ function initials(name: string | null | undefined): string {
 
 /** Avatar menu: who you are, theme, sign out (spec 003 AC6). */
 export function UserMenu() {
-  const me = useQuery({ queryKey: ["me"], queryFn: fetchMe });
+  const auth = useAuthState();
+  const me = useQuery({ queryKey: ["me"], queryFn: fetchMe, enabled: auth.status === "signed-in" });
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
 
@@ -66,7 +67,7 @@ export function UserMenu() {
             role="menuitem"
             onClick={() => {
               setOpen(false);
-              notifyUnauthorized();
+              auth.signOut();
             }}
             className="flex min-h-11 w-full items-center gap-2 rounded-md px-2 text-left hover:bg-muted"
           >

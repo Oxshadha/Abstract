@@ -3,6 +3,7 @@ import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
+import { setAuthState } from "@/auth/state";
 import { createAppRouter } from "@/router";
 
 vi.mock("@/api/me", () => ({
@@ -16,6 +17,7 @@ vi.mock("@/api/me", () => ({
 }));
 
 async function renderAt(path: string) {
+  setAuthState({ status: "signed-in", provider: "dev" });
   const router = createAppRouter(createMemoryHistory({ initialEntries: [path] }));
   const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   render(
