@@ -19,6 +19,10 @@ test("upload a paper and open it once chat is available", async ({ page }, testI
 
   await page.locator('input[type="file"]').setInputFiles({ name: "study.pdf", mimeType: "application/pdf", buffer: pdf });
 
+  // Step 02 (spec 006): Quick Summary is preselected; Continue starts it.
+  await expect(page).toHaveURL(/\/app\/papers\/[0-9a-f-]+\/template$/);
+  await expect(page.getByRole("radio", { name: /Quick Summary/ })).toHaveAttribute("aria-checked", "true");
+  await page.getByRole("button", { name: "Continue" }).click();
   await expect(page).toHaveURL(/\/app\/papers\/[0-9a-f-]+\/processing$/);
   await expect(page.getByRole("heading", { name: "Processing your paper" })).toBeVisible();
   await expect(page.getByText("Extracting text", { exact: true })).toBeVisible();

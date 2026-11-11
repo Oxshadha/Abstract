@@ -108,7 +108,7 @@ describe("AC2: drop zone", () => {
     expect(uploadPaper).not.toHaveBeenCalled();
   });
 
-  it("is keyboard reachable and accepts a dropped PDF, then opens the processing page", async () => {
+  it("is keyboard reachable and accepts a dropped PDF, then opens the template step", async () => {
     vi.mocked(getPaper).mockResolvedValue(paper({ status: "processing" }));
     vi.mocked(getStatus).mockResolvedValue(status());
     vi.mocked(uploadPaper).mockImplementation((_file, { onPhase, onProgress }) => {
@@ -123,7 +123,7 @@ describe("AC2: drop zone", () => {
     const zone = choose.closest("div") as HTMLElement;
     fireEvent.drop(zone, { dataTransfer: { files: [new File(["%PDF-"], "a.pdf", { type: "application/pdf" })] } });
     await vi.waitFor(() => {
-      expect(router.state.location.pathname).toBe("/app/papers/p1/processing");
+      expect(router.state.location.pathname).toBe("/app/papers/p1/template"); // 006 AC2
     });
   });
 

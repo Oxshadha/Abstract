@@ -1,0 +1,389 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "@tanstack/react-router";
+import {
+  AlertCircle,
+  BarChart3,
+  BookOpen,
+  Check,
+  ChevronDown,
+  Compass,
+  Database,
+  FileText,
+  Flag,
+  Gauge,
+  Layers,
+  Pencil,
+  RotateCcw,
+  Search,
+  Settings,
+  Target,
+  type LucideIcon,
+} from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+
+import { SummaryCardSkeleton } from "@/components/feedback/Skeleton";
+import { StatusPill } from "@/components/status/StatusPill";
+
+import {
+  StaleVersionError,
+  createSummary,
+  editField,
+  listSummaries,
+  listTemplates,
+  resetField,
+  retrySummary,
+  summaryKeys,
+  type Summary,
+  type SummaryField,
+} from "./api";
+import { Markdown } from "./Markdown";
+import { pageLabel } from "./pages";
+import { useSummary } from "./useSummary";
+
+const ICONS: Record<string, LucideIcon> = {
+  abstract: BookOpen,
+  problem_statement: Flag,
+  methodology: Settings,
+  key_results: BarChart3,
+  conclusion: Target,
+  research_gap: Search,
+  dataset: Database,
+  evaluation: Gauge,
+  limitations: AlertCircle,
+  future_work: Compass,
+};
+
+function FieldCard({ field }: { field: SummaryField }) {
+  const Icon = ICONS[field.key] ?? FileText;
+  const [open, setOpen] = useState(false);
+  const pages = field.evidence.map((e) => e.page).filter((p): p is number => p != null);
+  return (
+    <article className="border-b border-border pb-5 last:border-b-0">
+      <header className="mb-2 flex flex-wrap items-center gap-2">
+        <Icon aria-hidden className="size-5" />
+        <h3 className="font-display text-lg font-bold">{field.label}</h3>
+        <span className="ml-auto flex flex-wrap gap-1.5">
+          {field.status === "not_reported" ? (
+            <StatusPill status="neutral">Not reported</StatusPill>
+          ) : field.verification === "verified" ? (
+            <StatusPill status="success">Verified</StatusPill>
+          ) : (
+            <StatusPill status="neutral">Provisional</StatusPill>
+          )}
+          {field.status === "inferred" && <StatusPill status="info">Inferred</StatusPill>}
+          {field.edited && <StatusPill status="neutral">Edited</StatusPill>}
+        </span>
+      </header>
+      <Markdown>{field.value}</Markdown>
+      {pages.length > 0 && (
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={() => {
+            setOpen(!open);
+          }}
+          className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-md border border-border px-2.5 text-sm hover:bg-muted"
+        >
+          <BookOpen aria-hidden className="size-4" />
+          {`Source: ${pageLabel(pages)}`}
+        </button>
+      )}
+      {open && (
+        <ul className="mt-2 flex flex-col gap-2" aria-label={`Evidence for ${field.label}`}>
+          {field.evidence.map((e, i) => (
+            <li key={i} className="rounded-md bg-muted p-2.5 text-sm">
+              <q className="font-reading">{e.quote}</q>
+              <span className="mt-1 block text-text-secondary">
+                {e.page != null ? `Page ${String(e.page)}` : "Page unknown"}
+                {e.verified ? " · found in the paper" : " · not found word for word"}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
+    </article>
+  );
+}
+
+type SaveState = "idle" | "saving" | "saved" | "stale" | "error";
+
+function FieldEditor({
+  field,
+  onSave,
+  onReset,
+}: {
+  field: SummaryField;
+  onSave: (value: string) => Promise<void>;
+  onReset: () => Promise<void>;
+}) {
+  const [draft, setDraft] = useState(field.value);
+  const timer = useRef<number | null>(null);
+  const id = `edit-${field.key}`;
+  useEffect(
+    () => () => {
+      if (timer.current !== null) window.clearTimeout(timer.current);
+    },
+    [],
+  );
+  return (
+    <div className="border-b border-border pb-5 last:border-b-0">
+      <label htmlFor={id} className="mb-2 flex items-center gap-2 font-display text-lg font-bold">
+        {field.label}
+        {field.edited && <StatusPill status="neutral">Edited</StatusPill>}
+      </label>
+      <textarea
+        id={id}
+        value={draft}
+        rows={Math.min(12, Math.max(3, draft.split("\n").length + 1))}
+        onChange={(e) => {
+          const value = e.target.value;
+          setDraft(value);
+          if (timer.current !== null) window.clearTimeout(timer.current);
+          // AC12: autosave 1 s after typing stops.
+          timer.current = window.setTimeout(() => {
+            if (value.trim()) void onSave(value);
+          }, 1000);
+        }}
+        className="w-full rounded-md border border-border bg-surface p-3 font-reading"
+      />
+      {field.edited && (
+        <button
+          type="button"
+          onClick={() => {
+            void onReset().then(() => {
+              setDraft(field.value);
+            });
+          }}
+          className="mt-1 inline-flex min-h-9 items-center gap-1.5 text-sm text-text-secondary hover:text-text"
+        >
+          <RotateCcw aria-hidden className="size-4" />
+          Reset to the generated text
+        </button>
+      )}
+    </div>
+  );
+}
+
+function TemplateSwitcher({
+  current,
+  onChoose,
+}: {
+  current: string | null;
+  onChoose: (templateId: string) => void;
+}) {
+  const templates = useQuery({ queryKey: summaryKeys.templates, queryFn: listTemplates });
+  const [open, setOpen] = useState(false);
+  const name = templates.data?.find((t) => t.id === current)?.name ?? "Quick Summary";
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => {
+          setOpen(!open);
+        }}
+        className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border px-3 hover:bg-muted"
+      >
+        <Layers aria-hidden className="size-4" />
+        {name}
+        <ChevronDown aria-hidden className="size-4" />
+      </button>
+      {open && (
+        <ul
+          role="listbox"
+          aria-label="Summary template"
+          className="absolute right-0 z-20 mt-1 w-72 rounded-lg border border-border bg-surface p-1 shadow-overlay"
+        >
+          {(templates.data ?? []).map((t) => (
+            <li key={t.id} role="option" aria-selected={t.id === current}>
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  onChoose(t.id);
+                }}
+                className="flex w-full items-start gap-2 rounded-md p-2 text-left hover:bg-muted"
+              >
+                <Check aria-hidden className={`mt-0.5 size-4 ${t.id === current ? "" : "invisible"}`} />
+                <span>
+                  <span className="block font-medium">{t.name}</span>
+                  <span className="block text-sm text-text-secondary">{t.description}</span>
+                </span>
+              </button>
+            </li>
+          ))}
+          <li role="option" aria-selected={false}>
+            <Link to="/app/templates" className="flex w-full items-start gap-2 rounded-md p-2 hover:bg-muted">
+              <Check aria-hidden className="invisible mt-0.5 size-4" />
+              <span>
+                <span className="block font-medium">Custom Template</span>
+                <span className="block text-sm text-text-secondary">Create and manage your own summary structure.</span>
+              </span>
+            </Link>
+          </li>
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function SummaryBody({ summary }: { summary: Summary }) {
+  const queryClient = useQueryClient();
+  const [editing, setEditing] = useState(false);
+  const [save, setSave] = useState<SaveState>("idle");
+  const version = useRef(summary.version);
+  useEffect(() => {
+    if (save !== "saving") version.current = Math.max(version.current, summary.version);
+  }, [summary.version, save]);
+
+  const retry = useMutation({
+    mutationFn: () => retrySummary(summary.id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: summaryKeys.detail(summary.id) }),
+  });
+
+  const persist = async (call: () => Promise<number>) => {
+    setSave("saving");
+    try {
+      version.current = await call();
+      setSave("saved");
+    } catch (err) {
+      setSave(err instanceof StaleVersionError ? "stale" : "error");
+    }
+  };
+
+  const generating = summary.status === "queued" || summary.status === "generating";
+  const pending = Math.max(0, summary.expected_fields - summary.fields.length);
+
+  return (
+    <div className="flex flex-col gap-5">
+      <div className="flex items-center justify-between gap-2">
+        <p aria-live="polite" className="text-sm text-text-secondary">
+          {generating ? "Building your summary" : save === "saving" ? "Saving" : save === "saved" ? "Saved" : ""}
+        </p>
+        {summary.status === "ready" && (
+          <button
+            type="button"
+            aria-pressed={editing}
+            onClick={() => {
+              setEditing(!editing);
+            }}
+            className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border px-3 hover:bg-muted"
+          >
+            <Pencil aria-hidden className="size-4" />
+            {editing ? "Done" : "Edit"}
+          </button>
+        )}
+      </div>
+
+      {save === "stale" && (
+        <div role="alert" className="rounded-md border border-border p-3 text-sm">
+          This summary changed in another tab.
+          <span className="mt-2 flex gap-2">
+            <button
+              type="button"
+              className="min-h-9 rounded-md border border-border px-3 hover:bg-muted"
+              onClick={() => {
+                setSave("idle");
+                void queryClient.invalidateQueries({ queryKey: summaryKeys.detail(summary.id) });
+              }}
+            >
+              Reload
+            </button>
+          </span>
+        </div>
+      )}
+      {save === "error" && <p role="alert" className="text-sm">Your last edit was not saved. Please try again.</p>}
+
+      {summary.status === "failed" && (
+        <div className="flex flex-col items-start gap-2 rounded-md border border-border p-4">
+          <StatusPill status="error">Failed</StatusPill>
+          <p>{summary.error_message}</p>
+          <button
+            type="button"
+            disabled={retry.isPending}
+            onClick={() => {
+              retry.mutate();
+            }}
+            className="inline-flex min-h-11 items-center gap-2 rounded-pill bg-primary px-5 text-primary-text disabled:opacity-50"
+          >
+            <RotateCcw aria-hidden className="size-4" />
+            Retry
+          </button>
+        </div>
+      )}
+
+      {summary.fields.map((field) =>
+        editing ? (
+          <FieldEditor
+            key={field.key}
+            field={field}
+            onSave={(value) => persist(() => editField(summary.id, field.key, value, version.current))}
+            onReset={() => persist(() => resetField(summary.id, field.key, version.current))}
+          />
+        ) : (
+          <FieldCard key={field.key} field={field} />
+        ),
+      )}
+      {generating &&
+        Array.from({ length: pending }, (_, i) => (
+          <div key={i} role="status" aria-label="Loading a summary section">
+            <SummaryCardSkeleton />
+          </div>
+        ))}
+    </div>
+  );
+}
+
+/** Workspace Summary panel (spec 006 AC8, mockup). */
+export function SummaryPanel({ paperId }: { paperId: string }) {
+  const queryClient = useQueryClient();
+  const summaries = useQuery({ queryKey: summaryKeys.forPaper(paperId), queryFn: () => listSummaries(paperId) });
+  const templates = useQuery({ queryKey: summaryKeys.templates, queryFn: listTemplates });
+  const [chosen, setChosen] = useState<string | null>(null);
+  const templateId = chosen ?? summaries.data?.[0]?.template_id ?? templates.data?.[0]?.id ?? null;
+  const brief = summaries.data?.find((s) => s.template_id === templateId) ?? null;
+  const summary = useSummary(brief?.id ?? null);
+
+  const start = useMutation({
+    mutationFn: (id: string) => createSummary(paperId, id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: summaryKeys.forPaper(paperId) }),
+  });
+
+  const choose = (id: string) => {
+    setChosen(id);
+    // Switching to a template without a summary starts one (AC8).
+    if (!summaries.data?.some((s) => s.template_id === id)) start.mutate(id);
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="font-display text-lg font-bold">Summary</h2>
+        <TemplateSwitcher current={templateId} onChoose={choose} />
+      </div>
+      {summaries.isPending || (brief && summary.isPending) ? (
+        <div role="status" aria-label="Loading the summary" className="flex flex-col gap-3">
+          <SummaryCardSkeleton />
+          <SummaryCardSkeleton />
+        </div>
+      ) : summary.data ? (
+        <SummaryBody summary={summary.data} />
+      ) : (
+        <div className="flex flex-col items-start gap-3 rounded-md border border-dashed border-border-strong p-4">
+          <p className="text-text-secondary">No summary yet for this template.</p>
+          <button
+            type="button"
+            disabled={!templateId || start.isPending}
+            onClick={() => {
+              if (templateId) start.mutate(templateId);
+            }}
+            className="inline-flex min-h-11 items-center gap-2 rounded-pill bg-primary px-5 text-primary-text disabled:opacity-50"
+          >
+            Create summary
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}

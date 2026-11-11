@@ -39,7 +39,8 @@ export function DropZone({ compact = false }: { compact?: boolean }) {
     onSuccess: async (result) => {
       if (result.duplicate) toast("This paper is already in your library.");
       await navigate({
-        to: "/app/papers/$paperId/processing",
+        // Step 02 (spec 006 AC2): pick a template; a duplicate goes to its processing page.
+        to: result.duplicate ? "/app/papers/$paperId/processing" : "/app/papers/$paperId/template",
         params: { paperId: result.paper.id },
       });
     },
