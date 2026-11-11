@@ -1,13 +1,14 @@
 """Dev-only diagnostics (AC4). Never mounted when ENV=production."""
 
 from celery.exceptions import TimeoutError as CeleryTimeoutError
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from app.core.errors import ProblemError
+from app.core.ratelimit import rate_limit
 from app.worker.celery_app import celery_app
 
-router = APIRouter(prefix="/_debug", tags=["debug"])
+router = APIRouter(prefix="/_debug", tags=["debug"], dependencies=[Depends(rate_limit("auth"))])
 
 
 class Pong(BaseModel):

@@ -10,6 +10,7 @@ from app.factory import create_app
 def main() -> None:
     settings = Settings(
         env="development",  # include dev routes so the client knows about them
+        log_level="ERROR",  # stdout must contain only the schema
         database_url="postgresql+asyncpg://unused/unused",
         redis_url="redis://unused",
         s3_bucket="unused",

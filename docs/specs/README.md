@@ -8,7 +8,7 @@ This is lightweight spec-driven development. Each feature gets a one-to-two page
 |---|---|---|---|---|
 | 000 | [Benchmark harness & corpus (experiments A/B/C/E)](000-benchmark.md) | W1 | Implemented (AC4 scoring pending human check) | n/a (written before the analysis) |
 | 001 | [Foundation: monorepo, CI, docker-compose, config, logging](001-foundation.md) | W1 | Implemented | n/a (written before the analysis) |
-| 002 | [Auth & tenancy: Clerk, orgs, policy service, RLS, audit log](002-auth-tenancy.md) | W1 | Approved | [practices §3 Spec 002](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
+| 002 | [Auth & tenancy: Clerk, orgs, policy service, RLS, audit log](002-auth-tenancy.md) | W1 | Implemented (PR pending CI) | [practices §3 Spec 002](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 003 | Design system: tokens pipeline, fonts, app shell, auth modal | W1 | Not started | [practices §3 Spec 003](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 004 | Upload & fast-path ingestion: validation, async security scan (D65), S3, PyMuPDF layout, chunks, embeddings, job progress SSE | W1 | Not started | [practices §3 Spec 004](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 005 | LLM Gateway & Model Registry: OpenRouter, Vertex, fake providers, usage log | W1–W2 | Not started | [practices §3 Spec 005](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
@@ -24,6 +24,8 @@ This is lightweight spec-driven development. Each feature gets a one-to-two page
 | 015 | Reading aids: suggested questions, select → Explain/Ask, export MD/PDF/BibTeX | W4 | Not started | [practices §3 Spec 015](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 016 | Landing page (prerendered) | W4 | Not started | [practices §3 Spec 016](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 017 | Deploy: EC2 + Vercel + Neon + S3, secrets, backups | W4 | Not started | [practices §3 Spec 017](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
+
+**Owner requirements for chat (D74)** are additional binding inputs to spec 007: no queue in the chat path, streamed progress steps, guardrails with an injection test set, and answer/retrieval caching.
 
 **Engineering practices (D67):** when a spec is written, every *v1 must* item for it in `docs/engineering-practices.md` section 3 becomes an acceptance criterion, unless a recorded decision defers it.
 

@@ -3,23 +3,39 @@
 Tests build the app with injected readiness checks; production uses real clients.
 """
 
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from redis.asyncio import Redis
 
+from app.adapters.auth import build_auth_provider
 from app.adapters.storage.s3 import S3Storage
-from app.api.v1 import debug, health
+from app.api.v1 import debug, dev_auth, health
+from app.core.body_limit import BodyLimitMiddleware
 from app.core.config import Settings, get_settings
-from app.core.db import build_engine, ping_db
+from app.core.db import build_engine, build_sessionmaker, ping_db
 from app.core.errors import install_error_handlers
 from app.core.logging import configure_logging, get_logger
 from app.core.middleware import RequestContextMiddleware
+from app.core.ratelimit import CounterStore, RedisCounterStore
 from app.core.readiness import ReadinessCheck
+from app.modules.admin import router as admin_router
+from app.modules.identity import router as identity_router
+from app.modules.identity import webhooks as identity_webhooks
+from app.ports.auth import AuthProvider
 
 API_PREFIX = "/api/v1"
+
+
+def _celery_enqueue(task: str, kwargs: dict[str, Any]) -> None:
+    from app.worker.celery_app import celery_app
+
+    celery_app.send_task(task, kwargs=kwargs)
+
+
 log = get_logger(__name__)
 
 
@@ -27,16 +43,17 @@ def create_app(
     settings: Settings | None = None,
     *,
     readiness_checks: dict[str, ReadinessCheck] | None = None,
+    auth_provider: AuthProvider | None = None,
+    rate_store: CounterStore | None = None,
+    enqueue: Callable[[str, dict[str, Any]], None] | None = None,
 ) -> FastAPI:
     settings = settings or get_settings()
     configure_logging(settings.log_level)
+    auth = auth_provider or build_auth_provider(settings)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        if readiness_checks is not None:
-            app.state.readiness_checks = readiness_checks
-            yield
-            return
+        # Clients connect lazily, so building them is cheap even in unit tests.
         engine = build_engine(settings.database_url)
         redis = Redis.from_url(settings.redis_url)
         storage = S3Storage(settings)
@@ -50,13 +67,16 @@ def create_app(
             await redis.ping()
 
         app.state.engine = engine
+        app.state.sessionmaker = build_sessionmaker(engine)
+        app.state.redis = redis
+        app.state.rate_store = rate_store or RedisCounterStore(redis)
         app.state.storage = storage
-        app.state.readiness_checks = {
-            "db": lambda: ping_db(engine),
-            "redis": check_redis,
-            "storage": storage.ping,
-        }
-        log.info("startup", env=settings.env, llm_provider=settings.llm_provider)
+        app.state.readiness_checks = (
+            readiness_checks
+            if readiness_checks is not None
+            else {"db": lambda: ping_db(engine), "redis": check_redis, "storage": storage.ping}
+        )
+        log.info("startup", env=settings.env, llm_provider=settings.llm_provider, auth=auth.name)
         try:
             yield
         finally:
@@ -79,10 +99,20 @@ def create_app(
         allow_headers=["*"],
         expose_headers=["x-request-id"],
     )
+    app.add_middleware(BodyLimitMiddleware)
     app.add_middleware(RequestContextMiddleware)
+    app.state.auth = auth
+    app.state.settings = settings
+    app.state.enqueue = enqueue or _celery_enqueue
     install_error_handlers(app, production=settings.is_production)
 
     app.include_router(health.router, prefix=API_PREFIX)
+    app.include_router(identity_router.router, prefix=API_PREFIX)
+    app.include_router(identity_webhooks.router, prefix=API_PREFIX)
+    app.include_router(admin_router.router, prefix=API_PREFIX)
     if not settings.is_production:
         app.include_router(debug.router, prefix=API_PREFIX)
+    if auth.name == "dev":
+        log.warning("dev_auth_enabled", note="development login adapter active (D70)")
+        app.include_router(dev_auth.router, prefix=API_PREFIX)
     return app

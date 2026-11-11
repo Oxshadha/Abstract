@@ -1,6 +1,37 @@
 {
   "components": {
     "schemas": {
+      "DevToken": {
+        "properties": {
+          "token": {
+            "title": "Token",
+            "type": "string"
+          },
+          "token_type": {
+            "default": "bearer",
+            "title": "Token Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ],
+        "title": "DevToken",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
       "Health": {
         "properties": {
           "status": {
@@ -13,6 +44,106 @@
           "status"
         ],
         "title": "Health",
+        "type": "object"
+      },
+      "Me": {
+        "properties": {
+          "org": {
+            "$ref": "#/components/schemas/MeOrg"
+          },
+          "role": {
+            "enum": [
+              "owner",
+              "member"
+            ],
+            "title": "Role",
+            "type": "string"
+          },
+          "user": {
+            "$ref": "#/components/schemas/MeUser"
+          }
+        },
+        "required": [
+          "user",
+          "org",
+          "role"
+        ],
+        "title": "Me",
+        "type": "object"
+      },
+      "MeOrg": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "personal",
+              "team"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "kind"
+        ],
+        "title": "MeOrg",
+        "type": "object"
+      },
+      "MeUser": {
+        "properties": {
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "platform_role": {
+            "enum": [
+              "user",
+              "admin"
+            ],
+            "title": "Platform Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "display_name",
+          "platform_role"
+        ],
+        "title": "MeUser",
         "type": "object"
       },
       "Pong": {
@@ -54,6 +185,82 @@
         ],
         "title": "Ready",
         "type": "object"
+      },
+      "Received": {
+        "properties": {
+          "received": {
+            "title": "Received",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "received"
+        ],
+        "title": "Received",
+        "type": "object"
+      },
+      "RoleChange": {
+        "properties": {
+          "platform_role": {
+            "enum": [
+              "user",
+              "admin"
+            ],
+            "title": "Platform Role",
+            "type": "string"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "platform_role"
+        ],
+        "title": "RoleChange",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
       }
     }
   },
@@ -84,6 +291,113 @@
         ]
       }
     },
+    "/api/v1/admin/users/{user_id}/grant-admin": {
+      "post": {
+        "operationId": "grant_admin_api_v1_admin_users__user_id__grant_admin_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleChange"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Grant Admin",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/users/{user_id}/revoke-admin": {
+      "post": {
+        "operationId": "revoke_admin_api_v1_admin_users__user_id__revoke_admin_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleChange"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Revoke Admin",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/dev/token": {
+      "post": {
+        "operationId": "dev_token_api_v1_dev_token_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DevToken"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Issue a token for the demo user",
+        "tags": [
+          "dev"
+        ]
+      }
+    },
     "/api/v1/healthz": {
       "get": {
         "operationId": "healthz_api_v1_healthz_get",
@@ -102,6 +416,27 @@
         "summary": "Liveness (no dependencies)",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/api/v1/me": {
+      "get": {
+        "operationId": "me_api_v1_me_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "The signed-in user and their active organization",
+        "tags": [
+          "identity"
         ]
       }
     },
@@ -126,6 +461,27 @@
         "summary": "Readiness: database, redis and object storage reachable",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/api/v1/webhooks/clerk": {
+      "post": {
+        "operationId": "clerk_webhook_api_v1_webhooks_clerk_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Received"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Clerk user lifecycle events (Svix-signed)",
+        "tags": [
+          "webhooks"
         ]
       }
     }

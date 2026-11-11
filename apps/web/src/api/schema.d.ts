@@ -21,6 +21,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/users/{user_id}/grant-admin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Grant Admin */
+        post: operations["grant_admin_api_v1_admin_users__user_id__grant_admin_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}/revoke-admin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke Admin */
+        post: operations["revoke_admin_api_v1_admin_users__user_id__revoke_admin_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/dev/token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Issue a token for the demo user */
+        post: operations["dev_token_api_v1_dev_token_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/healthz": {
         parameters: {
             query?: never;
@@ -30,6 +81,23 @@ export interface paths {
         };
         /** Liveness (no dependencies) */
         get: operations["healthz_api_v1_healthz_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The signed-in user and their active organization */
+        get: operations["me_api_v1_me_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -55,10 +123,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/webhooks/clerk": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Clerk user lifecycle events (Svix-signed) */
+        post: operations["clerk_webhook_api_v1_webhooks_clerk_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** DevToken */
+        DevToken: {
+            /** Token */
+            token: string;
+            /**
+             * Token Type
+             * @default bearer
+             */
+            token_type: string;
+        };
+        /** HTTPValidationError */
+        HTTPValidationError: {
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
+        };
         /** Health */
         Health: {
             /**
@@ -66,6 +166,48 @@ export interface components {
              * @constant
              */
             status: "ok";
+        };
+        /** Me */
+        Me: {
+            org: components["schemas"]["MeOrg"];
+            /**
+             * Role
+             * @enum {string}
+             */
+            role: "owner" | "member";
+            user: components["schemas"]["MeUser"];
+        };
+        /** MeOrg */
+        MeOrg: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "personal" | "team";
+            /** Name */
+            name: string;
+        };
+        /** MeUser */
+        MeUser: {
+            /** Display Name */
+            display_name: string | null;
+            /** Email */
+            email: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Platform Role
+             * @enum {string}
+             */
+            platform_role: "user" | "admin";
         };
         /** Pong */
         Pong: {
@@ -85,6 +227,37 @@ export interface components {
              * @constant
              */
             status: "ready";
+        };
+        /** Received */
+        Received: {
+            /** Received */
+            received: boolean;
+        };
+        /** RoleChange */
+        RoleChange: {
+            /**
+             * Platform Role
+             * @enum {string}
+             */
+            platform_role: "user" | "admin";
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
+        /** ValidationError */
+        ValidationError: {
+            /** Context */
+            ctx?: Record<string, never>;
+            /** Input */
+            input?: unknown;
+            /** Location */
+            loc: (string | number)[];
+            /** Message */
+            msg: string;
+            /** Error Type */
+            type: string;
         };
     };
     responses: never;
@@ -115,6 +288,88 @@ export interface operations {
             };
         };
     };
+    grant_admin_api_v1_admin_users__user_id__grant_admin_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleChange"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    revoke_admin_api_v1_admin_users__user_id__revoke_admin_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleChange"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    dev_token_api_v1_dev_token_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DevToken"];
+                };
+            };
+        };
+    };
     healthz_api_v1_healthz_get: {
         parameters: {
             query?: never;
@@ -131,6 +386,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Health"];
+                };
+            };
+        };
+    };
+    me_api_v1_me_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
                 };
             };
         };
@@ -159,6 +434,26 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    clerk_webhook_api_v1_webhooks_clerk_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Received"];
+                };
             };
         };
     };

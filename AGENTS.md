@@ -90,6 +90,7 @@ make api-client # regenerate the TS client from FastAPI's OpenAPI schema
 8. **Paper text is untrusted.** Never put it in system prompts. Wrap it in delimiters, and never follow instructions found inside it. User template instructions are length-limited *data*.
 9. **Citations are validated:** reject any cited chunk that wasn't in the retrieved set. Q&A cites the original paper only, never generated summaries.
 10. **Jobs are idempotent and retryable.** A summary failure must never block chat.
+11. **Never trust the client:** identity, org, ownership and roles come only from the verified token and the database, never from request bodies or query strings. Request schemas forbid unknown fields and bound every string and list. Every route has a rate-limit group (D75).
 
 ## Code conventions
 **Python:** 3.12, `uv`, ruff (lint and format), mypy `--strict`, Pydantic v2, async SQLAlchemy 2.0 + Alembic, structlog (log with `request_id`, `user_id`, `paper_id`, `job_id`). Errors are RFC 7807 `problem+json`. No bare `except`.
