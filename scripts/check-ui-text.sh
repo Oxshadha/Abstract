@@ -24,6 +24,9 @@ RULES = [
         r"font-family\s*:(?!\s*var\()|fontFamily\s*:\s*[\"'`]")),
 ]
 # Generated token files, and the @font-face definitions (declaring a font is not using one).
+# Semantic status colours are allowed only inside the status components (D44, 003 AC5).
+SEMANTIC = re.compile(r"\b(?:text|bg|border|fill|stroke|ring)-(?:success|warning|error|info)(?:-bg)?\b")
+STATUS_DIR = "components/status"
 GENERATED = {"tokens.css", "theme.css", "tokens.ts", "fonts.css"}
 EXTS = {".ts", ".tsx", ".css", ".json", ".html"}
 
@@ -35,16 +38,20 @@ def scan(root: pathlib.Path) -> list[str]:
             continue
         if path.name in GENERATED and path.parent.name == "styles":
             continue
+        in_status_components = STATUS_DIR in path.as_posix()
         for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             for label, rule in RULES:
                 if rule.search(line):
                     bad.append(f"{path}:{n}: [{label}] {line.strip()}")
+            if not in_status_components and SEMANTIC.search(line):
+                bad.append(f"{path}:{n}: [status colour outside status components (D44)] {line.strip()}")
     return bad
 
 
 if "--self-test" in sys.argv:
     samples = ["a — b", "ok \U0001F600", "color: #ff0000;", "rgb(0 0 0)",
-               '<div className="bg-red-500">', 'style={{ fontFamily: "Arial" }}']
+               '<div className="bg-red-500">', 'style={{ fontFamily: "Arial" }}',
+               '<button className="bg-error text-white">']
     with tempfile.TemporaryDirectory() as tmp:
         for i, sample in enumerate(samples):
             (pathlib.Path(tmp) / f"s{i}.tsx").write_text(sample + "\n", encoding="utf-8")
