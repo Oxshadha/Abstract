@@ -19,36 +19,48 @@ class S3Storage:
         self.bucket = settings.s3_bucket
         self._settings = settings
         self._client_instance: Any = None
+        self._public_client_instance: Any = None
+
+    def _build(self, endpoint_url: str | None) -> Any:
+        settings = self._settings
+        return boto3.client(
+            "s3",
+            endpoint_url=endpoint_url,
+            region_name=settings.s3_region,
+            aws_access_key_id=(
+                settings.s3_access_key_id.get_secret_value() if settings.s3_access_key_id else None
+            ),
+            aws_secret_access_key=(
+                settings.s3_secret_access_key.get_secret_value()
+                if settings.s3_secret_access_key
+                else None
+            ),
+            # Path-style keeps local S3-compatible servers working on plain hostnames.
+            config=Config(
+                s3={"addressing_style": "path"},
+                retries={"max_attempts": 3, "mode": "standard"},
+                connect_timeout=2,
+                read_timeout=10,
+            ),
+        )
 
     @property
     def _client(self) -> Any:
         """Created on first use: building a boto3 client resolves credentials, which can make
         network calls (instance metadata), so it must not happen at app startup."""
         if self._client_instance is None:
-            settings = self._settings
-            self._client_instance = boto3.client(
-                "s3",
-                endpoint_url=settings.s3_endpoint_url,
-                region_name=settings.s3_region,
-                aws_access_key_id=(
-                    settings.s3_access_key_id.get_secret_value()
-                    if settings.s3_access_key_id
-                    else None
-                ),
-                aws_secret_access_key=(
-                    settings.s3_secret_access_key.get_secret_value()
-                    if settings.s3_secret_access_key
-                    else None
-                ),
-                # Path-style keeps local S3-compatible servers working on plain hostnames.
-                config=Config(
-                    s3={"addressing_style": "path"},
-                    retries={"max_attempts": 3, "mode": "standard"},
-                    connect_timeout=2,
-                    read_timeout=10,
-                ),
-            )
+            self._client_instance = self._build(self._settings.s3_endpoint_url)
         return self._client_instance
+
+    @property
+    def _public_client(self) -> Any:
+        """Signs links that browsers open; only differs from `_client` in local development."""
+        public = self._settings.s3_public_endpoint_url
+        if public is None or public == self._settings.s3_endpoint_url:
+            return self._client
+        if self._public_client_instance is None:
+            self._public_client_instance = self._build(public)
+        return self._public_client_instance
 
     async def ping(self) -> None:
         await asyncio.to_thread(self._client.head_bucket, Bucket=self.bucket)
@@ -59,6 +71,22 @@ class S3Storage:
             await self.ping()
         except ClientError:
             await asyncio.to_thread(self._client.create_bucket, Bucket=self.bucket)
+        # Browsers upload straight to storage (spec 004 AC2), so the web origin needs CORS.
+        # Production buckets get the same rule at deployment (spec 017).
+        await asyncio.to_thread(
+            self._client.put_bucket_cors,
+            Bucket=self.bucket,
+            CORSConfiguration={
+                "CORSRules": [
+                    {
+                        "AllowedOrigins": self._settings.cors_origins,
+                        "AllowedMethods": ["POST", "GET"],
+                        "AllowedHeaders": ["*"],
+                        "MaxAgeSeconds": 3600,
+                    }
+                ]
+            },
+        )
 
     async def put_bytes(self, key: str, data: bytes, content_type: str) -> None:
         await asyncio.to_thread(
@@ -71,7 +99,7 @@ class S3Storage:
 
     async def presigned_get_url(self, key: str, expires_seconds: int = 300) -> str:
         url: str = await asyncio.to_thread(
-            self._client.generate_presigned_url,
+            self._public_client.generate_presigned_url,
             "get_object",
             Params={"Bucket": self.bucket, "Key": key},
             ExpiresIn=expires_seconds,
@@ -82,7 +110,7 @@ class S3Storage:
         self, key: str, *, content_type: str, max_bytes: int, expires_seconds: int
     ) -> PresignedPost:
         post: dict[str, object] = await asyncio.to_thread(
-            self._client.generate_presigned_post,
+            self._public_client.generate_presigned_post,
             Bucket=self.bucket,
             Key=key,
             Fields={"Content-Type": content_type},

@@ -111,3 +111,28 @@ async def test_delete_prefix_is_idempotent(storage: S3Storage) -> None:
     assert await storage.delete_prefix("papers/o/p/") == 2
     assert await storage.delete_prefix("papers/o/p/") == 0
     await storage.delete(["papers/o/p/missing"])
+
+
+async def test_AC2_browser_links_use_the_public_endpoint(s3_endpoint: str) -> None:
+    store = S3Storage(
+        make_settings(
+            s3_endpoint_url=s3_endpoint,
+            s3_public_endpoint_url="http://public.example:9000",
+            s3_bucket="test-uploads",
+            s3_access_key_id="abstract-dev",
+            s3_secret_access_key="abstract-dev-secret",
+        )
+    )
+    post = await store.presigned_post(
+        "quarantine/o/x.pdf", content_type="application/pdf", max_bytes=10, expires_seconds=60
+    )
+    assert post.url.startswith("http://public.example:9000")
+    assert (await store.presigned_get_url("papers/o/p/sanitized.pdf")).startswith(
+        "http://public.example:9000"
+    )
+
+
+async def test_AC2_bucket_allows_browser_uploads_from_the_web_origin(storage: S3Storage) -> None:
+    rules = storage._client.get_bucket_cors(Bucket="test-uploads")["CORSRules"]
+    assert "POST" in rules[0]["AllowedMethods"]
+    assert rules[0]["AllowedOrigins"] == ["http://localhost:5173"]

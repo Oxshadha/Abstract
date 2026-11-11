@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     # Object storage (S3-compatible)
     s3_bucket: str
     s3_endpoint_url: str | None = None  # None = real AWS S3
+    # What browsers use for pre-signed links when it differs from the internal endpoint
+    # (local: the API reaches http://s3:8333, the browser http://localhost:8333).
+    s3_public_endpoint_url: str | None = None
     s3_region: str = "us-east-1"
     s3_access_key_id: SecretStr | None = None
     s3_secret_access_key: SecretStr | None = None
