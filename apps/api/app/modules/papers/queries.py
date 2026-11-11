@@ -3,6 +3,7 @@ on top of RLS (org), and fetches what it needs in one or two statements (no N+1)
 
 import base64
 import binascii
+import json
 from datetime import datetime
 from typing import Any
 from uuid import UUID
@@ -18,39 +19,110 @@ MAX_PAGE_SIZE = 50
 STEP_ORDER: tuple[StepKey, ...] = ("extracting", "sections", "indexing")
 
 
-def encode_cursor(created_at: datetime, paper_id: UUID) -> str:
-    return base64.urlsafe_b64encode(f"{created_at.isoformat()}|{paper_id}".encode()).decode()
+# Sort key expression and direction per sort (spec 013 AC3, AC11); each has a matching index
+# in migration 0008, and the cursor carries the key of the last row plus its id.
+SORTS: dict[str, tuple[str, str]] = {
+    "added": ("created_at", "DESC"),
+    "opened": ("coalesce(last_opened_at, created_at)", "DESC"),
+    "title": ("lower(coalesce(title, filename))", "ASC"),
+}
 
 
-def decode_cursor(cursor: str) -> tuple[datetime, UUID]:
+def encode_cursor(sort: str, key: Any, paper_id: UUID) -> str:
+    value = key.isoformat() if isinstance(key, datetime) else str(key)
+    raw = json.dumps([sort, value, str(paper_id)])
+    return base64.urlsafe_b64encode(raw.encode()).decode()
+
+
+def decode_cursor(cursor: str, sort: str) -> tuple[Any, UUID]:
     try:
-        raw = base64.urlsafe_b64decode(cursor.encode()).decode()
-        stamp, paper_id = raw.split("|", 1)
-        return datetime.fromisoformat(stamp), UUID(paper_id)
-    except (ValueError, binascii.Error, UnicodeDecodeError) as exc:
+        raw = json.loads(base64.urlsafe_b64decode(cursor.encode()).decode())
+        cursor_sort, value, paper_id = raw
+        if cursor_sort != sort:
+            raise ValueError("cursor from another sort")
+        key: Any = value if sort == "title" else datetime.fromisoformat(value)
+        return key, UUID(paper_id)
+    except (ValueError, TypeError, binascii.Error, UnicodeDecodeError) as exc:
         raise ProblemError(400, "invalid-cursor", "The page cursor is not valid.") from exc
 
 
 async def list_papers(
-    session: AsyncSession, owner_id: UUID, *, limit: int, cursor: str | None
+    session: AsyncSession,
+    owner_id: UUID,
+    *,
+    limit: int,
+    cursor: str | None,
+    sort: str = "added",
+    doc_type: str | None = None,
+    starred: bool = False,
+    collection_id: UUID | None = None,
 ) -> PaperPage:
+    """One statement whatever the filters (AC9): filters are WHERE clauses, never extra reads."""
+    key, direction = SORTS[sort]
     params: dict[str, Any] = {"owner": owner_id, "limit": limit + 1}
-    where = "owner_id = :owner"
+    where = ["owner_id = :owner"]
+    if doc_type:
+        where.append("doc_type = :type")
+        params["type"] = doc_type
+    if starred:
+        where.append("starred")
+    if collection_id is not None:
+        where.append(
+            "EXISTS (SELECT 1 FROM collection_papers cp WHERE cp.paper_id = papers.id"
+            " AND cp.collection_id = :collection)"
+        )
+        params["collection"] = collection_id
     if cursor:
-        params["c_at"], params["c_id"] = decode_cursor(cursor)
-        where += " AND (created_at, id) < (:c_at, :c_id)"
+        params["c_key"], params["c_id"] = decode_cursor(cursor, sort)
+        op = "<" if direction == "DESC" else ">"
+        where.append(f"({key}, id) {op} (:c_key, :c_id)")
     rows = (
         await session.execute(
             text(
-                f"SELECT {PAPER_COLUMNS} FROM papers WHERE {where}"  # noqa: S608 (constants)
-                " ORDER BY created_at DESC, id DESC LIMIT :limit"
+                f"SELECT {PAPER_COLUMNS}, {key} AS sort_key FROM papers"  # noqa: S608 (constants)
+                f" WHERE {' AND '.join(where)}"
+                f" ORDER BY {key} {direction}, id {direction} LIMIT :limit"
             ),
             params,
         )
     ).all()
-    items = [PaperOut.model_validate(r._asdict()) for r in rows[:limit]]
-    next_cursor = encode_cursor(items[-1].created_at, items[-1].id) if len(rows) > limit else None
+    page = rows[:limit]
+    items = [PaperOut.model_validate(r._asdict()) for r in page]
+    next_cursor = encode_cursor(sort, page[-1].sort_key, page[-1].id) if len(rows) > limit else None
     return PaperPage(items=items, next_cursor=next_cursor)
+
+
+async def update_paper(
+    session: AsyncSession,
+    owner_id: UUID,
+    paper_id: UUID,
+    *,
+    title: str | None,
+    starred: bool | None,
+) -> PaperOut:
+    row = (
+        await session.execute(
+            text(
+                "UPDATE papers SET title = COALESCE(CAST(:title AS text), title),"  # noqa: S608
+                " title_edited = title_edited OR CAST(:title AS text) IS NOT NULL,"
+                " starred = COALESCE(CAST(:starred AS boolean), starred)"
+                f" WHERE id = :id AND owner_id = :owner RETURNING {PAPER_COLUMNS}"
+            ),
+            {"title": title, "starred": starred, "id": paper_id, "owner": owner_id},
+        )
+    ).first()
+    if row is None:
+        raise ProblemError(404, "paper-not-found", "This paper was not found.")
+    return PaperOut.model_validate(row._asdict())
+
+
+async def mark_opened(session: AsyncSession, owner_id: UUID, paper_id: UUID) -> None:
+    result = await session.execute(
+        text("UPDATE papers SET last_opened_at = now() WHERE id = :id AND owner_id = :owner"),
+        {"id": paper_id, "owner": owner_id},
+    )
+    if result.rowcount == 0:  # type: ignore[attr-defined]
+        raise ProblemError(404, "paper-not-found", "This paper was not found.")
 
 
 async def get_paper(session: AsyncSession, owner_id: UUID, paper_id: UUID) -> PaperOut:

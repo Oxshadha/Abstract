@@ -29,7 +29,8 @@ PDF_MAGIC = b"%PDF-"
 log = get_logger(__name__)
 
 PAPER_COLUMNS = (
-    "id, filename, title, pages, size_bytes, status, text_status, error_message, created_at"
+    "id, filename, title, pages, size_bytes, status, text_status, error_message, created_at,"
+    " starred, last_opened_at, authors, year, doc_type"
 )
 
 

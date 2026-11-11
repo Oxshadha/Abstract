@@ -50,7 +50,7 @@ class Settings(BaseSettings):
 
     # Baseline rate limits per minute by route group (spec 002 AC15; plans in spec 012).
     rate_limits: dict[str, int] = Field(
-        default_factory=lambda: {"auth": 30, "read": 300, "write": 60, "upload": 20}
+        default_factory=lambda: {"auth": 30, "read": 300, "write": 60, "upload": 20, "search": 120}
     )
 
     # Upload limits (spec 004, D57). Plan-specific limits move to entitlements in spec 012.

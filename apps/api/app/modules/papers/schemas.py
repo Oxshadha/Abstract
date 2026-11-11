@@ -42,6 +42,22 @@ class PaperOut(BaseModel):
     text_status: Literal["pending", "ready", "failed"]
     error_message: str | None
     created_at: datetime
+    starred: bool
+    last_opened_at: datetime | None
+    authors: list[str]
+    year: int | None
+    doc_type: Literal["paper", "report", "article", "other"] | None
+
+
+PaperSort = Literal["added", "opened", "title"]
+PaperType = Literal["paper", "report", "article"]
+
+
+class PaperUpdate(StrictModel):
+    """Rename or star a paper (spec 013 AC5, AC12). At least one field."""
+
+    title: Annotated[CleanStr, StringConstraints(min_length=1, max_length=300)] | None = None
+    starred: bool | None = None
 
 
 class JobOut(BaseModel):
