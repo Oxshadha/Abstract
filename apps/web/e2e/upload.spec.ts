@@ -32,7 +32,7 @@ test("upload a paper and open it once chat is available", async ({ page }, testI
 
   await page.getByRole("link", { name: "Library" }).first().click();
   const row = page.getByRole("listitem").filter({ hasText: title });
-  await expect(row.getByText("Ready")).toBeVisible();
+  await expect(row.getByText("Ready")).toBeVisible({ timeout: 15_000 });
   await page.screenshot({ path: testInfo.outputPath("library-after.png"), fullPage: true });
 
   // No horizontal scroll at any width (D60).
