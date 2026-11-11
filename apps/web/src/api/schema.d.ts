@@ -296,6 +296,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Summary templates available to the user (system templates first) */
+        get: operations["list_templates_api_v1_templates_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/webhooks/clerk": {
         parameters: {
             query?: never;
@@ -626,6 +643,57 @@ export interface components {
              * @enum {string}
              */
             state: "done" | "active" | "pending" | "failed";
+        };
+        /** TemplateField */
+        TemplateField: {
+            /** Instruction */
+            instruction: string;
+            /** Key */
+            key: string;
+            /** Label */
+            label: string;
+            /**
+             * Required
+             * @default true
+             */
+            required: boolean;
+            /**
+             * Style
+             * @default paragraph
+             * @enum {string}
+             */
+            style: "paragraph" | "bullets" | "short";
+        };
+        /** TemplateList */
+        TemplateList: {
+            /** Items */
+            items: components["schemas"]["TemplateOut"][];
+        };
+        /** TemplateOut */
+        TemplateOut: {
+            /** Description */
+            description: string;
+            /** Fields */
+            fields: components["schemas"]["TemplateField"][];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "system" | "custom";
+            /** Name */
+            name: string;
+            /** Version */
+            version: number;
+            /**
+             * Version Id
+             * Format: uuid
+             */
+            version_id: string;
         };
         /** UploadRequest */
         UploadRequest: {
@@ -1295,6 +1363,26 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    list_templates_api_v1_templates_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateList"];
+                };
             };
         };
     };

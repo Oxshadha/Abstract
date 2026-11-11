@@ -734,6 +734,117 @@
         "title": "StepOut",
         "type": "object"
       },
+      "TemplateField": {
+        "properties": {
+          "instruction": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Instruction",
+            "type": "string"
+          },
+          "key": {
+            "pattern": "^[a-z][a-z0-9_]{1,39}$",
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "required": {
+            "default": true,
+            "title": "Required",
+            "type": "boolean"
+          },
+          "style": {
+            "default": "paragraph",
+            "enum": [
+              "paragraph",
+              "bullets",
+              "short"
+            ],
+            "title": "Style",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "instruction"
+        ],
+        "title": "TemplateField",
+        "type": "object"
+      },
+      "TemplateList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TemplateOut"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "TemplateList",
+        "type": "object"
+      },
+      "TemplateOut": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/TemplateField"
+            },
+            "title": "Fields",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "system",
+              "custom"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "version_id": {
+            "format": "uuid",
+            "title": "Version Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "description",
+          "version",
+          "version_id",
+          "fields"
+        ],
+        "title": "TemplateOut",
+        "type": "object"
+      },
       "UploadRequest": {
         "additionalProperties": false,
         "properties": {
@@ -1671,6 +1782,27 @@
         "summary": "Readiness: database, redis and object storage reachable",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/api/v1/templates": {
+      "get": {
+        "operationId": "list_templates_api_v1_templates_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Summary templates available to the user (system templates first)",
+        "tags": [
+          "summaries"
         ]
       }
     },
