@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Approved (owner, 2026-11-11): answers on gemini-3.5-flash; hybrid retrieval always (no keyword-first mode); reranker only if an experiment shows a quality gain without significant latency (D80) |
+| **Status** | Approved (owner, 2026-11-11): answers on gemini-3.6-flash (owner re-decided after the price check); hybrid retrieval always (no keyword-first mode); reranker only if an experiment shows a quality gain without significant latency (D80) |
 | **Week** | W2 |
 | **Decisions** | D9, D15, D16, D22, D23, D49, D50, D52, D53, D69, D74, D78, D79 |
 | **Requirements** | R1, R5, N3, N4 |
@@ -69,6 +69,6 @@ First status event < 300 ms; first answer token p95 < 2.5 s on a warm cache of t
 Unit: rewrite/classify parsing, RRF, citation parsing and validation, guardrail screens, cache keys. Integration: send and stream end to end with the fake provider (steps, deltas, citations, done), idempotent replay, stop and partial save, keyword-only mode, RLS on the new tables, pagination. Injection and off-topic test set in CI. Frontend: panel states (empty, streaming, stopped, failed, refused), batching and live region, abort on switch, axe. Playwright: ask a question on the happy path.
 
 ## Open questions (owner)
-- **Q1 (answered):** `gemini-3.5-flash` for answers; `gemini-3.5-flash-lite` for rewrite and routing.
+- **Q1 (answered):** `gemini-3.6-flash` for answers (owner re-decided after current prices showed gemini-3.5-flash at about twice the cost); `gemini-3.5-flash-lite` for rewrite and routing.
 - **Q2 (answered):** reranker decided by measurement (AC18).
 - **Q3 (answered):** hybrid search always; no keyword-first mode now (D78 waits for the production benchmark); keywords only as a labelled fallback when embedding fails.
