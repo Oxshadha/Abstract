@@ -6,7 +6,7 @@ This is lightweight spec-driven development. Each feature gets a one-to-two page
 
 | # | Spec | Week | Status | Must also include (D67) |
 |---|---|---|---|---|
-| 000 | [Benchmark harness & corpus (experiments A/B/C/E)](000-benchmark.md) | W1 | In progress | n/a (written before the analysis) |
+| 000 | [Benchmark harness & corpus (experiments A/B/C/E)](000-benchmark.md) | W1 | Implemented (AC4 scoring pending human check) | n/a (written before the analysis) |
 | 001 | [Foundation: monorepo, CI, docker-compose, config, logging](001-foundation.md) | W1 | Implemented | n/a (written before the analysis) |
 | 002 | [Auth & tenancy: Clerk, orgs, policy service, RLS, audit log](002-auth-tenancy.md) | W1 | Approved | [practices §3 Spec 002](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 003 | Design system: tokens pipeline, fonts, app shell, auth modal | W1 | Not started | [practices §3 Spec 003](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |

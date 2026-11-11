@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Approved (owner, 2026-11-11) |
+| **Status** | Implemented (2026-11-11) except AC4 scoring, which awaits a human check of `present_fields` |
 | **Week** | W1 (3-day timebox, after 001's skeleton exists) |
 | **Decisions** | D12, D19, D20, D21, D24, D53 |
 | **Assumptions tested** | C1, C2, C3, C4, C5, C6 |
@@ -80,7 +80,7 @@ Whole suite ≤ ~$5 per full run (guarded). Expected runtime < 45 min for `all`.
 Unit: metric functions (numeric normalization, fuzzy citation match, probe ordering, hit@k/MRR). Integration: run experiment B end-to-end on one tiny committed PDF fixture with the fake provider.
 
 ## Results (2026-11-11)
-Final report: `eval/reports/20261110-A-B-Bp-B-fast-E.md` (3 runs, verified golden, $1.55, 144/144 ok). Outcomes: D68 confirmed (plain text first), D20 confirmed (12/12 tier-L single-call), embedding size raised as EDP-004. **Not done:** experiment C (Docling) for lack of disk space; proposed to move into spec 009, where Docling becomes the background layout parser (needs owner approval: changes this spec's scope). Reading-order probes scored low for every parser (0.33 to 0.39) and do not separate them; citation highlighting will use `page.search_for(quote)` (D23), which does not depend on reading order.
+Final report: `eval/reports/20261110-A-B-Bp-B-fast-E.md` (3 runs, verified golden, $1.55, 144/144 ok). Outcomes: D68 confirmed (plain text first), D20 confirmed (12/12 tier-L single-call), embedding size raised as EDP-004. **Experiment C (Docling)** completed after disk space was freed: combined report `eval/reports/20261111-combined.md` (180/180 summaries ok). Docling has the best reading order (0.50) and table structure but parses in 10.5 s p50 / 67 s p95 (scanned OCR), so it is the background layout parser, not the first-response path (D71, D73). Reading-order probes scored low for every parser (0.33 to 0.39) and do not separate them; citation highlighting will use `page.search_for(quote)` (D23), which does not depend on reading order.
 
 ## Open questions (owner)
 - **Q1:** Is a **$5 budget per full run** OK? Probably 2–4 runs in W1, so ≈ $10–20 total.
