@@ -69,6 +69,8 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
+      - name: Entry bundle within budget (spec 003 AC10)
+        run: pnpm check:bundle
       - name: Built app never loads fonts from Google (spec 003 AC4)
         run: "! grep -rEl 'fonts\\.(googleapis|gstatic)\\.com' dist"
       - name: Design tokens are up to date (spec 003 AC1)

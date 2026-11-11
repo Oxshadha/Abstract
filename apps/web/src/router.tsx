@@ -1,5 +1,6 @@
 import {
   createRootRoute,
+  lazyRouteComponent,
   createRoute,
   createRouter,
   Outlet,
@@ -13,7 +14,6 @@ import {
   NotFoundPage,
   SettingsPage,
   TemplatesPage,
-  WorkspacePage,
 } from "@/routes/app/pages";
 import { HomePage } from "@/routes/HomePage";
 
@@ -24,7 +24,7 @@ const libraryRoute = createRoute({ getParentRoute: () => appRoute, path: "/libra
 const collectionsRoute = createRoute({ getParentRoute: () => appRoute, path: "/collections", component: CollectionsPage });
 const templatesRoute = createRoute({ getParentRoute: () => appRoute, path: "/templates", component: TemplatesPage });
 const settingsRoute = createRoute({ getParentRoute: () => appRoute, path: "/settings", component: SettingsPage });
-const workspaceRoute = createRoute({ getParentRoute: () => appRoute, path: "/papers/$paperId", component: WorkspacePage });
+const workspaceRoute = createRoute({ getParentRoute: () => appRoute, path: "/papers/$paperId", component: lazyRouteComponent(() => import("@/routes/app/WorkspacePage")) });
 
 const routeTree = rootRoute.addChildren([
   indexRoute,

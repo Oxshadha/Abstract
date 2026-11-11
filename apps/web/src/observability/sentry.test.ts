@@ -17,9 +17,12 @@ describe("AC12/AC13: Sentry", () => {
     expect(Sentry.init).not.toHaveBeenCalled();
   });
 
-  it("initialises with privacy defaults and strips request bodies (D76)", () => {
+  it("initialises lazily with privacy defaults and strips request bodies (D76)", async () => {
     vi.stubEnv("VITE_SENTRY_DSN", "https://key@o1.ingest.de.sentry.io/1");
     expect(initSentry()).toBe(true);
+    await vi.waitFor(() => {
+      expect(Sentry.init).toHaveBeenCalled();
+    });
     const options = vi.mocked(Sentry.init).mock.calls[0]?.[0];
     expect(options?.dataCollection).toMatchObject({ userInfo: false, httpBodies: [] });
     const scrubbed = options?.beforeSend?.(
