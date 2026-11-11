@@ -8,6 +8,7 @@ from uuid import UUID
 
 from celery.exceptions import SoftTimeLimitExceeded
 
+from app.modules.llm import reindex as reindex_module
 from app.modules.papers import deletion
 from app.modules.papers import ingest as ingest_module
 from app.modules.papers import ocr as ocr_module
@@ -69,6 +70,26 @@ def ocr_pages(self: Any, job_id: str, org_id: str) -> str:
 def scan_paper(self: Any, job_id: str, org_id: str) -> str:
     """Background malware scan on its own queue (D77, spec 004 AC16)."""
     return _job_task(self, scan_module.run_scan, job_id, org_id, scan=True)
+
+
+async def _reindex(run_id: UUID) -> bool:
+    async with worker_deps() as deps:
+        return await reindex_module.reindex_batch(deps, run_id)
+
+
+@celery_app.task(  # type: ignore[untyped-decorator]
+    name="app.worker.tasks.reindex_embeddings",
+    autoretry_for=(Exception,),
+    retry_backoff=True,
+    retry_jitter=True,
+    max_retries=5,
+)
+def reindex_embeddings(run_id: str) -> str:
+    """Re-embed papers after the embedding model changes, one batch per task (005 AC12)."""
+    if asyncio.run(_reindex(UUID(run_id))):
+        celery_app.send_task(reindex_module.REINDEX_TASK, kwargs={"run_id": run_id})
+        return "continued"
+    return "done"
 
 
 async def _delete_paper(org_id: UUID, paper_id: UUID, quarantine_key: str) -> int:
