@@ -2,7 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { ExternalLink, FileText } from "lucide-react";
 
-import { StatusPill, type Status } from "@/components/status/StatusPill";
+import { StatusIcon, StatusPill, type Status } from "@/components/status/StatusPill";
 import { getPaper, paperKeys, type Paper } from "@/features/papers/api";
 import { formatPages, timeAgo } from "@/features/papers/format";
 import { listSummaries, summaryKeys } from "@/features/summaries/api";
@@ -57,36 +57,54 @@ function OpenLink({ paper }: { paper: Paper }) {
   );
 }
 
+/**
+ * One paper in a list. Phones get a single clean line: icon, title with status, pages and
+ * time beneath, then star and menu as icons; the whole row opens the paper. Wider screens add
+ * the status pill, a time column and the Open button.
+ */
 export function PaperRow({ paper }: { paper: Paper }) {
   const pill = PILL[paper.status];
   const prefetch = usePrefetch(paper);
   const name = paperName(paper);
+  const meta = byline(paper);
   return (
     <li
       onMouseEnter={prefetch}
       onFocus={prefetch}
-      className="flex flex-wrap items-center gap-3 rounded-lg border border-border bg-surface p-3 sm:flex-nowrap sm:gap-4 sm:p-4"
+      className="relative flex items-center gap-3 rounded-lg border border-border bg-surface py-2 pr-1 pl-3 sm:gap-4 sm:p-4"
     >
-      <span className="flex size-11 shrink-0 items-center justify-center rounded-md bg-muted">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-muted sm:size-11">
         <FileText aria-hidden className="size-5" />
       </span>
-      <div className="min-w-0 flex-1 basis-[calc(100%-7rem)] sm:basis-auto">
+      <div className="min-w-0 flex-1">
         <Link
           to={paper.status === "ready" ? "/app/papers/$paperId" : "/app/papers/$paperId/processing"}
           params={{ paperId: paper.id }}
-          className="block truncate font-medium hover:underline"
+          className="block truncate font-medium after:absolute after:inset-0 after:rounded-lg hover:underline sm:after:hidden"
           title={name}
         >
           {name}
         </Link>
-        <p className="truncate text-sm text-text-secondary">{byline(paper)}</p>
+        <p className="flex min-w-0 items-center gap-1.5 text-sm text-text-secondary">
+          <span className="sm:hidden">
+            <StatusIcon status={pill.status} label={pill.label} />
+          </span>
+          <span className="truncate">{meta}</span>
+          <span className="shrink-0 sm:hidden">{`${meta ? "· " : ""}${timeAgo(paper.created_at)}`}</span>
+        </p>
         {paper.status === "failed" && paper.error_message && <p className="mt-1 text-sm text-text-secondary">{paper.error_message}</p>}
       </div>
-      <StarButton paper={paper} />
-      <StatusPill status={pill.status}>{pill.label}</StatusPill>
-      <span className="ml-auto text-sm whitespace-nowrap text-text-secondary sm:ml-0 sm:w-16 sm:text-right">{timeAgo(paper.created_at)}</span>
-      <OpenLink paper={paper} />
-      <PaperMenu paper={paper} />
+      <span className="hidden sm:inline-flex">
+        <StatusPill status={pill.status}>{pill.label}</StatusPill>
+      </span>
+      <span className="hidden w-16 text-right text-sm whitespace-nowrap text-text-secondary sm:inline">{timeAgo(paper.created_at)}</span>
+      <span className="hidden sm:inline-flex">
+        <OpenLink paper={paper} />
+      </span>
+      <span className="relative z-10 flex shrink-0 items-center">
+        <StarButton paper={paper} />
+        <PaperMenu paper={paper} />
+      </span>
     </li>
   );
 }

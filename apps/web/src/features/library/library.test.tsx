@@ -80,7 +80,7 @@ describe("Library (AC1 to AC4)", () => {
     const rows = within(await screen.findByRole("list", { name: "Papers" })).getAllByRole("listitem");
     expect(within(rows[1] as HTMLElement).getByText("Wang et al. · 2024 · 15 pages")).toBeInTheDocument();
     fireEvent.click(within(rows[0] as HTMLElement).getByRole("button", { name: /Actions for Attention/ }));
-    expect(screen.getAllByRole("menuitem").map((m) => m.textContent)).toEqual(["Star", "Add to collection", "Rename", "Delete"]);
+    expect(screen.getAllByRole("menuitem").map((m) => m.textContent)).toEqual(["Add to collection", "Rename", "Delete"]); // star is its own icon on the row
   });
 
   it("AC3: filters and sort live in the URL", async () => {
@@ -150,7 +150,7 @@ describe("Collections in the sidebar (AC6, AC7)", () => {
     const rows = within(await screen.findByRole("list", { name: "Papers" })).getAllByRole("listitem");
     fireEvent.click(within(rows[0] as HTMLElement).getByRole("button", { name: /Actions for Attention/ }));
     expect(screen.getAllByRole("menuitem").map((m) => m.textContent)).toEqual([
-      "Star", "Add to collection", "Move to collection", "Remove from this collection", "Rename", "Delete",
+      "Add to collection", "Move to collection", "Remove from this collection", "Rename", "Delete",
     ]);
     fireEvent.click(screen.getByRole("menuitem", { name: "Move to collection" }));
     fireEvent.click(within(await screen.findByRole("list", { name: "Move to" })).getByRole("button", { name: /Healthcare AI/ }));

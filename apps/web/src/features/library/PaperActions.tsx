@@ -36,7 +36,6 @@ type Open = "collections" | "move" | "rename" | "delete" | null;
 /** The "..." menu on a Library row or card (AC2, AC5, AC7). */
 export function PaperMenu({ paper }: { paper: Paper }) {
   const [open, setOpen] = useState<Open>(null);
-  const update = useUpdatePaper();
   const inCollection = useOpenCollection();
   const toggle = useMembership(paper.id);
   const name = paperName(paper);
@@ -58,11 +57,6 @@ export function PaperMenu({ paper }: { paper: Paper }) {
       <Menu
         label={`Actions for ${name}`}
         items={[
-          {
-            label: paper.starred ? "Unstar" : "Star",
-            icon: <Star aria-hidden className="size-4" />,
-            onSelect: () => { update.mutate({ id: paper.id, change: { starred: !paper.starred } }); },
-          },
           { label: "Add to collection", icon: <FolderPlus aria-hidden className="size-4" />, onSelect: () => { setOpen("collections"); } },
           ...collectionItems,
           { label: "Rename", icon: <Pencil aria-hidden className="size-4" />, onSelect: () => { setOpen("rename"); } },

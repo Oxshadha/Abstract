@@ -24,18 +24,21 @@ export function HomeView() {
   const items = recent.data?.items ?? [];
 
   return (
-    <div className="flex flex-col gap-8 px-4 pt-6 pb-10 md:px-8">
-      <header>
-        <h1 className="text-3xl font-bold tracking-tight">Home</h1>
-        <p className="mt-1 text-text-secondary">Upload a research paper, or pick up where you left off.</p>
-      </header>
+    <div className="flex flex-col gap-6 px-4 pt-6 pb-10 md:gap-8 md:px-8">
+      {/* The upload box below already says what to do; a subtitle only repeated it (owner review). */}
+      <h1 className="text-3xl font-bold tracking-tight">Home</h1>
       <DropZone />
       {(recent.isPending || items.length > 0) && (
         <section aria-labelledby="recent-heading" className="flex flex-col gap-4">
           <div className="flex items-center gap-2">
-            <h2 id="recent-heading" className="font-display text-2xl font-bold">Recently opened</h2>
-            <Link to="/app/library" className="ml-auto inline-flex min-h-11 items-center gap-1 rounded-md px-2 text-text-secondary hover:text-text">
-              View all in Library
+            <h2 id="recent-heading" className="font-display text-xl font-bold whitespace-nowrap sm:text-2xl">Recently opened</h2>
+            <Link
+              to="/app/library"
+              title="View all in Library"
+              aria-label="View all in Library"
+              className="ml-auto inline-flex min-h-11 shrink-0 items-center gap-1 rounded-md px-2 text-sm whitespace-nowrap text-text-secondary hover:text-text sm:text-base"
+            >
+              View all<span className="hidden sm:inline">{" in Library"}</span>
               <ArrowRight aria-hidden className="size-4" />
             </Link>
           </div>

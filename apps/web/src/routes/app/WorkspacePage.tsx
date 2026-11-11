@@ -147,18 +147,24 @@ export default function WorkspacePage() {
     <CitationProvider onOpen={openPaper}>
     <OpenFromUrl paperId={paperId} />
     <div className="flex h-full flex-col">
-      <header className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-4">
-        <Link to="/app/library" aria-label="Back to your library" className="inline-flex size-11 items-center justify-center rounded-md hover:bg-muted">
+      {/* One line on every screen: back, title (with type and authors beneath), star; the
+          panel toggles follow on desktop (owner review: phones wrapped into three lines). */}
+      <header className="flex min-w-0 items-center gap-2 px-2 pt-3 sm:gap-3 sm:px-4 sm:pt-4">
+        <Link to="/app/library" aria-label="Back to your library" className="inline-flex size-11 shrink-0 items-center justify-center rounded-md hover:bg-muted">
           <ArrowLeft aria-hidden className="size-5" />
         </Link>
-        <h1 className="min-w-0 truncate font-display text-xl font-bold md:text-2xl" title={paper.data?.title ?? undefined}>
-          {paper.data?.title ?? paper.data?.filename ?? " "}
-        </h1>
-        <span className="rounded-sm border border-border px-1.5 text-xs text-text-secondary">PDF</span>
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate font-display text-lg font-bold sm:text-xl md:text-2xl" title={paper.data?.title ?? undefined}>
+            {paper.data?.title ?? paper.data?.filename ?? " "}
+          </h1>
+          <p className="flex min-w-0 items-center gap-2 text-sm text-text-secondary">
+            <span className="shrink-0 rounded-sm border border-border px-1.5 text-xs">PDF</span>
+            <span className="truncate">{byline(headerSummary.data)}</span>
+          </p>
+        </div>
         {paper.data && <StarButton paper={paper.data} />}
-        <span className="text-sm text-text-secondary">{byline(headerSummary.data)}</span>
         {desktop && (
-        <div role="toolbar" aria-label="Panels" className="ml-auto flex items-center gap-2">
+        <div role="toolbar" aria-label="Panels" className="flex shrink-0 items-center gap-2">
           <ToggleButton pressed={layout.paper} disabled={layout.paper && !layout.summary} onClick={() => { toggle("paper"); }}>
             <FileText aria-hidden className="size-4" />
             Paper

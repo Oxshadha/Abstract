@@ -73,11 +73,11 @@ describe("AC14: Library list", () => {
     const list = await screen.findByRole("list", { name: "Papers" });
     const rows = within(list).getAllByRole("listitem");
     expect(rows).toHaveLength(3);
-    expect(within(rows[0] as HTMLElement).getByText("Ready")).toBeInTheDocument();
+    expect(within(rows[0] as HTMLElement).getAllByText("Ready")[0]).toBeInTheDocument();
     expect(within(rows[0] as HTMLElement).getByText("Vaswani, Shazeer · 2017 · 15 pages")).toBeInTheDocument();
     expect(within(rows[0] as HTMLElement).getByText("2h ago")).toBeInTheDocument();
-    expect(within(rows[1] as HTMLElement).getByText("Processing")).toBeInTheDocument();
-    expect(within(rows[2] as HTMLElement).getByText("Failed")).toBeInTheDocument();
+    expect(within(rows[1] as HTMLElement).getAllByText("Processing")[0]).toBeInTheDocument();
+    expect(within(rows[2] as HTMLElement).getAllByText("Failed")[0]).toBeInTheDocument();
     expect(within(rows[2] as HTMLElement).getByText(/damaged/)).toBeInTheDocument();
   });
 

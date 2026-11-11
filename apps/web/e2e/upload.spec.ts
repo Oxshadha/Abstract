@@ -59,7 +59,8 @@ test("upload a paper and open it once chat is available", async ({ page }, testI
   await page.getByRole("link", { name: "Library" }).first().click();
   // By id: the summary may tidy the displayed title (it is model output).
   const row = page.getByRole("listitem").filter({ has: page.locator(`a[href$="/app/papers/${paperId}"]`) });
-  await expect(row.getByText("Ready")).toBeVisible({ timeout: 15_000 });
+  // Phones show the status as an icon, wider screens as a pill: check the one on screen.
+  await expect(row.getByText("Ready", { exact: true }).filter({ visible: true })).toBeVisible({ timeout: 15_000 });
   await page.screenshot({ path: testInfo.outputPath("library-after.png"), fullPage: true });
 
   // No horizontal scroll at any width (D60).

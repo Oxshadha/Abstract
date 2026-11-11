@@ -8,6 +8,7 @@ import { ListRowSkeleton, Loading } from "@/components/feedback/Skeleton";
 import { Select } from "@/components/menu/Select";
 import { FieldError } from "@/components/status/FieldError";
 import { useUploadFlow } from "@/features/papers/useUploadFlow";
+import { useMediaQuery } from "@/features/workspace/layout";
 
 import { libraryKeys, listCollections, listLibrary, type LibraryParams, type Sort } from "./api";
 import { PaperCard, PaperRow } from "./PaperItems";
@@ -147,7 +148,7 @@ function Toolbar({ params, view, onView }: { params: LibraryParams; view: View; 
           onChange={(sort) => { set({ sort: sort === "added" ? undefined : sort }); }}
           width="w-48"
         />
-        <span role="group" aria-label="View" className="flex rounded-md border border-border">
+        <span role="group" aria-label="View" className="hidden rounded-md border border-border sm:flex">
           <button type="button" aria-label="Grid view" aria-pressed={view === "grid"} onClick={() => { onView("grid"); }} className={`inline-flex size-11 items-center justify-center rounded-md ${view === "grid" ? "bg-muted" : "hover:bg-muted"}`}>
             <LayoutGrid aria-hidden className="size-4" />
           </button>
@@ -166,7 +167,10 @@ export function LibraryView() {
   const params = withDefaults(search);
   const page = useRef<HTMLDivElement>(null);
   const sentinel = useRef<HTMLDivElement>(null);
-  const [view, setView] = useState<View>(readView);
+  const [chosenView, setView] = useState<View>(readView);
+  // Phones always get the compact list: a one-column "grid" is just bigger rows (owner review).
+  const wide = useMediaQuery("(min-width: 640px)");
+  const view: View = wide ? chosenView : "list";
   const collections = useQuery({ queryKey: libraryKeys.collections, queryFn: listCollections, enabled: Boolean(params.collection) });
   const collection = collections.data?.find((c) => c.id === params.collection);
 
@@ -207,7 +211,7 @@ export function LibraryView() {
       <header className="flex flex-wrap items-start gap-4">
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-3xl font-bold tracking-tight">{collection?.name ?? "Your Library"}</h1>
-          <p className="mt-1 text-text-secondary">
+          <p className="mt-1 hidden text-text-secondary sm:block">
             {collection ? `${String(collection.paper_count)} ${collection.paper_count === 1 ? "paper" : "papers"} in this collection.` : "Upload, organize, summarize, and explore your research papers."}
           </p>
         </div>
