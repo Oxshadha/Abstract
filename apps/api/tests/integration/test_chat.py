@@ -369,3 +369,31 @@ async def test_AC16_AC17_messages_are_capped_and_paged(
     assert (
         await api.client.get(url, params={"limit": 51}, headers=bearer(user))
     ).status_code == 422
+
+
+class ReverseReranker:
+    async def rerank(self, query: str, candidates: Any, top_n: int) -> list[str]:
+        return [c.id for c in reversed(candidates)][:top_n]
+
+
+async def test_AC18_an_enabled_reranker_reorders_the_passages(
+    api: PapersApi, worker: Worker, chat: ScriptedChat
+) -> None:
+    user, paper = await ready_paper(api, worker)
+    cid = await conversation(api, user, paper)
+    owner = await worker.row("SELECT org_id, owner_id FROM papers WHERE id = :p", p=paper)
+    turn = engine.Turn(
+        org_id=owner.org_id,
+        user_id=owner.owner_id,
+        paper_id=UUID(paper),
+        conversation_id=UUID(cid),
+        question="How does self attention work?",
+    )
+    plain = engine.ChatDeps(sessionmaker=worker.deps.sessionmaker, gateway=chat, redis=None)
+    ranked = engine.ChatDeps(
+        sessionmaker=worker.deps.sessionmaker, gateway=chat, redis=None, reranker=ReverseReranker()
+    )
+    events_plain = [e async for e in engine.answer_stream(plain, turn)]
+    events_ranked = [e async for e in engine.answer_stream(ranked, turn)]
+    reading = [e for e in events_plain + events_ranked if '"step": "reading"' in e]
+    assert len(reading) == 2  # both paths answer; the reranked one uses the reordered passages

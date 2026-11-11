@@ -31,11 +31,13 @@ from app.modules.llm.gateway import set_context
 from app.modules.llm.prompts import Prompt, register, using, wrap_untrusted
 from app.modules.retrieval.hybrid import retrieve
 from app.ports.llm import JsonSchema, LLMGateway
+from app.ports.rerank import Candidate, Reranker
 from app.ports.tracing import NoTracer, Tracer
 
 log = get_logger(__name__)
 HISTORY_MESSAGES = 16  # the last 8 turns (D22)
 TOP_PASSAGES = 8
+RERANK_POOL = 30  # first-stage candidates when a reranker is enabled (D49)
 CACHE_TTL_SECONDS = 7 * 86_400
 SUGGESTIONS = [
     "What problem does this paper address?",
@@ -124,6 +126,7 @@ class ChatDeps:
     redis: Redis | None
     tracer: Tracer = field(default_factory=NoTracer)
     answer_model: str = "answer"  # the registry's current answer model, part of the cache key
+    reranker: Reranker | None = None  # only when the registry enables `rerank` (D80, AC18)
 
 
 @dataclass(frozen=True)
@@ -401,10 +404,23 @@ async def answer_stream(deps: ChatDeps, turn: Turn) -> AsyncIterator[str]:
         return
 
     yield sse("status", {"step": "searching", "label": "Searching the paper"})
-    found = await retrieve(deps, turn.org_id, turn.paper_id, query, top_k=TOP_PASSAGES)
+    found = await retrieve(
+        deps,
+        turn.org_id,
+        turn.paper_id,
+        query,
+        top_k=RERANK_POOL if deps.reranker else TOP_PASSAGES,
+    )
+    chunks = found.chunks
+    if deps.reranker is not None and chunks:
+        by_id = {str(c.id): c for c in chunks}
+        order = await deps.reranker.rerank(
+            query, [Candidate(str(c.id), c.text) for c in chunks], TOP_PASSAGES
+        )
+        chunks = [by_id[i] for i in order if i in by_id]
     passages = [
         Passage(i + 1, c.id, c.page_start, c.page_end, c.section_path, c.text)
-        for i, c in enumerate(found.chunks)
+        for i, c in enumerate(chunks)
     ]
     if not passages:
         async for event in _finish_refusal(deps, turn, NOT_FOUND):

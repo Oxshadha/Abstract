@@ -22,6 +22,7 @@ from app.modules.chat.schemas import (
     SendMessage,
 )
 from app.modules.identity.service import RequestContext
+from app.modules.llm.registry import UnknownTaskError
 
 router = APIRouter(tags=["chat"])
 
@@ -202,6 +203,7 @@ async def send_message(
         redis=state.redis,
         tracer=llm.gateway.tracer,
         answer_model=(await llm.registry.get("answer")).primary.model,
+        reranker=await _reranker(llm, state.settings),
     )
 
     async def events() -> AsyncIterator[str]:
@@ -223,6 +225,21 @@ async def send_message(
 
 
 _STREAM_HEADERS = {"Cache-Control": "no-store", "X-Accel-Buffering": "no"}  # AC12
+
+
+async def _reranker(llm: Any, settings: Any) -> Any:
+    """A reranker only when the registry enables `rerank` and Vertex is configured (D80)."""
+    try:
+        entry = await llm.registry.get("rerank")
+    except UnknownTaskError:
+        return None  # the default: off until experiment R justifies it
+    if not settings.gcp_project_id or settings.llm_provider == "fake":
+        return None
+    from app.adapters.rerank.vertex import VertexReranker
+
+    return VertexReranker(
+        settings.gcp_project_id, entry.primary.model, timeout=entry.deadline_seconds
+    )
 
 
 async def _remember_answer(maker: Any, identity: RequestContext, key: UUID, answer: str) -> None:
