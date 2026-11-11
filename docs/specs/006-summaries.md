@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Approved (owner, 2026-11-11): template step as the mockup; long papers decided by measurement (AC6); gap-fill now |
+| **Status** | Implemented except AC6 (2026-11-11): the long-paper experiment is still to be run; one call is used for every paper meanwhile |
 | **Week** | W2 |
 | **Decisions** | D15, D20, D27, D36, D38, D40, D52, D69, D71, D73, D77 |
 | **Requirements** | R1, R3, R4, N3, N4 |
@@ -19,26 +19,26 @@ Right after upload the user picks a template (Quick Summary preselected) and see
 
 ## Acceptance criteria
 **Templates**
-- [ ] **AC1** — Templates are versioned data, not prompts (D15): a template has fields, each with a key, label, extraction instruction (length-limited, passed to the model as wrapped data, rule 8), output style (Paragraph, Bullets, Short value) and required flag. System templates Quick Summary and Detailed Research Analysis are seeded, read-only and shared by all users; saving a template creates a new version and summaries record the exact version used. `GET /templates` lists the templates available to the user.
-- [ ] **AC2** — After the upload finishes, the template step (mockup step 02) shows the file card and the three options with Quick Summary preselected; Continue starts the summary and opens the processing page; text extraction and indexing already run in the background while the user chooses, so choosing adds no processing time (Custom Template links to the Templates page until 010).
+- [x] **AC1** — Templates are versioned data, not prompts (D15): a template has fields, each with a key, label, extraction instruction (length-limited, passed to the model as wrapped data, rule 8), output style (Paragraph, Bullets, Short value) and required flag. System templates Quick Summary and Detailed Research Analysis are seeded, read-only and shared by all users; saving a template creates a new version and summaries record the exact version used. `GET /templates` lists the templates available to the user.
+- [x] **AC2** — After the upload finishes, the template step (mockup step 02) shows the file card and the three options with Quick Summary preselected; Continue starts the summary and opens the processing page; text extraction and indexing already run in the background while the user chooses, so choosing adds no processing time (Custom Template links to the Templates page until 010).
 
 **Generation**
-- [ ] **AC3** — A summary job (fast queue) sends the sanitized PDF to the `summarize` task with the template's fields as a strict JSON schema and the versioned prompt (`summarize@1`); title, authors, year and `doc_type` are filled in the same call. Fields are saved and published as each one completes in the stream, so the UI shows them one by one. Target (D73): first field p95 < 7 s after Continue for a typical paper.
-- [ ] **AC4** — Each field has a value, a status (`found`, `inferred`, `not_reported`) and 1 to 3 evidence quotes with page numbers (D15). Evidence is verified inline against the extracted page text with rapidfuzz: a quote that matches is `verified` (and its page corrected if it was found on another page); one that does not is kept but marked `unverified`. A field is **verified** when all its evidence verifies, otherwise **provisional**; the label is shown. No extra LLM call.
-- [ ] **AC5** — Gap-fill: for each `not_reported` field, a second look retrieves the most relevant chunks of the paper (full-text plus vector search) and makes one small `summarize` call with only those chunks; a found value replaces `not_reported` with its evidence verified as in AC4; otherwise the field stays `not_reported`. Gap-fill runs after the main fields are visible and never delays them.
+- [x] **AC3** — A summary job (fast queue) sends the sanitized PDF to the `summarize` task with the template's fields as a strict JSON schema and the versioned prompt (`summarize@1`); title, authors, year and `doc_type` are filled in the same call. Fields are saved and published as each one completes in the stream, so the UI shows them one by one. Target (D73): first field p95 < 7 s after Continue for a typical paper.
+- [x] **AC4** — Each field has a value, a status (`found`, `inferred`, `not_reported`) and 1 to 3 evidence quotes with page numbers (D15). Evidence is verified inline against the extracted page text with rapidfuzz: a quote that matches is `verified` (and its page corrected if it was found on another page); one that does not is kept but marked `unverified`. A field is **verified** when all its evidence verifies, otherwise **provisional**; the label is shown. No extra LLM call.
+- [x] **AC5** — Gap-fill: for each `not_reported` field, a second look retrieves the most relevant chunks of the paper (full-text plus vector search) and makes one small `summarize` call with only those chunks; a found value replaces `not_reported` with its evidence verified as in AC4; otherwise the field stays `not_reported`. Gap-fill runs after the main fields are visible and never delays them.
 - [ ] **AC6** — Long papers are decided by measurement, not assumption (owner): one call covers every paper up to the model's input limit (above it, references and appendices are left out first and the summary records partial coverage). Experiment L in the eval harness compares one call against per-section extraction on the corpus's long papers (40+ pages) for latency, cost and field accuracy against the golden data; the report goes to the owner, and per-section extraction is built only if it wins (recorded as a decision either way, narrowing or keeping D20).
-- [ ] **AC7** — Failure handling: a summary failure never blocks chat or the text index (rule 10); the job is retried like other jobs (004 AC9) and then fails with a calm message and a Retry button; partial fields already shown are kept. Usage and cost are recorded per paper (005).
+- [x] **AC7** — Failure handling: a summary failure never blocks chat or the text index (rule 10); the job is retried like other jobs (004 AC9) and then fails with a calm message and a Retry button; partial fields already shown are kept. Usage and cost are recorded per paper (005).
 
 **Workspace and editing**
-- [ ] **AC8** — The Workspace Summary panel matches the mockup: header with title, authors and year; template switcher (Quick Summary, Detailed Research Analysis, Custom Template); field cards with icon, label, value (paragraph or bullets), status label (verified, provisional, inferred, not reported) and source chips (`Source: p. 2 to 6`); skeletons for fields still streaming; switching to a template without a summary starts one.
-- [ ] **AC9** — Edit mode: each field can be edited; edits are saved as a new version and never overwritten by regeneration or gap-fill (D15); edited fields are marked "Edited"; a field can be reset to the generated value.
-- [ ] **AC10** — The processing page adds the mockup's steps "Building summary" (with progress by completed fields) and "Finding citations" (verification), alongside the text steps from 004.
+- [x] **AC8** — The Workspace Summary panel matches the mockup: header with title, authors and year; template switcher (Quick Summary, Detailed Research Analysis, Custom Template); field cards with icon, label, value (paragraph or bullets), status label (verified, provisional, inferred, not reported) and source chips (`Source: p. 2 to 6`); skeletons for fields still streaming; switching to a template without a summary starts one.
+- [x] **AC9** — Edit mode: each field can be edited; edits are saved as a new version and never overwritten by regeneration or gap-fill (D15); edited fields are marked "Edited"; a field can be reset to the generated value.
+- [x] **AC10** — The processing page adds the mockup's steps "Building summary" (with progress by completed fields) and "Finding citations" (verification), alongside the text steps from 004.
 
 **Practices (§3 Spec 006)**
-- [ ] **AC11** — Query budget: fetching a summary with all fields and evidence makes at most 4 SQL queries regardless of field or evidence count; a test counts them with a SQLAlchemy event listener.
-- [ ] **AC12** — Edits autosave 1 s after typing stops with a visible "Saved" state; saves send `If-Match: <version>`; a stale version returns `412` and the user can reload or keep their copy.
-- [ ] **AC13** — `GET /summaries/{id}` returns an `ETag` and `Cache-Control: private, no-cache`, and `304` when unchanged.
-- [ ] **AC14** — Markdown in field values is rendered with react-markdown without `rehype-raw`; links get `rel="noopener noreferrer nofollow"` and only `http(s)` and `mailto`; math with KaTeX >= 0.16.21 and `trust: false`.
+- [x] **AC11** — Query budget: fetching a summary with all fields and evidence makes at most 4 SQL queries regardless of field or evidence count; a test counts them with a SQLAlchemy event listener.
+- [x] **AC12** — Edits autosave 1 s after typing stops with a visible "Saved" state; saves send `If-Match: <version>`; a stale version returns `412` and the user can reload or keep their copy.
+- [x] **AC13** — `GET /summaries/{id}` returns an `ETag` and `Cache-Control: private, no-cache`, and `304` when unchanged.
+- [x] **AC14** — Markdown in field values is rendered with react-markdown without `rehype-raw`; links get `rel="noopener noreferrer nofollow"` and only `http(s)` and `mailto`; math with KaTeX >= 0.16.21 and `trust: false`.
 
 ## API contract
 | Method | Path | Auth | Response | Errors |
@@ -63,6 +63,13 @@ First field p95 < 7 s after Continue (D73; measured 2.78 s p50 in the benchmark)
 
 ## Test plan
 Unit: schema building from templates, streaming field parser, quote verification, gap-fill selection, markdown safety. Integration: job end to end with the fake provider (fields stream in order, evidence verified against real page text), edit versions and `412`, query budget, ETag/304, RLS on all tables. Frontend: template step, Summary panel states (streaming, verified, provisional, edited, failed), autosave, axe. Eval harness: field accuracy and verification rate on the corpus (manual, costs money).
+
+## Implementation notes (2026-11-11)
+- **Verified with real Gemini** on `make dev`: the browser happy path (upload, template step, processing with summary steps, Ready) passes at desktop and phone sizes; summaries stream field by field, quotes found word for word are marked Verified, absent sections say Not reported.
+- **AC6 open:** one call covers every paper today (Gemini reads the whole PDF); the per-section comparison on long papers (experiment L) is still to run before this criterion is closed.
+- **Workspace layout changed by the owner (D79):** Paper and Summary side by side, hideable, resizable; chat opens on demand. The Summary panel itself is as AC8 describes.
+- **Source chips** expand to the quoted evidence until the PDF viewer (008) can open the page.
+- **Library freshness:** the list refreshes after an upload and whenever it is opened (found by the browser test).
 
 ## Open questions (owner)
 - **Q1 (answered):** template step as the mockup. It adds no cost: each summary is one call (about $0.007) for the chosen template only, and auto-starting a Quick Summary would cost a second call whenever the user wants another template. Indexing runs during the step, so it adds no processing time.

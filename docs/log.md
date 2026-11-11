@@ -15,6 +15,15 @@ Entry format:
 
 ---
 
+## 2026-11-11: Spec 006 summaries implemented (13 of 14); workspace layout D79
+**Done:** Templates as versioned data with Quick and Detailed seeded (AC1); template step after upload (AC2); summary job streaming fields from the sanitized PDF with the versioned prompt (AC3); deterministic quote verification and provisional/verified labels (AC4); gap-fill with full-text plus vector search (AC5); calm failures with Retry (AC7); Workspace Summary panel (AC8); versioned edits never overwritten (AC9); summary steps on the processing page (AC10); 3-query reads (AC11); autosave with If-Match (AC12); ETag and 304 (AC13); safe Markdown with KaTeX (AC14). Owner direction recorded as D79: editor-style Workspace (Paper and Summary side by side, hideable, resizable; chat on demand). Owner and reviewer approved R9 conditionally (D78).
+**Verified:** browser happy path with real Gemini at desktop and phone sizes.
+**Bugs caught:** Library list stale after upload (now refreshed on upload and on open).
+**Deps:** rapidfuzz (API); react-markdown 10.1.0, remark-math 6.0.0, rehype-katex 7.0.1, KaTeX 0.19.1 (web, all older than two weeks).
+**Decisions:** D78, D79 added   **Specs:** 006 Implemented except AC6
+**Next:** PR for 006 (owner approval to push); spec 007 chat (with D78's progressive retrieval if needed); AC6 experiment when time allows.
+**Blockers / waiting on owner:** permission to push and open the 006 PR.
+
 ## 2026-11-11: Langfuse tracing with the official SDK (owner request)
 **Done:** Installed and followed the `langfuse/skills` skill (read before use; docs fetched fresh). Replaced the hand-written ingestion client with Langfuse Python SDK 5.0.4: a trace per job with verb-first names, user ID, the paper as session, tags, environment and release; nested step spans; generation and embedding observations with model, parameters, prompt version, usage, cost and levels. Metadata only per D76, with an isolated OpenTelemetry provider exporting only Langfuse spans. Ran the instrumented path end to end on `make dev` (real Vertex), fetched the traces back through the v2 observations API and audited them against the best-practices page.
 **Found through the trace:** embedding dominates ingestion (about 4 s of 5 s); a wasted batch call per paper removed (about 1.7 s saved); remaining gap to D73 recorded as R9 for an EDP.
