@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft |
+| **Status** | Approved (owner, 2026-11-11): answers on gemini-3.5-flash; hybrid retrieval always (no keyword-first mode); reranker only if an experiment shows a quality gain without significant latency (D80) |
 | **Week** | W2 |
 | **Decisions** | D9, D15, D16, D22, D23, D49, D50, D52, D53, D69, D74, D78, D79 |
 | **Requirements** | R1, R5, N3, N4 |
@@ -24,7 +24,7 @@ The user asks questions about the open paper and gets a streamed answer, grounde
 - [ ] **AC3** — Follow-ups use the last 8 turns plus a rolling summary of older turns (D22); the cheap `rewrite` task turns the question into a standalone search query and classifies it (paper question, greeting, off-topic, unsafe) in one call.
 
 **Retrieval and answering**
-- [ ] **AC4** — Retrieval is hybrid and scoped to the paper (D49, D50): full-text (`websearch_to_tsquery`) and vector (cosine, exact scan by `paper_id`, embedding the query with the paper's recorded embedding model) merged with RRF; the top passages (about 8) go to the `answer` task with their page ranges, as delimited data (rule 8). If the paper's vectors are not ready, keyword retrieval alone is used and the answer is labelled "Searching by keywords while the paper finishes indexing" (D78).
+- [ ] **AC4** — Retrieval is hybrid and scoped to the paper (D49, D50): full-text (`websearch_to_tsquery`) and vector (cosine, exact scan by `paper_id`, embedding the query with the paper's recorded embedding model) merged with RRF; the top passages (about 8) go to the `answer` task with their page ranges, as delimited data (rule 8). Chat opens when hybrid search is ready (owner, D80). Only if embedding the question fails at answer time (provider outage) does retrieval fall back to keywords, and that answer is labelled "Answered from a keyword search" (degraded mode, never the normal path).
 - [ ] **AC5** — The answer prompt (`answer@1`, versioned) requires every factual sentence to cite its passage (`[S3]`). After streaming, citations are validated: markers for passages outside the retrieved set are removed; each cited sentence is matched to its supporting sentence in the passage (rapidfuzz) to store a quote and page for 008; an answer with no valid citation is replaced by a calm "I could not find this in the paper" with suggestions (rule 9).
 - [ ] **AC6** — Guardrails (D74): answers only from the paper; off-topic or general questions get a polite scoped refusal with suggested questions; user text is length-limited and screened for injection patterns; the system prompt and other users' data are never revealed; refusals and blocks are logged without content. An injection and off-topic test set (OWASP LLM01 style) runs in CI with the fake provider.
 - [ ] **AC7** — Visible progress (D74): `status` events "Understanding your question", "Searching the paper", "Reading p. 4 to 7", "Writing the answer", shown like an activity line; they describe pipeline steps, never model reasoning.
@@ -42,6 +42,9 @@ The user asks questions about the open paper and gets a streamed answer, grounde
 - [ ] **AC15** — Tokens are appended in batches per animation frame; the ARIA live region announces completed sentences, not every token.
 - [ ] **AC16** — Messages are capped at 4,000 characters on the server and the client.
 - [ ] **AC17** — Conversation history uses cursor pagination with `limit` <= 50.
+
+**Reranking by measurement (owner, D80)**
+- [ ] **AC18** — A `Reranker` port with a Vertex ranking adapter (Google, no new provider) sits between retrieval and the answer, off by default (registry task `rerank` disabled). Experiment R in the eval harness compares answers on the golden questions with and without reranking (citation hit rate, answer accuracy, added latency p50/p95); the report goes to the owner and the reranker is enabled only if quality improves clearly without significant latency.
 
 ## API contract
 | Method | Path | Auth | Response | Errors |
@@ -66,6 +69,6 @@ First status event < 300 ms; first answer token p95 < 2.5 s on a warm cache of t
 Unit: rewrite/classify parsing, RRF, citation parsing and validation, guardrail screens, cache keys. Integration: send and stream end to end with the fake provider (steps, deltas, citations, done), idempotent replay, stop and partial save, keyword-only mode, RLS on the new tables, pagination. Injection and off-topic test set in CI. Frontend: panel states (empty, streaming, stopped, failed, refused), batching and live region, abort on switch, axe. Playwright: ask a question on the happy path.
 
 ## Open questions (owner)
-- **Q1 — Answer model:** D69 left it to this spec. Proposal: `gemini-3.5-flash` for answers (stronger than the summary model, still cheap; about $0.006 per question by the cost model), with `gemini-3.5-flash-lite` for rewrite and routing. Alternative: flash-lite everywhere (cheaper, weaker reasoning).
-- **Q2 — Reranker:** D53 planned `cohere/rerank-v3.5`, a new provider. Proposal: no reranker in v1; send the top RRF passages straight to the answer model and add a reranker only if the eval shows a clear gain (narrows D53, recorded as a decision).
-- **Q3 — Keyword-first chat now (D78):** we measured 3 to 5 s until vectors are ready. Proposal: build it now (chunks become searchable by keywords first, vectors fill in moments later), clearly labelled, instead of waiting for the production benchmark.
+- **Q1 (answered):** `gemini-3.5-flash` for answers; `gemini-3.5-flash-lite` for rewrite and routing.
+- **Q2 (answered):** reranker decided by measurement (AC18).
+- **Q3 (answered):** hybrid search always; no keyword-first mode now (D78 waits for the production benchmark); keywords only as a labelled fallback when embedding fails.
