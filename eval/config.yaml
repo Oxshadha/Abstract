@@ -1,0 +1,28 @@
+# Benchmark configuration (spec 000). Production models are chosen from these results (D53).
+# Model IDs verified live on 2026-11-11; prices are list prices (Vertex returns no cost, so the
+# adapter estimates it from these).
+provider: vertex          # vertex (owner's GCP project) | openrouter (needs credits)
+
+vertex:
+  location: global        # project comes from GCP_PROJECT_ID, key from GCP_SA_FILE in .env
+  models:
+    summarize: { id: gemini-3.5-flash-lite, input: 0.30, output: 2.50, thinking_budget: 0 }
+    golden: { id: gemini-3.1-pro-preview, input: 2.00, output: 12.00, thinking_budget: 2048 }
+  embeddings:             # experiment E: same model, three sizes (D24 storage vs quality)
+    - { name: gemini2-512, model: gemini-embedding-2, dimensions: 512, input: 0.20 }
+    - { name: gemini2-768, model: gemini-embedding-2, dimensions: 768, input: 0.20 }
+    - { name: gemini2-1536, model: gemini-embedding-2, dimensions: 1536, input: 0.20 }
+
+openrouter:               # kept for when credits exist (original D24 comparison)
+  models:
+    summarize: anthropic/claude-haiku-5.5
+    golden: anthropic/claude-sonnet-5.5
+  embeddings:
+    - { name: te3-small-512, model: openai/text-embedding-3-small, dimensions: 512 }
+    - { name: te3-small-1536, model: openai/text-embedding-3-small, dimensions: 1536 }
+    - { name: gemini-001-768, model: google/gemini-embedding-001, dimensions: 768 }
+
+pdf_engine: null          # OpenRouter only: null = model's native PDF input (experiment A)
+runs: 3                   # repetitions per paper for latency variance
+budget_usd: 5.0           # hard cap per full run (AC10); override with EVAL_MAX_USD
+golden_budget_usd: 3.0    # cap for drafting reference data

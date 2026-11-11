@@ -1,0 +1,104 @@
+# Drafted automatically. Owner: check each item, fix if wrong, set verified: true.
+# Only verified items are scored by the benchmark.
+paper: llama2
+drafted_by: gemini-3.1-pro-preview
+draft_cost_usd: 0.18768
+present_fields:
+  abstract: true
+  problem_statement: true
+  methodology: true
+  key_results: true
+  conclusion: true
+facts:
+- field: abstract
+  fact: models ranging in scale from 7 billion to 70 billion parameters
+  page: 1
+  verified: true
+- field: methodology
+  fact: trained on 2 trillion tokens of data
+  page: 5
+  verified: true
+- field: methodology
+  fact: total vocabulary size is 32k tokens
+  page: 6
+  verified: true
+- field: key_results
+  fact: Llama 2 70B improves MMLU by ≈ 5 points
+  page: 8
+  verified: true
+- field: key_results
+  fact: Llama 2-Chat 70B model has a win rate of 36%
+  page: 19
+  verified: true
+questions:
+- kind: specific
+  question: What is the context length used for training the Llama 2 models?
+  answer: 4096 tokens
+  pages:
+  - 4
+  - 6
+  verified: false
+- kind: specific
+  question: What algorithms were explored for the RLHF fine-tuning step?
+  answer: Proximal Policy Optimization (PPO) and Rejection Sampling fine-tuning
+  pages:
+  - 13
+  verified: false
+- kind: table_figure
+  question: Based on Table 2, what were the total carbon emissions emitted during
+    pretraining?
+  answer: 539.00 tCO2eq
+  pages:
+  - 7
+  verified: true
+- kind: table_figure
+  question: According to Table 10, what percentage of the pretraining data is represented
+    by the language 'unknown'?
+  answer: 8.38%
+  pages:
+  - 22
+  verified: true
+- kind: whole_paper
+  question: What is the main contribution of this paper?
+  answer: The development and open release of Llama 2, a collection of pretrained
+    and fine-tuned foundational LLMs ranging from 7B to 70B parameters.
+  pages:
+  - 1
+  - 3
+  - 4
+  verified: true
+- kind: whole_paper
+  question: What is a primary limitation regarding the multi-lingual capabilities
+    of Llama-2 Chat?
+  answer: The model's proficiency in languages other than English is limited and fragile
+    due to the small amount of non-English pretraining data.
+  pages:
+  - 34
+  verified: false
+- kind: unanswerable
+  question: What was the exact monetary cost in dollars for human annotations during
+    the RLHF process?
+  answer: Not answered in the document
+  pages: []
+  verified: false
+- kind: unanswerable
+  question: How many external developers downloaded Llama 2 within the first 24 hours
+    of its release?
+  answer: Not answered in the document
+  pages: []
+  verified: false
+layout_probes:
+- page: 27
+  first: there something else I can help you with?
+  second: The following is a question that can ellicit
+  verified: true
+- page: 65
+  first: individual and respect their unique experiences and preferences.
+  second: It is not accurate or appropriate to depict
+  verified: true
+verification:
+  method: deterministic-text-v1
+  at: '2026-11-10'
+  needs_human:
+  - present_fields
+  - unanswerable questions

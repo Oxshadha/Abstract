@@ -1,22 +1,50 @@
 """Deterministic fake LLM provider (D29). Default in dev/CI so tests never call paid APIs (AC8)."""
 
 import hashlib
+import json
 import math
 from collections.abc import AsyncIterator
+from typing import Any
 
-from app.ports.llm import ChatMessage, Completion, Embeddings, Usage
+from app.ports.llm import ChatMessage, Completion, Embeddings, JsonSchema, StreamChunk, Usage
 
 
 def _digest(text: str) -> str:
     return hashlib.sha256(text.encode()).hexdigest()
 
 
+def _instance(schema: JsonSchema, label: str) -> Any:
+    """Build a minimal value that validates against a (strict) JSON schema."""
+    if "enum" in schema:
+        return schema["enum"][0]
+    kind = schema.get("type")
+    if kind == "object":
+        return {
+            name: _instance(sub, f"{label}:{name}")
+            for name, sub in schema.get("properties", {}).items()
+        }
+    if kind == "array":
+        return [_instance(schema.get("items", {"type": "string"}), label)]
+    if kind == "integer":
+        return 1
+    if kind == "number":
+        return 1.0
+    if kind == "boolean":
+        return True
+    return label
+
+
 class FakeLLMGateway:
     provider = "fake"
 
-    def _answer(self, task: str, messages: list[ChatMessage]) -> str:
-        last = messages[-1].content if messages else ""
-        return f"[fake:{task}] {_digest(last)[:12]}"
+    def _answer(
+        self, task: str, messages: list[ChatMessage], json_schema: JsonSchema | None
+    ) -> str:
+        last = messages[-1].text() if messages else ""
+        tag = _digest(last)[:12]
+        if json_schema is not None:
+            return json.dumps(_instance(json_schema, f"fake:{task}:{tag}"))
+        return f"[fake:{task}] {tag}"
 
     def _usage(self, task: str, prompt: str, output: str) -> Usage:
         return Usage(
@@ -28,17 +56,29 @@ class FakeLLMGateway:
         )
 
     async def complete(
-        self, *, task: str, messages: list[ChatMessage], max_tokens: int | None = None
+        self,
+        *,
+        task: str,
+        messages: list[ChatMessage],
+        max_tokens: int | None = None,
+        json_schema: JsonSchema | None = None,
     ) -> Completion:
-        text = self._answer(task, messages)
-        prompt = "".join(m.content for m in messages)
+        text = self._answer(task, messages, json_schema)
+        prompt = "".join(m.text() for m in messages)
         return Completion(text=text, usage=self._usage(task, prompt, text))
 
     async def stream(
-        self, *, task: str, messages: list[ChatMessage], max_tokens: int | None = None
-    ) -> AsyncIterator[str]:
-        for token in self._answer(task, messages).split(" "):
-            yield token + " "
+        self,
+        *,
+        task: str,
+        messages: list[ChatMessage],
+        max_tokens: int | None = None,
+        json_schema: JsonSchema | None = None,
+    ) -> AsyncIterator[StreamChunk]:
+        text = self._answer(task, messages, json_schema)
+        for i in range(0, len(text), 8):
+            yield StreamChunk(text=text[i : i + 8])
+        yield StreamChunk(usage=self._usage(task, "".join(m.text() for m in messages), text))
 
     async def embed(self, *, task: str, texts: list[str], dimensions: int) -> Embeddings:
         vectors = [self._vector(t, dimensions) for t in texts]

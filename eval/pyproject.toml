@@ -1,0 +1,40 @@
+# Tool config for the benchmark harness. It runs in the API's environment
+# (uv run --project ../apps/api --group eval ...) so it can use the same LLMGateway port.
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "ASYNC", "RUF", "SIM", "PT"]
+ignore = ["S101"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "harness"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["N802"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+plugins = ["pydantic.mypy"]
+mypy_path = ["../apps/api"]
+files = ["harness", "tests"]
+explicit_package_bases = true
+
+[[tool.mypy.overrides]]
+module = ["pypdfium2.*", "yaml.*", "pymupdf4llm.*", "pymupdf.*", "docling.*"]  # docling is optional (eval-docling group)
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".", "../apps/api"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+addopts = "-ra --disable-socket --allow-unix-socket -p no:cacheprovider"
+filterwarnings = ["ignore:builtin type swig:DeprecationWarning"]
+
+[[tool.mypy.overrides]]
+# PyMuPDF's bindings are only partially typed; allow calling them from these modules.
+module = ["harness.golden", "tests.test_golden", "tests.test_run"]
+disallow_untyped_calls = false

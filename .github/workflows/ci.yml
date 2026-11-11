@@ -38,11 +38,18 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
         with: { enable-cache: true }
-      - run: uv sync --frozen
+      - run: uv sync --frozen --group eval
       - run: uv run ruff check .
       - run: uv run ruff format --check .
       - run: uv run mypy
       - run: uv run pytest  # integration tests use testcontainers (Docker is available on ubuntu runners)
+      - name: Benchmark harness (lint, types, tests; no network, no paid calls)
+        working-directory: eval
+        run: |
+          uv run --project ../apps/api --group eval ruff check .
+          uv run --project ../apps/api --group eval ruff format --check .
+          uv run --project ../apps/api --group eval mypy
+          uv run --project ../apps/api --group eval pytest
 
   web:
     name: Web (lint, types, tests, build)

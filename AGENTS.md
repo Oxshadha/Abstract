@@ -111,6 +111,7 @@ make api-client # regenerate the TS client from FastAPI's OpenAPI schema
 
 ## Workflow: lightweight spec-driven development
 1. **Spec:** copy `docs/specs/_template.md` to `docs/specs/NNN-<feature>.md`. Fill in the goal, acceptance criteria (Given/When/Then), API contract, data changes and edge cases. Status `Draft`.
+   **Include every *v1 must* item mapped to this spec in `docs/engineering-practices.md` section 3 as acceptance criteria (D67).** Leaving one out requires a recorded decision; a spec missing them is not approvable.
 2. **Approve:** the human owner reviews and sets the status to `Approved`. Don't write feature code before this.
 3. **Build:** implement against the acceptance criteria. Tests first where practical.
 4. **Close:** tick the criteria in the spec, set the status to `Implemented`, and update `decisions.md` if anything changed.

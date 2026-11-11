@@ -1,0 +1,105 @@
+# Drafted automatically. Owner: check each item, fix if wrong, set verified: true.
+# Only verified items are scored by the benchmark.
+paper: specaugment
+drafted_by: gemini-3.1-pro-preview
+draft_cost_usd: 0.04258
+present_fields:
+  abstract: true
+  problem_statement: false
+  methodology: true
+  key_results: true
+  conclusion: true
+facts:
+- field: key_results
+  fact: 6.8% WER on test-other without the use of a language model
+  page: 1
+  verified: true
+- field: key_results
+  fact: 2.8% Word Error Rate (WER) on the testclean set
+  page: 1
+  verified: true
+- field: methodology
+  fact: vocabulary size 16k for LibriSpeech and 1k for Switchboard
+  page: 2
+  verified: true
+- field: methodology
+  fact: variational weight noise of standard deviation 0.075
+  page: 2
+  verified: true
+- field: methodology
+  fact: uniform label smoothing with uncertainty 0.1
+  page: 2
+  verified: true
+questions:
+- kind: specific
+  question: What are the three kinds of deformations used in SpecAugment?
+  answer: Time warping, frequency masking, and time masking.
+  pages:
+  - 1
+  verified: false
+- kind: specific
+  question: What is the cell dimension w of the RNN decoder in the LAS network?
+  answer: The RNN decoder has a cell dimension w.
+  pages:
+  - 2
+  verified: false
+- kind: table_figure
+  question: According to Table 1, what are the parameters W and F for the Switchboard
+    mild (SM) policy?
+  answer: W is 40 and F is 15.
+  pages:
+  - 2
+  verified: true
+- kind: table_figure
+  question: In Table 6, what is the test-other WER when time warping is turned off
+    (W=0)?
+  answer: 10.1%
+  pages:
+  - 4
+  verified: true
+- kind: whole_paper
+  question: What is the main contribution of this paper?
+  answer: The introduction of SpecAugment, a simple and computationally cheap data
+    augmentation method operating directly on log mel spectrograms.
+  pages:
+  - 1
+  verified: false
+- kind: whole_paper
+  question: What is a major limitation or instability observed when combining label
+    smoothing with SpecAugment?
+  answer: Label smoothing introduces instability to training, particularly while the
+    learning rate is being decayed.
+  pages:
+  - 4
+  verified: false
+- kind: unanswerable
+  question: How much memory does the SpecAugment data augmentation method use per
+    batch during training?
+  answer: Not answered in the document
+  pages: []
+  verified: false
+- kind: unanswerable
+  question: What is the exact Word Error Rate of the LAS-6-1280 model on the TED-LIUM
+    v3 corpus?
+  answer: Not answered in the document
+  pages: []
+  verified: false
+layout_probes:
+- page: 1
+  first: if it were an image, and does not
+  second: require any additional data. We are thus able
+  verified: true
+- page: 2
+  first: 2 SS 40 27 2 70 0.2 2
+  second: We use Listen, Attend and Spell (LAS) networks
+  verified: true
+- page: 3
+  first: LAS-6-1280 model, even without a language model. We
+  second: 'Table 2: LibriSpeech test WER (%) evaluated for'
+  verified: true
+verification:
+  method: deterministic-text-v1
+  at: '2026-11-10'
+  needs_human:
+  - present_fields
+  - unanswerable questions
