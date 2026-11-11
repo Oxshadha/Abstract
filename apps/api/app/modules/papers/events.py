@@ -9,7 +9,7 @@ polls. The stream ends when processing is finished, or after `sse_max_seconds`.
 
 import asyncio
 import time
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncIterator
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
@@ -47,8 +47,10 @@ async def stream(
     first: PaperStatus,
     last_event_id: int | None,
     settings: Settings,
-    disconnected: Callable[[], Awaitable[bool]],
 ) -> AsyncIterator[str]:
+    """No manual disconnect polling: a second consumer of the ASGI receive channel races
+    Starlette's own listener and can report a disconnect that never happened. Starlette ends
+    the response when the client leaves (at the latest on the next heartbeat write)."""
     status = first
     sent = last_event_id
     started = last_beat = time.monotonic()
@@ -60,8 +62,6 @@ async def stream(
         if finished(status) or time.monotonic() - started > settings.sse_max_seconds:
             return
         await asyncio.sleep(settings.sse_poll_seconds)
-        if await disconnected():
-            return
         if time.monotonic() - last_beat >= settings.sse_heartbeat_seconds:
             yield ": keep-alive\n\n"
             last_beat = time.monotonic()
