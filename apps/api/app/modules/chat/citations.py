@@ -11,6 +11,17 @@ from dataclasses import dataclass
 from rapidfuzz import fuzz
 
 _MARKER = re.compile(r"\[S(\d{1,2})\]")
+# Models also group markers: "[S1, S2]", "[S1; S2]", "[S1 and S2]" (Gemini writes the first).
+_GROUP = re.compile(r"\[(S\d{1,2}(?:\s*(?:,|;|and)\s*S\d{1,2})+)\]")
+
+
+def expand_groups(text: str) -> str:
+    """Rewrite grouped markers as individual ones: "[S1, S2]" becomes "[S1][S2]"."""
+    return _GROUP.sub(
+        lambda m: "".join(f"[{s}]" for s in re.findall(r"S\d{1,2}", m.group(1))), text
+    )
+
+
 _SENTENCE_SPLIT = re.compile(r"(?<=[.!?])\s+")
 
 
@@ -68,7 +79,7 @@ def validate(answer: str, passages: list[Passage]) -> Validated:
         removed += 1
         return ""
 
-    cleaned = _MARKER.sub(keep_or_drop, answer)
+    cleaned = _MARKER.sub(keep_or_drop, expand_groups(answer))
     for sentence in _SENTENCE_SPLIT.split(cleaned):
         claim = _MARKER.sub("", sentence).strip()
         for number in {int(n) for n in _MARKER.findall(sentence)}:
