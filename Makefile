@@ -75,5 +75,5 @@ eval-verify: ## Verify golden data against PDF text (deterministic; marks only p
 	$(EVAL) python -m harness.verify $(IDS)
 
 eval: check-env ## Run benchmark experiments (EXP=all|A|B|B'|B-fast|E, IDS=..., UNVERIFIED=1; costs money)
-	cd eval && PYTHONPATH=../apps/api uv run --project ../apps/api --group eval --env-file ../.env \
+	cd eval && PYTHONPATH=../apps/api uv run --project ../apps/api --group eval --group eval-docling --env-file ../.env \
 		python -m harness.run --exp "$(or $(EXP),all)" $(if $(IDS),--ids $(IDS),) $(if $(UNVERIFIED),--include-unverified,) $(if $(RUNS),--runs $(RUNS),)
