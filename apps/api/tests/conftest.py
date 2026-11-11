@@ -8,6 +8,8 @@ from app.core.ratelimit import MemoryCounterStore
 from app.core.readiness import ReadinessCheck
 from app.factory import create_app
 
+pytest_plugins = ["tests.integration.papers_fixtures"]
+
 
 def make_settings(**overrides: object) -> Settings:
     values: dict[str, object] = {

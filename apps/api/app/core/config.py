@@ -47,8 +47,13 @@ class Settings(BaseSettings):
 
     # Baseline rate limits per minute by route group (spec 002 AC15; plans in spec 012).
     rate_limits: dict[str, int] = Field(
-        default_factory=lambda: {"auth": 30, "read": 300, "write": 60}
+        default_factory=lambda: {"auth": 30, "read": 300, "write": 60, "upload": 20}
     )
+
+    # Upload limits (spec 004, D57). Plan-specific limits move to entitlements in spec 012.
+    upload_max_bytes: int = 50 * 1024 * 1024
+    upload_url_ttl_seconds: int = 600
+    upload_max_pages: int = 300
 
     # Authentication (spec 002, D70). "auto": Clerk when configured, otherwise the dev
     # adapter in development/test. Production must use Clerk.

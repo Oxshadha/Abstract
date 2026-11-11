@@ -8,6 +8,10 @@ from botocore.config import Config
 from botocore.exceptions import ClientError
 
 from app.core.config import Settings
+from app.ports.storage import ObjectChangedError, ObjectInfo, PresignedPost
+
+_CHANGED = {"PreconditionFailed", "412"}
+_MISSING = {"404", "NoSuchKey", "NotFound"}
 
 
 class S3Storage:
@@ -73,3 +77,75 @@ class S3Storage:
             ExpiresIn=expires_seconds,
         )
         return url
+
+    async def presigned_post(
+        self, key: str, *, content_type: str, max_bytes: int, expires_seconds: int
+    ) -> PresignedPost:
+        post: dict[str, object] = await asyncio.to_thread(
+            self._client.generate_presigned_post,
+            Bucket=self.bucket,
+            Key=key,
+            Fields={"Content-Type": content_type},
+            Conditions=[
+                {"Content-Type": content_type},
+                ["content-length-range", 1, max_bytes],
+            ],
+            ExpiresIn=expires_seconds,
+        )
+        fields = post["fields"]
+        assert isinstance(fields, dict)
+        return PresignedPost(url=str(post["url"]), fields={k: str(v) for k, v in fields.items()})
+
+    async def head(self, key: str) -> ObjectInfo | None:
+        try:
+            meta = await asyncio.to_thread(self._client.head_object, Bucket=self.bucket, Key=key)
+        except ClientError as exc:
+            if exc.response.get("Error", {}).get("Code") in _MISSING:
+                return None
+            raise
+        return ObjectInfo(size=int(meta["ContentLength"]), etag=str(meta["ETag"]))
+
+    async def _get(self, key: str, *, etag: str | None, byte_range: str | None) -> bytes:
+        params: dict[str, str] = {"Bucket": self.bucket, "Key": key}
+        if etag:
+            params["IfMatch"] = etag
+        if byte_range:
+            params["Range"] = byte_range
+        try:
+            response = await asyncio.to_thread(self._client.get_object, **params)
+        except ClientError as exc:
+            if exc.response.get("Error", {}).get("Code") in _CHANGED:
+                raise ObjectChangedError(key) from exc
+            raise
+        body: bytes = await asyncio.to_thread(response["Body"].read)
+        if etag and str(response.get("ETag")) != etag:  # servers that ignore If-Match
+            raise ObjectChangedError(key)
+        return body
+
+    async def read_prefix(self, key: str, length: int, *, etag: str) -> bytes:
+        return await self._get(key, etag=etag, byte_range=f"bytes=0-{length - 1}")
+
+    async def get_bytes(self, key: str, *, etag: str | None = None) -> bytes:
+        return await self._get(key, etag=etag, byte_range=None)
+
+    async def delete(self, keys: list[str]) -> None:
+        for start in range(0, len(keys), 1000):
+            batch = [{"Key": k} for k in keys[start : start + 1000]]
+            if batch:
+                await asyncio.to_thread(
+                    self._client.delete_objects,
+                    Bucket=self.bucket,
+                    Delete={"Objects": batch, "Quiet": True},
+                )
+
+    async def delete_prefix(self, prefix: str) -> int:
+        def list_keys() -> list[str]:
+            keys: list[str] = []
+            paginator = self._client.get_paginator("list_objects_v2")
+            for page in paginator.paginate(Bucket=self.bucket, Prefix=prefix):
+                keys.extend(obj["Key"] for obj in page.get("Contents", []))
+            return keys
+
+        keys = await asyncio.to_thread(list_keys)
+        await self.delete(keys)
+        return len(keys)
