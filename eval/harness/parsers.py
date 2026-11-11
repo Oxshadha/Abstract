@@ -3,11 +3,12 @@
 B  = pymupdf4llm layout mode (production fast-path candidate, AGPL, behind the Parser port)
 B-fast = pymupdf4llm legacy mode (no layout model, no OCR): speed variant of B
 B' = pypdfium2 plain text in content order (permissive baseline, no layout analysis)
-C  = Docling (added when disk space allows)
+C  = Docling layout parse (MIT), background-path candidate under D68
 """
 
 from __future__ import annotations
 
+import functools
 import math
 import time
 from collections.abc import Callable
@@ -102,6 +103,55 @@ def parse_pymupdf_fast(path: Path) -> ParsedDoc:
     return ParsedDoc(path.stem, "pymupdf_fast", pages, time.perf_counter() - started)
 
 
+@functools.cache
+def _docling_converter(ocr: bool) -> Any:
+    """Build (and cache) a Docling converter configured per D19/D68: no picture description,
+    fast tables, OCR only for documents without a text layer."""
+    from docling.datamodel.base_models import InputFormat
+    from docling.datamodel.pipeline_options import (
+        PdfPipelineOptions,
+        TableFormerMode,
+        TableStructureOptions,
+        TesseractCliOcrOptions,
+    )
+    from docling.document_converter import DocumentConverter, PdfFormatOption
+
+    options = PdfPipelineOptions(
+        do_ocr=ocr,
+        do_table_structure=True,
+        # Docling defaults to ACCURATE table mode, which is much slower.
+        table_structure_options=TableStructureOptions(mode=TableFormerMode.FAST),
+    )
+    options.generate_picture_images = False
+    options.do_picture_description = False
+    if ocr:
+        options.ocr_options = TesseractCliOcrOptions()
+    return DocumentConverter(
+        format_options={InputFormat.PDF: PdfFormatOption(pipeline_options=options)}
+    )
+
+
+def warm_up_docling() -> float:
+    """Load Docling's models once so per-document timings exclude model loading."""
+    started = time.perf_counter()
+    _docling_converter(False)
+    _docling_converter(True)
+    return time.perf_counter() - started
+
+
+def parse_docling(path: Path) -> ParsedDoc:
+    """C: Docling layout parse (MIT licence). Candidate for the background layout path (D68)."""
+    from harness.corpus import has_text_layer
+
+    ocr = not has_text_layer(path)
+    converter = _docling_converter(ocr)
+    started = time.perf_counter()
+    document = converter.convert(str(path)).document
+    pages = [document.export_to_markdown(page_no=n) for n in sorted(document.pages)]
+    seconds = time.perf_counter() - started
+    return ParsedDoc(path.stem, "docling", pages, seconds, ocr_pages=len(pages) if ocr else 0)
+
+
 def parse_pdfium(path: Path) -> ParsedDoc:
     started = time.perf_counter()
     document = pdfium.PdfDocument(str(path))
@@ -115,5 +165,6 @@ def parse_pdfium(path: Path) -> ParsedDoc:
 PARSERS: dict[str, Callable[[Path], ParsedDoc]] = {
     "pymupdf": parse_pymupdf,
     "pymupdf_fast": parse_pymupdf_fast,
+    "docling": parse_docling,
     "pdfium": parse_pdfium,
 }

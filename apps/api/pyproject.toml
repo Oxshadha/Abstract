@@ -31,6 +31,7 @@ dev = [
     "testcontainers[postgres]>=4.15.0",
 ]
 eval = [
+    "docling>=2.150.0",
     "pillow>=13.0.0",
     "pymupdf4llm>=2.1",
     "pypdfium2>=5.15.2",

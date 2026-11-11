@@ -47,6 +47,7 @@ SUMMARY_EXPERIMENTS: dict[str, str | None] = {
     "B": "pymupdf",
     "B'": "pdfium",
     "B-fast": "pymupdf_fast",
+    "C": "docling",
 }
 
 
