@@ -26,6 +26,7 @@ from app.core.readiness import ReadinessCheck
 from app.modules.admin import router as admin_router
 from app.modules.identity import router as identity_router
 from app.modules.identity import webhooks as identity_webhooks
+from app.modules.llm.factory import build_llm
 from app.modules.papers import router as papers_router
 from app.ports.auth import AuthProvider
 from app.ports.storage import Storage
@@ -73,6 +74,7 @@ def create_app(
 
         app.state.engine = engine
         app.state.sessionmaker = build_sessionmaker(engine)
+        app.state.llm = build_llm(settings, app.state.sessionmaker, redis)
         app.state.redis = redis
         app.state.rate_store = rate_store or RedisCounterStore(redis)
         store: Storage = storage or s3
@@ -83,9 +85,12 @@ def create_app(
             else {"db": lambda: ping_db(engine), "redis": check_redis, "storage": store.ping}
         )
         log.info("startup", env=settings.env, llm_provider=settings.llm_provider, auth=auth.name)
+        if settings.is_production:
+            await app.state.llm.check_registry(settings)  # D72: no free models in production
         try:
             yield
         finally:
+            await app.state.llm.flush()
             await redis.aclose()
             await engine.dispose()
 

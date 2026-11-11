@@ -42,7 +42,7 @@ class Settings(BaseSettings):
     openrouter_api_key: SecretStr | None = None
     google_application_credentials: str | None = None
     gcp_project_id: str | None = None
-    gcp_location: str = "us-central1"
+    gcp_location: str = "global"  # where the D69 Gemini models were benchmarked
 
     # Error monitoring (D37, D76). The DSN is public by design; off when unset.
     sentry_dsn: str | None = None
@@ -92,6 +92,8 @@ class Settings(BaseSettings):
             raise ValueError(
                 "LLM_PROVIDER=vertex requires GOOGLE_APPLICATION_CREDENTIALS and GCP_PROJECT_ID"
             )
+        if self.llm_provider == "fake" and self.env == "production":
+            raise ValueError("LLM_PROVIDER=fake is for development and tests only")
         if self.resolved_auth_provider == "dev" and self.env == "production":
             raise ValueError("The development auth adapter is not allowed when ENV=production")
         if self.malware_scan == "fake" and self.env == "production":

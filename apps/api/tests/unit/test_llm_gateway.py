@@ -4,16 +4,17 @@ import socket
 import pytest
 from pytest_socket import SocketBlockedError
 
-from app.adapters.llm import build_llm_gateway
 from app.adapters.llm.fake import FakeLLMGateway
+from app.modules.llm.factory import build_adapters
 from app.ports.llm import ChatMessage, LLMGateway
 from tests.conftest import make_settings
 
 
 def test_AC8_fake_is_default_provider() -> None:
-    gateway = build_llm_gateway(make_settings())
-    assert isinstance(gateway, FakeLLMGateway)
-    assert isinstance(gateway, LLMGateway)
+    adapters = build_adapters(make_settings())
+    assert list(adapters) == ["fake"]
+    assert isinstance(adapters["fake"], FakeLLMGateway)
+    assert isinstance(adapters["fake"], LLMGateway)
 
 
 def test_AC8_outbound_network_is_blocked_in_tests() -> None:

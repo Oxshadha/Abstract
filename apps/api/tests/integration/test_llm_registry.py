@@ -102,3 +102,45 @@ def test_AC1_registry_entries_are_validated() -> None:
     for value in bad:
         with pytest.raises(ValidationError):
             RegistryEntry.model_validate(json.loads(json.dumps(value)))
+
+
+async def test_AC10_production_refuses_to_start_with_a_free_model(
+    database: dict[str, str],
+) -> None:
+    from pydantic import SecretStr
+
+    from app.factory import create_app
+    from app.modules.llm.factory import FreeModelInProductionError
+    from tests.conftest import make_settings
+
+    admin = create_async_engine(database["admin"])
+    async with admin.begin() as conn:
+        await conn.execute(
+            text(
+                'UPDATE model_registry SET routes = \'[{"provider": "openrouter",'
+                ' "model": "acme/model:free"}]\'::jsonb WHERE task = \'rewrite\''
+            )
+        )
+    settings = make_settings(
+        env="production",
+        database_url=database["app"],
+        clerk_issuer="https://c.example",
+        llm_provider="openrouter",
+        openrouter_api_key=SecretStr("sk-or-x"),
+    )
+    app = create_app(settings, readiness_checks={})
+    try:
+        with pytest.raises(FreeModelInProductionError):
+            async with app.router.lifespan_context(app):
+                pass
+    finally:
+        async with admin.begin() as conn:
+            await conn.execute(
+                text(
+                    'UPDATE model_registry SET routes = \'[{"provider": "vertex", "model":'
+                    ' "gemini-3.5-flash-lite", "input_usd_per_m": 0.3, "output_usd_per_m": 2.5},'
+                    ' {"provider": "openrouter", "model": "anthropic/claude-haiku-5.5"}]\'::jsonb'
+                    " WHERE task = 'rewrite'"
+                )
+            )
+        await admin.dispose()

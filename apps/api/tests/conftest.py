@@ -20,8 +20,10 @@ def make_settings(**overrides: object) -> Settings:
         "_env_file": None,
     }
     values.update(overrides)
-    if values.get("env") == "production":  # explicit opt-out unless a test chooses (D77)
+    if values.get("env") == "production":  # production needs explicit choices (D77, 005 AC10)
         values.setdefault("malware_scan", "disabled-with-sanitization")
+        values.setdefault("llm_provider", "openrouter")
+        values.setdefault("openrouter_api_key", "sk-or-test")
     return Settings(**values)  # type: ignore[arg-type]
 
 
