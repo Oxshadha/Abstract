@@ -3,82 +3,20 @@ real Postgres as the worker role, with in-memory storage and the fake LLM gatewa
 
 import io
 import time
-from collections.abc import AsyncIterator
-from dataclasses import dataclass
 from typing import Any
-from uuid import UUID
 
 import pikepdf
 import pytest
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-from app.adapters.llm.fake import FakeLLMGateway
 from app.adapters.pdf.sanitize import walk
 from app.modules.papers import ingest as ingest_module
-from app.modules.papers.ingest import Deps, ingest
-from app.modules.papers.runner import GENERIC_FAILURE, Outcome, run_job
-from tests.conftest import make_settings
+from app.modules.papers.runner import GENERIC_FAILURE
 from tests.fakes.pdfs import make_pdf
-from tests.integration.papers_fixtures import PapersApi
-from tests.integration.papers_helpers import finalize, new_user, start_upload
+from tests.integration.papers_fixtures import PapersApi, Worker
+from tests.integration.papers_helpers import PAGE, finalize, new_user, start_upload, submit
 
 pytestmark = [pytest.mark.integration, pytest.mark.enable_socket]
-
-SENTENCE = "Self attention relates positions of a sequence to compute a representation. "
-PAGE = [
-    "Attention Mechanisms for Translation",
-    "Abstract",
-    *(SENTENCE for _ in range(8)),
-    "1 Introduction",
-    *(SENTENCE for _ in range(30)),
-]
-
-
-@dataclass
-class Worker:
-    deps: Deps
-    admin: Any
-    enqueued: list[tuple[str, dict[str, Any]]]
-
-    async def run(self, org_id: str, job_id: str, *, retries: int = 0) -> Outcome:
-        org, job = UUID(org_id), UUID(job_id)
-        return await run_job(
-            self.deps.sessionmaker,
-            org,
-            job,
-            lambda: ingest(self.deps, org, job),
-            retries=retries,
-            max_retries=3,
-        )
-
-    async def row(self, sql: str, **params: Any) -> Any:
-        async with self.admin.connect() as conn:
-            return (await conn.execute(text(sql), params)).first()
-
-
-@pytest.fixture
-async def worker(api: PapersApi, database: dict[str, str]) -> AsyncIterator[Worker]:
-    engine = create_async_engine(database["worker"])
-    admin = create_async_engine(database["admin"])
-    enqueued: list[tuple[str, dict[str, Any]]] = []
-    deps = Deps(
-        sessionmaker=async_sessionmaker(engine, expire_on_commit=False),
-        storage=api.storage,
-        gateway=FakeLLMGateway(),
-        settings=make_settings(upload_max_pages=5),
-        enqueue=lambda task, kwargs: enqueued.append((task, kwargs)),
-    )
-    yield Worker(deps, admin, enqueued)
-    await engine.dispose()
-    await admin.dispose()
-
-
-async def submit(api: PapersApi, data: bytes) -> dict[str, str]:
-    user = new_user()
-    response = await finalize(api, user, await start_upload(api, user, data))
-    assert response.status_code == 202, response.text
-    return api.enqueued[-1][1]
 
 
 async def test_AC10_digital_paper_becomes_chat_ready_quickly(

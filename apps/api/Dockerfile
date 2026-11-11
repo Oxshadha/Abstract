@@ -8,6 +8,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     UV_PROJECT_ENVIRONMENT=/opt/venv \
     PATH="/opt/venv/bin:$PATH"
 WORKDIR /app
+# Tesseract (English) for OCR of pages without a text layer (spec 004 AC10).
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-eng \
+ && rm -rf /var/lib/apt/lists/*
 RUN useradd --create-home --uid 10001 app
 
 # --- production image: runtime deps only ---

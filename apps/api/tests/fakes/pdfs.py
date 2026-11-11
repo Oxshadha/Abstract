@@ -83,3 +83,14 @@ def make_pdf(
     else:
         pdf.save(out)
     return out.getvalue() + trailing_garbage
+
+
+def make_scanned_pdf(lines: list[str]) -> bytes:
+    """An image-only page (no text layer), like a scan: render a text page, embed the picture."""
+    import pypdfium2 as pdfium
+
+    page = pdfium.PdfDocument(make_pdf([lines]))[0]
+    image = page.render(scale=200 / 72).to_pil().convert("RGB")
+    out = io.BytesIO()
+    image.save(out, "PDF", resolution=200)
+    return out.getvalue()

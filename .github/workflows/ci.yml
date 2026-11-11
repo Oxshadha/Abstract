@@ -38,6 +38,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
         with: { enable-cache: true }
+      - name: Tesseract for the OCR tests (spec 004 AC10)
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-eng
       - run: uv sync --frozen --group eval
       - run: uv run ruff check .
       - run: uv run ruff format --check .

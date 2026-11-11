@@ -38,3 +38,20 @@ async def finalize(api: PapersApi, user: str, upload_id: str, key: str | None = 
 
 async def upload_pdf(api: PapersApi, user: str, data: bytes = MINIMAL_PDF) -> Response:
     return await finalize(api, user, await start_upload(api, user, data))
+
+
+SENTENCE = "Self attention relates positions of a sequence to compute a representation. "
+PAGE = [
+    "Attention Mechanisms for Translation",
+    "Abstract",
+    *(SENTENCE for _ in range(8)),
+    "1 Introduction",
+    *(SENTENCE for _ in range(30)),
+]
+
+
+async def submit(api: PapersApi, data: bytes) -> dict[str, str]:
+    user = new_user()
+    response = await finalize(api, user, await start_upload(api, user, data))
+    assert response.status_code == 202, response.text
+    return api.enqueued[-1][1]
