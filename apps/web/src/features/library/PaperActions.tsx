@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Check, FolderPlus, Pencil, Plus, Star, Trash2 } from "lucide-react";
+import { Check, FolderInput, FolderMinus, FolderPlus, Pencil, Plus, Star, Trash2 } from "lucide-react";
 import { useState, type SubmitEvent } from "react";
 
 import { Dialog, buttonPrimary, buttonSecondary, inputClass } from "@/components/dialog/Dialog";
@@ -9,7 +9,8 @@ import type { Paper } from "@/features/papers/api";
 
 import { libraryKeys, listCollections, paperCollections } from "./api";
 import { paperName } from "./format";
-import { useCollectionActions, useDeletePaper, useMembership, useUpdatePaper } from "./mutations";
+import { useCollectionActions, useDeletePaper, useMembership, useMove, useUpdatePaper } from "./mutations";
+import { useOpenCollection } from "./useOpenCollection";
 
 /** Star toggle shown on every row and in the Workspace header (AC5). */
 export function StarButton({ paper }: { paper: Paper }) {
@@ -29,14 +30,28 @@ export function StarButton({ paper }: { paper: Paper }) {
   );
 }
 
-type Open = "collections" | "rename" | "delete" | null;
+type Open = "collections" | "move" | "rename" | "delete" | null;
 
 /** The "..." menu on a Library row or card (AC2, AC5, AC7). */
 export function PaperMenu({ paper }: { paper: Paper }) {
   const [open, setOpen] = useState<Open>(null);
   const update = useUpdatePaper();
+  const inCollection = useOpenCollection();
+  const toggle = useMembership(paper.id);
   const name = paperName(paper);
   const close = () => { setOpen(null); };
+  // Inside a collection the paper can also be moved out or removed (like moving a chat between
+  // projects); a paper may still live in several collections at once.
+  const collectionItems = inCollection
+    ? [
+        { label: "Move to collection", icon: <FolderInput aria-hidden className="size-4" />, onSelect: () => { setOpen("move"); } },
+        {
+          label: "Remove from this collection",
+          icon: <FolderMinus aria-hidden className="size-4" />,
+          onSelect: () => { toggle.mutate({ collectionId: inCollection, member: false }); },
+        },
+      ]
+    : [];
   return (
     <>
       <Menu
@@ -48,11 +63,13 @@ export function PaperMenu({ paper }: { paper: Paper }) {
             onSelect: () => { update.mutate({ id: paper.id, change: { starred: !paper.starred } }); },
           },
           { label: "Add to collection", icon: <FolderPlus aria-hidden className="size-4" />, onSelect: () => { setOpen("collections"); } },
+          ...collectionItems,
           { label: "Rename", icon: <Pencil aria-hidden className="size-4" />, onSelect: () => { setOpen("rename"); } },
-          { label: "Delete", icon: <Trash2 aria-hidden className="size-4" />, onSelect: () => { setOpen("delete"); } },
+          { label: "Delete", icon: <Trash2 aria-hidden className="size-4" />, destructive: true, onSelect: () => { setOpen("delete"); } },
         ]}
       />
       {open === "collections" && <CollectionsDialog paper={paper} onClose={close} />}
+      {open === "move" && inCollection && <MoveDialog paper={paper} from={inCollection} onClose={close} />}
       {open === "rename" && <RenameDialog paper={paper} onClose={close} />}
       {open === "delete" && <DeleteDialog paper={paper} onClose={close} />}
     </>
@@ -130,6 +147,38 @@ function CollectionsDialog({ paper, onClose }: { paper: Paper; onClose: () => vo
         </button>
       </form>
       {error && <p role="alert" className="text-sm text-error">{error}</p>}
+    </Dialog>
+  );
+}
+
+/** Move from the open collection to another one (D84): added there, removed here. */
+function MoveDialog({ paper, from, onClose }: { paper: Paper; from: string; onClose: () => void }) {
+  const collections = useQuery({ queryKey: libraryKeys.collections, queryFn: listCollections });
+  const move = useMove(paper.id);
+  const targets = (collections.data ?? []).filter((c) => c.id !== from);
+  return (
+    <Dialog open title="Move to collection" onClose={onClose}>
+      <p className="text-sm text-text-secondary">{paperName(paper)}</p>
+      {collections.isSuccess && targets.length === 0 ? (
+        <p className="text-sm text-text-secondary">Create another collection first, then move papers into it.</p>
+      ) : (
+        <ul className="flex max-h-64 flex-col gap-1 overflow-auto" aria-label="Move to">
+          {targets.map((c) => (
+            <li key={c.id}>
+              <button
+                type="button"
+                disabled={move.isPending}
+                onClick={() => { move.mutate({ from, to: c.id }, { onSuccess: onClose }); }}
+                className="flex min-h-11 w-full items-center gap-3 rounded-md px-2 text-left hover:bg-muted disabled:opacity-50"
+              >
+                <FolderInput aria-hidden className="size-4 shrink-0" />
+                <span className="min-w-0 flex-1 truncate">{c.name}</span>
+                <span className="text-sm text-text-secondary">{c.paper_count}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </Dialog>
   );
 }

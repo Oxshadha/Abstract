@@ -55,7 +55,7 @@ export function SidebarCollections({ onNavigate }: { onNavigate?: () => void }) 
                 label={`Actions for collection ${c.name}`}
                 items={[
                   { label: "Rename", icon: <Pencil aria-hidden className="size-4" />, onSelect: () => { setDialog({ mode: "rename", collection: c }); } },
-                  { label: "Delete", icon: <Trash2 aria-hidden className="size-4" />, onSelect: () => { setDialog({ mode: "delete", collection: c }); } },
+                  { label: "Delete", icon: <Trash2 aria-hidden className="size-4" />, destructive: true, onSelect: () => { setDialog({ mode: "delete", collection: c }); } },
                 ]}
               />
             </li>

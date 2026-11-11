@@ -94,6 +94,24 @@ export function useMembership(paperId: string) {
   });
 }
 
+/** Move a paper between collections (D84): add to the target first, then remove from the source. */
+export function useMove(paperId: string) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ from, to }: { from: string; to: string }) => {
+      await setMembership(to, paperId, true);
+      await setMembership(from, paperId, false);
+    },
+    onSuccess: () => { toast("Paper moved."); },
+    onError: (err) => toast.error(err.message),
+    onSettled: () => {
+      void client.invalidateQueries({ queryKey: libraryKeys.collections });
+      void client.invalidateQueries({ queryKey: libraryKeys.paperCollections(paperId) });
+      void client.invalidateQueries({ queryKey: ["papers", "list"] });
+    },
+  });
+}
+
 export function useCollectionActions() {
   const client = useQueryClient();
   const refresh = () => client.invalidateQueries({ queryKey: libraryKeys.collections });

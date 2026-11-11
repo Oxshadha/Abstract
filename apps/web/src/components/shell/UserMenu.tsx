@@ -70,7 +70,7 @@ export function UserMenu() {
               setOpen(false);
               auth.signOut();
             }}
-            className="flex min-h-11 w-full items-center gap-2 rounded-md px-2 text-left hover:bg-muted"
+            className="flex min-h-11 w-full items-center gap-2 rounded-md px-2 text-left text-error hover:bg-muted"
           >
             <LogOut aria-hidden className="size-4" />
             Sign out

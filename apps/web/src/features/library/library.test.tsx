@@ -9,7 +9,7 @@ import { paper } from "@/features/papers/fixtures";
 import { createAppRouter } from "@/router";
 import { seriousViolations } from "@/test/axe";
 
-import { listCollections, listLibrary, searchPapers, updatePaper } from "./api";
+import { listCollections, listLibrary, searchPapers, setMembership, updatePaper } from "./api";
 import { DEBOUNCE_MS } from "./search-text";
 
 vi.mock("@/api/me", () => ({
@@ -27,6 +27,7 @@ vi.mock("./api", async (orig) => ({
   listCollections: vi.fn(),
   searchPapers: vi.fn(),
   updatePaper: vi.fn(),
+  setMembership: vi.fn(),
 }));
 
 const RAG = "11111111-1111-4111-8111-111111111111";
@@ -126,6 +127,35 @@ describe("Collections in the sidebar (AC6, AC7)", () => {
     expect(link).toHaveAttribute("href", `/app/library?collection=${RAG}`);
     expect(within(link).getByText("16")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Collections" })).toBeNull(); // folders, not a page (D82)
+  });
+
+  it("collection menus float above the sidebar, with Delete in red", async () => {
+    await renderAt("/app/library");
+    fireEvent.click(await screen.findByRole("button", { name: "Actions for collection RAG & LLMs" }));
+    const menu = screen.getByRole("menu");
+    expect(menu.parentElement).toBe(document.body); // portal: never clipped by the sidebar's scroll
+    expect(within(menu).getByRole("menuitem", { name: "Delete" })).toHaveClass("text-error");
+    expect(within(menu).getByRole("menuitem", { name: "Rename" })).not.toHaveClass("text-error");
+  });
+
+  it("inside a collection a paper can be moved to another collection or removed", async () => {
+    const OTHER = "22222222-2222-4222-8222-222222222222";
+    vi.mocked(listCollections).mockResolvedValue([
+      { id: RAG, name: "RAG & LLMs", paper_count: 2 },
+      { id: OTHER, name: "Healthcare AI", paper_count: 9 },
+    ]);
+    vi.mocked(setMembership).mockResolvedValue();
+    await renderAt(`/app/library?collection=${RAG}`);
+    const rows = within(await screen.findByRole("list", { name: "Papers" })).getAllByRole("listitem");
+    fireEvent.click(within(rows[0] as HTMLElement).getByRole("button", { name: /Actions for Attention/ }));
+    expect(screen.getAllByRole("menuitem").map((m) => m.textContent)).toEqual([
+      "Star", "Add to collection", "Move to collection", "Remove from this collection", "Rename", "Delete",
+    ]);
+    fireEvent.click(screen.getByRole("menuitem", { name: "Move to collection" }));
+    fireEvent.click(within(await screen.findByRole("list", { name: "Move to" })).getByRole("button", { name: /Healthcare AI/ }));
+    await waitFor(() => {
+      expect(vi.mocked(setMembership).mock.calls).toEqual([[OTHER, "p1", true], [RAG, "p1", false]]); // add, then remove
+    });
   });
 
   it("a collection view shows its name and asks only for its papers", async () => {

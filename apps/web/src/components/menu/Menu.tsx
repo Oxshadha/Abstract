@@ -1,5 +1,8 @@
 import { MoreHorizontal } from "lucide-react";
-import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+
+import { FLOATING_STYLE, useFloating } from "./useFloating";
 
 export interface MenuItem {
   label: string;
@@ -7,6 +10,7 @@ export interface MenuItem {
   onSelect: () => void;
   checked?: boolean; // shown as a checkmark item (menuitemcheckbox)
   disabled?: boolean;
+  destructive?: boolean; // Delete, Sign out: red text and icon (D84)
 }
 
 interface Props {
@@ -26,11 +30,15 @@ export function Menu({ label, items, footer, align = "right", trigger }: Props) 
   const root = useRef<HTMLDivElement>(null);
   const button = useRef<HTMLButtonElement>(null);
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
+  const dismiss = useCallback(() => { setOpen(false); }, []);
+  const panel = useRef<HTMLDivElement>(null);
+  useFloating(open, button, panel, align, dismiss);
 
   useEffect(() => {
     if (!open) return;
     const close = (event: MouseEvent) => {
-      if (!root.current?.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (!root.current?.contains(target) && !panel.current?.contains(target)) setOpen(false);
     };
     document.addEventListener("mousedown", close);
     refs.current.find((el) => el && !el.disabled)?.focus();
@@ -71,12 +79,14 @@ export function Menu({ label, items, footer, align = "right", trigger }: Props) 
       >
         {trigger ?? <MoreHorizontal aria-hidden className="size-5" />}
       </button>
-      {open && (
+      {open && createPortal(
         <div
+          ref={panel}
           role="menu"
           aria-label={label}
           onKeyDown={onKey}
-          className={`absolute z-30 mt-1 w-60 rounded-lg border border-border bg-surface p-1 shadow-overlay ${align === "right" ? "right-0" : "left-0"}`}
+          style={FLOATING_STYLE}
+          className="z-50 w-60 overflow-auto rounded-lg border border-border bg-surface p-1 shadow-overlay"
         >
           {items.map((item, i) => (
             <button
@@ -91,14 +101,15 @@ export function Menu({ label, items, footer, align = "right", trigger }: Props) 
                 button.current?.focus();
                 item.onSelect();
               }}
-              className="flex min-h-11 w-full items-center gap-2 rounded-md px-2 text-left text-sm hover:bg-muted focus-visible:bg-muted disabled:opacity-50"
+              className={`flex min-h-11 w-full items-center gap-2 rounded-md px-2 text-left text-sm hover:bg-muted focus-visible:bg-muted disabled:opacity-50 ${item.destructive ? "text-error" : ""}`}
             >
               {item.icon}
               <span className="min-w-0 flex-1 truncate">{item.label}</span>
             </button>
           ))}
           {footer}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );
