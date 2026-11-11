@@ -10,8 +10,9 @@ from typing import Annotated, Literal
 
 from fastapi import Depends
 
-from app.core.context import Context, get_context
+from app.core.context import Context, get_context, get_identity
 from app.core.errors import ProblemError
+from app.modules.identity.service import RequestContext
 
 OrgRole = Literal["owner", "member"]
 MEMBERS: frozenset[str] = frozenset({"owner", "member"})
@@ -39,8 +40,8 @@ def is_allowed(action: str, *, role: str, platform_role: str) -> bool:
     return role in POLICY[action]
 
 
-def authorize(ctx: Context, action: str) -> None:
-    identity = ctx.identity
+def authorize(ctx: Context | RequestContext, action: str) -> None:
+    identity = ctx.identity if isinstance(ctx, Context) else ctx
     if not is_allowed(action, role=identity.role, platform_role=identity.platform_role):
         raise ProblemError(403, "forbidden", "You do not have permission for this action")
 
@@ -55,4 +56,19 @@ def require(action: str) -> Callable[..., Awaitable[Context]]:
         return ctx
 
     setattr(dependency, AUTHORIZE_MARKER, action)  # lets the coverage test find it
+    return dependency
+
+
+def require_identity(action: str) -> Callable[..., Awaitable[RequestContext]]:
+    """Like `require`, without a request-long session: for streaming responses."""
+    if action not in POLICY:
+        raise ValueError(f"Unknown action '{action}': add it to POLICY first")
+
+    async def dependency(
+        identity: Annotated[RequestContext, Depends(get_identity)],
+    ) -> RequestContext:
+        authorize(identity, action)
+        return identity
+
+    setattr(dependency, AUTHORIZE_MARKER, action)
     return dependency

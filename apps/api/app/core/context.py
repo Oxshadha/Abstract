@@ -33,3 +33,15 @@ async def get_context(request: Request, principal: CurrentPrincipal) -> AsyncIte
 
 
 Ctx = Annotated[Context, Depends(get_context)]
+
+
+async def get_identity(request: Request, principal: CurrentPrincipal) -> RequestContext:
+    """For long-lived responses (event streams): provisions in a short transaction and returns
+    only the identity, so no connection or transaction is held while the response streams."""
+    maker = request.app.state.sessionmaker
+    async with maker() as session, session.begin():
+        identity = await provision(session, principal)
+    structlog.contextvars.bind_contextvars(
+        user_id=str(identity.user_id), org_id=str(identity.org_id)
+    )
+    return identity

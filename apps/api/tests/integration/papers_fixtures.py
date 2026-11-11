@@ -26,6 +26,7 @@ class PapersApi:
     storage: MemoryStorage
     enqueued: list[tuple[str, dict[str, Any]]] = field(default_factory=list)
     fail_enqueue: bool = False
+    app: Any = None
 
 
 @pytest.fixture
@@ -53,6 +54,7 @@ async def api(database: dict[str, str]) -> AsyncIterator[PapersApi]:
         ) as client,
     ):
         state.client = client
+        state.app = app
         yield state
 
 

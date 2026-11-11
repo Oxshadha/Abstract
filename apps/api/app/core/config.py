@@ -55,6 +55,11 @@ class Settings(BaseSettings):
     upload_url_ttl_seconds: int = 600
     upload_max_pages: int = 300
 
+    # Progress event stream (spec 004 AC12).
+    sse_poll_seconds: float = 1.0
+    sse_heartbeat_seconds: float = 15.0
+    sse_max_seconds: float = 600.0  # the client reconnects with Last-Event-ID
+
     # Authentication (spec 002, D70). "auto": Clerk when configured, otherwise the dev
     # adapter in development/test. Production must use Clerk.
     auth_provider: Literal["auto", "clerk", "dev"] = "auto"

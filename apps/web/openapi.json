@@ -991,6 +991,62 @@
         ]
       }
     },
+    "/api/v1/papers/{paper_id}/events": {
+      "get": {
+        "operationId": "paper_events_api_v1_papers__paper_id__events_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Last-Event-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Last-Event-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Processing progress as Server-Sent Events (status events, heartbeats)",
+        "tags": [
+          "papers"
+        ]
+      }
+    },
     "/api/v1/papers/{paper_id}/file": {
       "get": {
         "operationId": "get_file_api_v1_papers__paper_id__file_get",

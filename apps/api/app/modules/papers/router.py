@@ -2,15 +2,16 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Header, Query, Request, Response
-from fastapi.responses import JSONResponse, RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
 from sqlalchemy import text
 
 from app.core import idempotency
 from app.core.context import Context
 from app.core.errors import ProblemError
-from app.core.policy import require
+from app.core.policy import require, require_identity
 from app.core.ratelimit import user_rate_limit
-from app.modules.papers import finalize, queries, service
+from app.modules.identity.service import RequestContext
+from app.modules.papers import events, finalize, queries, service
 from app.modules.papers.schemas import (
     FinalizeRequest,
     FinalizeResponse,
@@ -146,3 +147,33 @@ async def get_file(
         raise ProblemError(409, "not-ready", "This PDF is still being prepared.")
     url = await request.app.state.storage.presigned_get_url(key.storage_key, expires_seconds=300)
     return RedirectResponse(url, status_code=302, headers={"Cache-Control": "no-store"})
+
+
+@router.get(
+    "/{paper_id}/events",
+    summary="Processing progress as Server-Sent Events (status events, heartbeats)",
+    response_class=StreamingResponse,
+    responses={200: {"content": {"text/event-stream": {}}}},
+    dependencies=[Depends(user_rate_limit("read"))],
+)
+async def paper_events(
+    paper_id: UUID,
+    request: Request,
+    identity: Annotated[RequestContext, Depends(require_identity("paper.read"))],
+    last_event_id: Annotated[int | None, Header(alias="Last-Event-ID", ge=0)] = None,
+) -> StreamingResponse:
+    maker = request.app.state.sessionmaker
+    first = await events.load_status(maker, identity, paper_id)  # 404 before the stream starts
+    return StreamingResponse(
+        events.stream(
+            maker,
+            identity,
+            paper_id,
+            first=first,
+            last_event_id=last_event_id,
+            settings=request.app.state.settings,
+            disconnected=request.is_disconnected,
+        ),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
+    )
