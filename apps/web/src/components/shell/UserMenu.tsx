@@ -41,12 +41,13 @@ export function UserMenu() {
         type="button"
         aria-haspopup="menu"
         aria-expanded={open}
-        aria-label={`Account menu for ${name}`}
+        aria-label={`${initials(me.data?.user.display_name ?? me.data?.user.email)}, account menu for ${name}`}
         onClick={() => {
           setOpen((v) => !v);
         }}
         className="inline-flex size-11 items-center justify-center rounded-pill bg-muted font-medium text-text"
       >
+        {/* The accessible name starts with the visible initials (WCAG 2.5.3). */}
         {initials(me.data?.user.display_name ?? me.data?.user.email)}
       </button>
       {open && (

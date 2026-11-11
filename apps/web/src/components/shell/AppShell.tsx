@@ -87,11 +87,10 @@ export function AppShell() {
           <button
             type="button"
             className="flex min-h-11 min-w-0 flex-1 items-center gap-2 rounded-lg border border-border bg-surface px-3 text-left text-text-secondary md:max-w-xl"
-            aria-label="Search papers, collections, or keywords"
           >
             <Search aria-hidden className="size-4 shrink-0" />
             <span className="truncate">Search papers, collections, or keywords</span>
-            <kbd className="ml-auto hidden rounded-sm bg-muted px-1.5 text-xs sm:inline">⌘K</kbd>
+            <kbd aria-hidden className="ml-auto hidden rounded-sm bg-muted px-1.5 text-xs sm:inline">⌘K</kbd>
           </button>
           <div className="ml-auto flex items-center gap-1">
             <button
