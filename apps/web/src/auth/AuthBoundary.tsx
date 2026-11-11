@@ -1,26 +1,19 @@
-import { ClerkProvider } from "@clerk/react";
-import type { ReactNode } from "react";
+import { lazy, Suspense, type ReactNode } from "react";
 
-import { apiBaseUrl } from "@/api/client";
-
-import { ClerkBridge } from "./ClerkBridge";
-import { configureAuth, devTokenSource } from "./session";
+import { configureDevAuth } from "./devAuth";
 
 const clerkKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
-
+// Clerk is only downloaded when it is configured (AC10); the dev login needs none of it.
+const ClerkAuth = lazy(() => import("./ClerkAuth"));
 /** Clerk when a publishable key is configured, otherwise the development login (D70). */
 export function AuthBoundary({ children }: { children: ReactNode }) {
   if (clerkKey) {
     return (
-      <ClerkProvider publishableKey={clerkKey}>
-        <ClerkBridge />
-        {children}
-      </ClerkProvider>
+      <Suspense fallback={null}>
+        <ClerkAuth publishableKey={clerkKey}>{children}</ClerkAuth>
+      </Suspense>
     );
   }
-  // No Clerk key: development login with a seeded demo user (D70). The API refuses this mode
-  // in production, so it cannot be enabled there by mistake.
-  const dev = devTokenSource(apiBaseUrl);
-  configureAuth(dev.source, dev.reset);
+  configureDevAuth();
   return <>{children}</>;
 }

@@ -62,8 +62,8 @@ api-client: ## Regenerate the TS client from FastAPI's OpenAPI schema
 	$(API) uv run python -m app.scripts.export_openapi > ../web/openapi.json
 	$(WEB) pnpm gen:api
 
-tokens: ## Generate CSS/TS design tokens (spec 003)
-	@echo "Not implemented yet: spec 003"
+tokens: ## Generate CSS/TS design tokens from design/tokens.json (spec 003)
+	$(WEB) pnpm tokens
 
 eval-corpus: ## Download and verify the benchmark corpus (PIN=1 records new checksums)
 	$(EVAL) python -m harness.corpus $(if $(PIN),--pin,)

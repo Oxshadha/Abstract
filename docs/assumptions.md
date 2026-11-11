@@ -24,6 +24,7 @@ Agents: add an entry **before** acting on a new assumption. When the owner confi
 | B3 | Supported browsers: current evergreen Chrome, Edge, Firefox, Safari. Responsive down to phone width (panels become tabs). | Assumed | Frontend |
 | B4 | "Research paper" includes reports and articles (mockup filter: Papers/Reports/Articles). Non-papers are summarized as well as possible, with a notice. | Assumed | Spec 006 |
 | B5 | The brief's "AI assistance is an advantage" is satisfied by documenting the AI-assisted workflow (AGENTS.md, specs, Claude Code) in the README. | Assumed | Spec 017 / README |
+| B7 | Owner creates Sentry projects (React + FastAPI) and provides two DSNs, an auth token (project:releases) and the org slug; until then Sentry stays disabled (spec 003 AC12, D37). | Open | Spec 003, 017 |
 | B6 | The GitHub repository URL hasn't been provided; nothing is pushed until it is. | Open | Delivery |
 
 ## C. Technical assumptions (to be proved by the W1 benchmark or tests)
@@ -45,7 +46,7 @@ Agents: add an entry **before** acting on a new assumption. When the owner confi
 |---|---|---|
 | D1 | Neon Free: 100 CU-hours/month per project, 1 GB storage per project, scales to zero after 5 min idle. | DB quota → upgrade plan |
 | D2 | OpenRouter free models: 20 requests/min; 50/day (<$10 credits) or 1000/day (≥$10). Some free providers train on prompts. | Dev only; prod uses paid + `data_collection: deny` |
-| D3 | Google Sans Flex is OFL on Google Fonts (Nov 2025). **Google Sans (non-Flex) open-sourcing rests on a single Jan 2026 report**, so check the license and Fontsource availability before shipping. Fallback: Google Sans Flex for UI too. | Font licensing |
+| D3 | **Verified 2026-11-11:** `@fontsource/google-sans`, `@fontsource-variable/google-sans-flex` and `@fontsource-variable/nunito-sans` are all published under OFL-1.1 and self-hosted (spec 003). | Font licensing (resolved) |
 | D4 | Clerk `appearance.variables` supports `colorPrimary` and `fontFamily`; the text-colour variable name differs by version (`colorForeground` vs `colorText`). | Auth theming |
 | D5 | Docling needs about 4–8 GB RAM on CPU (third-party sizing; no official figure found). | EC2 instance size |
 
