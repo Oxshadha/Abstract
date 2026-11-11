@@ -1,4 +1,4 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { FileText, FileUp, X } from "lucide-react";
 import { useId, useRef, useState, type DragEvent } from "react";
@@ -7,6 +7,7 @@ import { FieldError } from "@/components/status/FieldError";
 import { toast } from "@/components/status/toast";
 import { useOnline } from "@/components/feedback/useOnline";
 
+import { paperKeys } from "./api";
 import { UploadCancelledError, uploadPaper, validatePdf, type UploadPhase } from "./upload";
 
 const PHASE_LABEL: Record<UploadPhase, string> = {
@@ -21,6 +22,7 @@ const PHASE_LABEL: Record<UploadPhase, string> = {
  */
 export function DropZone({ compact = false }: { compact?: boolean }) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const online = useOnline();
   const input = useRef<HTMLInputElement>(null);
   const controller = useRef<AbortController | null>(null);
@@ -37,9 +39,12 @@ export function DropZone({ compact = false }: { compact?: boolean }) {
       return uploadPaper(file, { onPhase: setPhase, onProgress: setProgress, signal: controller.current.signal });
     },
     onSuccess: async (result) => {
+      // The new paper must show in the Library at once, not after the cached list expires.
+      void queryClient.invalidateQueries({ queryKey: paperKeys.list });
       if (result.duplicate) toast("This paper is already in your library.");
       await navigate({
-        to: "/app/papers/$paperId/processing",
+        // Step 02 (spec 006 AC2): pick a template; a duplicate goes to its processing page.
+        to: result.duplicate ? "/app/papers/$paperId/processing" : "/app/papers/$paperId/template",
         params: { paperId: result.paper.id },
       });
     },

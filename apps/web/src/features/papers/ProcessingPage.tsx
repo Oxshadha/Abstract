@@ -21,6 +21,11 @@ const STEPS: Record<Step["key"], { label: string; detail: string }> = {
   },
   indexing: { label: "Indexing for chat", detail: "Preparing the paper so you can ask questions about it." },
   ocr: { label: "Reading scanned pages", detail: "Recognizing text on pages that are images." },
+  summary: {
+    label: "Building summary",
+    detail: "Generating a structured summary based on the selected template.",
+  },
+  citations: { label: "Finding citations", detail: "Linking key claims to pages in the paper." },
 };
 
 const STATE_TEXT: Record<Step["state"], string> = {
@@ -59,12 +64,29 @@ function Steps({ status }: { status: PaperStatus }) {
           )}
           <StepIcon state={step.state} />
           <div className="flex min-w-0 flex-1 items-start justify-between gap-4">
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <p className="font-display text-lg font-bold">{STEPS[step.key].label}</p>
               <p className="text-sm text-text-secondary">{STEPS[step.key].detail}</p>
+              {step.state === "active" && step.progress != null && (
+                <div
+                  role="progressbar"
+                  aria-label={`${STEPS[step.key].label} progress`}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-valuenow={Math.round(step.progress * 100)}
+                  className="mt-2 h-1.5 w-full overflow-hidden rounded-pill bg-muted"
+                >
+                  <div
+                    className="h-full rounded-pill bg-primary transition-[width] motion-reduce:transition-none"
+                    style={{ width: `${String(Math.round(step.progress * 100))}%` }}
+                  />
+                </div>
+              )}
             </div>
             <span className="shrink-0 pt-1 text-sm whitespace-nowrap text-text-secondary">
-              {STATE_TEXT[step.state]}
+              {step.state === "active" && step.progress != null
+                ? `${String(Math.round(step.progress * 100))}%`
+                : STATE_TEXT[step.state]}
             </span>
           </div>
         </li>

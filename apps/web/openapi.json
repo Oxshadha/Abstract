@@ -1,6 +1,38 @@
 {
   "components": {
     "schemas": {
+      "CreateSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "template_id": {
+            "format": "uuid",
+            "title": "Template Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "template_id"
+        ],
+        "title": "CreateSummary",
+        "type": "object"
+      },
+      "CreatedSummary": {
+        "properties": {
+          "created": {
+            "title": "Created",
+            "type": "boolean"
+          },
+          "summary": {
+            "$ref": "#/components/schemas/SummaryBrief"
+          }
+        },
+        "required": [
+          "summary",
+          "created"
+        ],
+        "title": "CreatedSummary",
+        "type": "object"
+      },
       "DevToken": {
         "properties": {
           "token": {
@@ -17,6 +49,135 @@
           "token"
         ],
         "title": "DevToken",
+        "type": "object"
+      },
+      "EditResult": {
+        "properties": {
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "title": "EditResult",
+        "type": "object"
+      },
+      "EvidenceOut": {
+        "properties": {
+          "page": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Page"
+          },
+          "quote": {
+            "title": "Quote",
+            "type": "string"
+          },
+          "verified": {
+            "title": "Verified",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "page",
+          "quote",
+          "verified"
+        ],
+        "title": "EvidenceOut",
+        "type": "object"
+      },
+      "FieldEdit": {
+        "additionalProperties": false,
+        "properties": {
+          "value": {
+            "maxLength": 8000,
+            "minLength": 1,
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "title": "FieldEdit",
+        "type": "object"
+      },
+      "FieldOut": {
+        "properties": {
+          "edited": {
+            "title": "Edited",
+            "type": "boolean"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceOut"
+            },
+            "title": "Evidence",
+            "type": "array"
+          },
+          "gap_filled": {
+            "title": "Gap Filled",
+            "type": "boolean"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "found",
+              "inferred",
+              "not_reported"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "style": {
+            "enum": [
+              "paragraph",
+              "bullets",
+              "short"
+            ],
+            "title": "Style",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          },
+          "verification": {
+            "enum": [
+              "verified",
+              "provisional"
+            ],
+            "title": "Verification",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "style",
+          "value",
+          "status",
+          "verification",
+          "edited",
+          "gap_filled",
+          "evidence"
+        ],
+        "title": "FieldOut",
         "type": "object"
       },
       "FinalizeRequest": {
@@ -711,10 +872,23 @@
               "extracting",
               "sections",
               "indexing",
-              "ocr"
+              "ocr",
+              "summary",
+              "citations"
             ],
             "title": "Key",
             "type": "string"
+          },
+          "progress": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Progress"
           },
           "state": {
             "enum": [
@@ -732,6 +906,310 @@
           "state"
         ],
         "title": "StepOut",
+        "type": "object"
+      },
+      "SummaryBrief": {
+        "properties": {
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "generating",
+              "ready",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "template_id": {
+            "format": "uuid",
+            "title": "Template Id",
+            "type": "string"
+          },
+          "template_name": {
+            "title": "Template Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "template_id",
+          "template_name",
+          "status"
+        ],
+        "title": "SummaryBrief",
+        "type": "object"
+      },
+      "SummaryList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SummaryBrief"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "SummaryList",
+        "type": "object"
+      },
+      "SummaryOut": {
+        "properties": {
+          "authors": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Authors",
+            "type": "array"
+          },
+          "coverage": {
+            "enum": [
+              "full",
+              "partial"
+            ],
+            "title": "Coverage",
+            "type": "string"
+          },
+          "doc_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Doc Type"
+          },
+          "error_message": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error Message"
+          },
+          "expected_fields": {
+            "title": "Expected Fields",
+            "type": "integer"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/FieldOut"
+            },
+            "title": "Fields",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "paper_id": {
+            "format": "uuid",
+            "title": "Paper Id",
+            "type": "string"
+          },
+          "seq": {
+            "title": "Seq",
+            "type": "integer"
+          },
+          "status": {
+            "enum": [
+              "queued",
+              "generating",
+              "ready",
+              "failed"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "template_id": {
+            "format": "uuid",
+            "title": "Template Id",
+            "type": "string"
+          },
+          "template_name": {
+            "title": "Template Name",
+            "type": "string"
+          },
+          "template_version": {
+            "title": "Template Version",
+            "type": "integer"
+          },
+          "title": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Title"
+          },
+          "updated_at": {
+            "format": "date-time",
+            "title": "Updated At",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Year"
+          }
+        },
+        "required": [
+          "id",
+          "paper_id",
+          "template_id",
+          "template_name",
+          "template_version",
+          "status",
+          "coverage",
+          "version",
+          "seq",
+          "title",
+          "authors",
+          "year",
+          "doc_type",
+          "error_message",
+          "expected_fields",
+          "fields",
+          "updated_at"
+        ],
+        "title": "SummaryOut",
+        "type": "object"
+      },
+      "TemplateField": {
+        "properties": {
+          "instruction": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Instruction",
+            "type": "string"
+          },
+          "key": {
+            "pattern": "^[a-z][a-z0-9_]{1,39}$",
+            "title": "Key",
+            "type": "string"
+          },
+          "label": {
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "required": {
+            "default": true,
+            "title": "Required",
+            "type": "boolean"
+          },
+          "style": {
+            "default": "paragraph",
+            "enum": [
+              "paragraph",
+              "bullets",
+              "short"
+            ],
+            "title": "Style",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "label",
+          "instruction"
+        ],
+        "title": "TemplateField",
+        "type": "object"
+      },
+      "TemplateList": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TemplateOut"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "title": "TemplateList",
+        "type": "object"
+      },
+      "TemplateOut": {
+        "properties": {
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/TemplateField"
+            },
+            "title": "Fields",
+            "type": "array"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "system",
+              "custom"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          },
+          "version_id": {
+            "format": "uuid",
+            "title": "Version Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "name",
+          "description",
+          "version",
+          "version_id",
+          "fields"
+        ],
+        "title": "TemplateOut",
         "type": "object"
       },
       "UploadRequest": {
@@ -1650,6 +2128,120 @@
         ]
       }
     },
+    "/api/v1/papers/{paper_id}/summaries": {
+      "get": {
+        "operationId": "list_summaries_api_v1_papers__paper_id__summaries_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "The paper's summaries, one per template",
+        "tags": [
+          "summaries"
+        ]
+      },
+      "post": {
+        "operationId": "create_summary_api_v1_papers__paper_id__summaries_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Idempotency-Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSummary"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedSummary"
+                }
+              }
+            },
+            "description": "Already exists"
+          },
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedSummary"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Start a summary of a paper with a template (or return the existing one)",
+        "tags": [
+          "summaries"
+        ]
+      }
+    },
     "/api/v1/readyz": {
       "get": {
         "operationId": "readyz_api_v1_readyz_get",
@@ -1671,6 +2263,332 @@
         "summary": "Readiness: database, redis and object storage reachable",
         "tags": [
           "health"
+        ]
+      }
+    },
+    "/api/v1/summaries/{summary_id}": {
+      "get": {
+        "operationId": "get_summary_api_v1_summaries__summary_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "summary_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Summary Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-None-Match",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 80,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "If-None-Match"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SummaryOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "304": {
+            "description": "Not modified"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "A summary with all fields and evidence (ETag, 304 when unchanged)",
+        "tags": [
+          "summaries"
+        ]
+      }
+    },
+    "/api/v1/summaries/{summary_id}/events": {
+      "get": {
+        "operationId": "summary_events_api_v1_summaries__summary_id__events_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "summary_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Summary Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Last-Event-ID",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "minimum": 0,
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Last-Event-Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Summary progress as Server-Sent Events (a snapshot whenever fields change)",
+        "tags": [
+          "summaries"
+        ]
+      }
+    },
+    "/api/v1/summaries/{summary_id}/fields/{key}": {
+      "patch": {
+        "operationId": "edit_field_api_v1_summaries__summary_id__fields__key__patch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "summary_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Summary Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z][a-z0-9_]{1,39}$",
+              "title": "Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FieldEdit"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EditResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "412": {
+            "description": "Changed elsewhere"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Edit one field (autosave); If-Match carries the summary version",
+        "tags": [
+          "summaries"
+        ]
+      }
+    },
+    "/api/v1/summaries/{summary_id}/fields/{key}/reset": {
+      "post": {
+        "operationId": "reset_field_api_v1_summaries__summary_id__fields__key__reset_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "summary_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Summary Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "pattern": "^[a-z][a-z0-9_]{1,39}$",
+              "title": "Key",
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "If-Match",
+            "required": true,
+            "schema": {
+              "maxLength": 40,
+              "title": "If-Match",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EditResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "412": {
+            "description": "Changed elsewhere"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Reset an edited field to the generated value",
+        "tags": [
+          "summaries"
+        ]
+      }
+    },
+    "/api/v1/summaries/{summary_id}/retry": {
+      "post": {
+        "operationId": "retry_summary_api_v1_summaries__summary_id__retry_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "summary_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Summary Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "description": "Not failed"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Retry a failed summary",
+        "tags": [
+          "summaries"
+        ]
+      }
+    },
+    "/api/v1/templates": {
+      "get": {
+        "operationId": "list_templates_api_v1_templates_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Summary templates available to the user (system templates first)",
+        "tags": [
+          "summaries"
         ]
       }
     },

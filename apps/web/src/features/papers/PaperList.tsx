@@ -76,6 +76,7 @@ export function PaperList() {
     queryFn: ({ pageParam }) => listPapers(pageParam),
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.next_cursor,
+    staleTime: 0, // statuses change in the background: refresh whenever the Library is opened
     refetchInterval: (q) =>
       q.state.data?.pages.some((p) => p.items.some((i) => i.status === "processing")) ? 5000 : false,
   });
