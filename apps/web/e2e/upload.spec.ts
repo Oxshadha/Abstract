@@ -12,7 +12,7 @@ async function signIn(page: Page) {
   await page.goto("/app");
   const demo = page.getByRole("button", { name: /continue as demo user/i });
   if (await demo.isVisible().catch(() => false)) await demo.click();
-  await expect(page.getByRole("heading", { level: 1, name: "Home" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "Home" })).toBeVisible({ timeout: 15_000 }); // first compile of a cold dev server
 }
 
 test("upload a paper and open it once chat is available", async ({ page }, testInfo) => {
