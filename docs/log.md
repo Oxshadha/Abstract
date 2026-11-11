@@ -15,6 +15,12 @@ Entry format:
 
 ---
 
+## 2026-11-11: Spec 002 merged; spec 003 design system implemented (15 of 15)
+**Done:** Spec 002 merged (PR #3, CI green). Spec 003 on `feat/003-design-system`: one token source with WCAG checks (AC1), raw colours/fonts and status colours outside status components rejected by a self-tested checker (AC2, AC5), flash-free theme toggle (AC3), Latin-only self-hosted fonts, 84 to 5 files (AC4), shell and routes from the Library mockup with a mobile drawer and workspace tab bar (AC6, AC7), sign-in modal over the inert blurred app plus split-screen fallbacks (AC8), query defaults (AC9), lazy Clerk/Sentry/Workspace with a 200 KB budget, entry 185 to 112 KB gzip (AC10), error boundaries (AC11), Sentry web and API live in the EU region with privacy-first defaults (AC12, AC13, D76), skeleton/empty/offline states (AC14), axe on every screen (AC15).
+**Owner input:** Sentry DSNs provided and verified with one test event per project; Sentry auth token still needed at deployment for readable production stack traces.
+**Bugs caught:** Testing Library cleanup was not running (tests passed by luck); my gate script let a web lint failure through inside an && chain (fixed: one command per line); regex lookahead flagged correct font-family lines; Sentry 11 renamed its privacy option.
+**Next:** CI on the spec 003 PR, merge, then spec 004 (upload, security scan, fast-path ingestion).
+
 ## 2026-11-11: Spec 000 merged; spec 002 implemented (17 of 17)
 **Done:** Spec 000 merged (PR #2): experiment C (Docling) added, combined report (180/180 ok), Docling moved to its own dependency group so CI stays light. Spec 002 built criterion by criterion on `feat/002-auth-tenancy`: forced RLS with runtime roles, role timeouts and a schema conformance test (AC5 to AC8, AC11); Clerk token verification with key rotation and a dev-only login adapter (AC1, D70); idempotent provisioning and /me (AC2, AC13); central authorize() with route coverage (AC4); rate limiting (AC15); strict schemas, 1 MB body limit, no client identity fields (AC16, AC17); signed deduplicated Clerk webhooks (AC3); admin role with audit and bootstrap command (AC10); Neon pooled connections and no implicit lazy loading (AC9, AC12); frontend token on every call with @clerk/react 6 (AC14).
 **Decisions:** D69 to D75 (production models, dev auth, visual-evidence fast path, routing policy, performance targets, chat requirements, abuse protection).

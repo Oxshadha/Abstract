@@ -9,7 +9,7 @@ This is lightweight spec-driven development. Each feature gets a one-to-two page
 | 000 | [Benchmark harness & corpus (experiments A/B/C/E)](000-benchmark.md) | W1 | Implemented (AC4 scoring pending human check) | n/a (written before the analysis) |
 | 001 | [Foundation: monorepo, CI, docker-compose, config, logging](001-foundation.md) | W1 | Implemented | n/a (written before the analysis) |
 | 002 | [Auth & tenancy: Clerk, orgs, policy service, RLS, audit log](002-auth-tenancy.md) | W1 | Implemented | [practices §3 Spec 002](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
-| 003 | [Design system: tokens pipeline, fonts, app shell, auth modal](003-design-system.md) | W2 | In progress | [practices §3 Spec 003](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
+| 003 | [Design system: tokens pipeline, fonts, app shell, auth modal](003-design-system.md) | W2 | Implemented (PR pending CI) | [practices §3 Spec 003](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 004 | Upload & fast-path ingestion: validation, async security scan (D65), S3, PyMuPDF layout, chunks, embeddings, job progress SSE | W1 | Not started | [practices §3 Spec 004](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 005 | LLM Gateway & Model Registry: OpenRouter, Vertex, fake providers, usage log | W1–W2 | Not started | [practices §3 Spec 005](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 006 | Summary templates & generation: Quick/Detailed, streaming, verification, gap-fill, versions | W2 | Not started | [practices §3 Spec 006](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
