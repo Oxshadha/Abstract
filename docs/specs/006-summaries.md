@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Draft |
+| **Status** | Approved (owner, 2026-11-11): template step as the mockup; long papers decided by measurement (AC6); gap-fill now |
 | **Week** | W2 |
 | **Decisions** | D15, D20, D27, D36, D38, D40, D52, D69, D71, D73, D77 |
 | **Requirements** | R1, R3, R4, N3, N4 |
@@ -26,7 +26,7 @@ Right after upload the user picks a template (Quick Summary preselected) and see
 - [ ] **AC3** — A summary job (fast queue) sends the sanitized PDF to the `summarize` task with the template's fields as a strict JSON schema and the versioned prompt (`summarize@1`); title, authors, year and `doc_type` are filled in the same call. Fields are saved and published as each one completes in the stream, so the UI shows them one by one. Target (D73): first field p95 < 7 s after Continue for a typical paper.
 - [ ] **AC4** — Each field has a value, a status (`found`, `inferred`, `not_reported`) and 1 to 3 evidence quotes with page numbers (D15). Evidence is verified inline against the extracted page text with rapidfuzz: a quote that matches is `verified` (and its page corrected if it was found on another page); one that does not is kept but marked `unverified`. A field is **verified** when all its evidence verifies, otherwise **provisional**; the label is shown. No extra LLM call.
 - [ ] **AC5** — Gap-fill: for each `not_reported` field, a second look retrieves the most relevant chunks of the paper (full-text plus vector search) and makes one small `summarize` call with only those chunks; a found value replaces `not_reported` with its evidence verified as in AC4; otherwise the field stays `not_reported`. Gap-fill runs after the main fields are visible and never delays them.
-- [ ] **AC6** — Long papers: one call covers papers up to the registry's input limit; above it, pages after the References section and appendices are left out first, and the summary records that it covers a partial paper (owner question Q2).
+- [ ] **AC6** — Long papers are decided by measurement, not assumption (owner): one call covers every paper up to the model's input limit (above it, references and appendices are left out first and the summary records partial coverage). Experiment L in the eval harness compares one call against per-section extraction on the corpus's long papers (40+ pages) for latency, cost and field accuracy against the golden data; the report goes to the owner, and per-section extraction is built only if it wins (recorded as a decision either way, narrowing or keeping D20).
 - [ ] **AC7** — Failure handling: a summary failure never blocks chat or the text index (rule 10); the job is retried like other jobs (004 AC9) and then fails with a calm message and a Retry button; partial fields already shown are kept. Usage and cost are recorded per paper (005).
 
 **Workspace and editing**
@@ -65,6 +65,6 @@ First field p95 < 7 s after Continue (D73; measured 2.78 s p50 in the benchmark)
 Unit: schema building from templates, streaming field parser, quote verification, gap-fill selection, markdown safety. Integration: job end to end with the fake provider (fields stream in order, evidence verified against real page text), edit versions and `412`, query budget, ETag/304, RLS on all tables. Frontend: template step, Summary panel states (streaming, verified, provisional, edited, failed), autosave, axe. Eval harness: field accuracy and verification rate on the corpus (manual, costs money).
 
 ## Open questions (owner)
-- **Q1 — Template step:** as in the mockup, after upload the user picks a template (Quick Summary preselected) and clicks Continue; indexing runs meanwhile. Proposal: yes, exactly as the mockup.
-- **Q2 — Long papers:** one call for every paper size (Gemini reads long PDFs; cost grows with pages, about $0.05 for 100 pages), trimming references and appendices only above the model's limit, instead of D20's per-section parallel extraction for long papers. Proposal: one call now; revisit if the eval shows quality drops on long papers (this narrows D20 and would be recorded as a new decision).
-- **Q3 — Gap-fill now:** proposal yes (AC5), using full-text plus vector search over the chunks from 004.
+- **Q1 (answered):** template step as the mockup. It adds no cost: each summary is one call (about $0.007) for the chosen template only, and auto-starting a Quick Summary would cost a second call whenever the user wants another template. Indexing runs during the step, so it adds no processing time.
+- **Q2 (answered):** measure first (AC6, experiment L), then decide.
+- **Q3 (answered):** build gap-fill now.
