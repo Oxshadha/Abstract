@@ -22,6 +22,12 @@ Entry format:
 **Next:** owner merges #17 (workspace fixes), #18 (identity) and the 012 PR; put stakeholders on Internal with `make plan EMAIL=... PLAN=internal`; next spec per D89: 011 admin.
 **Blockers / waiting on owner:** merges.
 
+## 2026-11-12: Workspace feedback fixes (owner review)
+**Done:** Figures & tables shows a progress bar with the page being read and the time left (measured pace, or start-up plus 6 s a page before the first batch; "almost done" when the estimate runs out); a one-time tip says how to Explain or Ask about selected text and where the region tool is; on touch screens the selection toolbar sits below the handles, clear of the iOS menu. Found and fixed: enrichment jobs were never marked succeeded (stayed "running").
+**Verified:** desktop and iPhone screenshots; Playwright in Chromium, WebKit and iPhone.
+**Note:** real Safari cannot be driven until "Allow remote automation" is on (Safari > Settings > Developer); WebKit passes the select, Explain and Ask flow.
+**Next:** fix/identity (R10), then spec 012 (Draft written: plans, limits and the user Settings page).
+
 ## 2026-11-12: Spec 015 reading aids implemented
 **Done:** Paper-specific suggested questions (cheap model, stored, generic fallback); up to three follow-ups from the same answer call (held back while streaming, sent in `done`); select text in the PDF for a floating Explain (Plain or Expert, remembered on the device) and Ask (quote chip) toolbar, answered in the chat with citations; Export in the Summary panel: branded PDF made by the server (ReportLab 5.1.0, Nunito Sans embedded only in the PDF), Markdown and BibTeX (DOI or arXiv id found in the paper).
 **Fixed on the way:** react-pdf rebuilt the text layer on every re-render and dropped selections (one renderer per page now); Safari selected the rest of the page when a drag left a line (pdf.js's endOfContent fix ported); a click on text cleared a citation highlight and the selection; a failed conversation start lost the question; the suggestions route held a transaction (and the user's row lock) across its model call.

@@ -3,6 +3,9 @@
 First contact with a verified principal creates exactly one user, one personal org and one
 owner membership, even under concurrent requests: the upsert takes a row lock on the user,
 so racing requests serialize on it and the org is created only while holding that lock.
+
+Every later request only reads the user row. Writing it on every request locked the row for
+the whole transaction, so one person's parallel requests queued behind each other (risk R10).
 """
 
 from dataclasses import dataclass
@@ -27,6 +30,20 @@ _UPSERT_USER = text(
 )
 
 
+_READ_USER = text(
+    "SELECT id, personal_org_id, platform_role, disabled_at, email, display_name"
+    " FROM users WHERE clerk_user_id = :subject"
+)
+
+
+def _unchanged(user: object, principal: Principal) -> bool:
+    """True when the stored profile already matches what the sign-in provider says."""
+    email, name = getattr(user, "email", None), getattr(user, "display_name", None)
+    return (principal.email is None or principal.email == email) and (
+        principal.name is None or principal.name == name
+    )
+
+
 @dataclass(frozen=True)
 class RequestContext:
     user_id: UUID
@@ -41,12 +58,15 @@ class RequestContext:
 
 async def provision(session: AsyncSession, principal: Principal) -> RequestContext:
     """Must run inside a transaction. Leaves the tenant context set to the active org."""
-    user = (
-        await session.execute(
-            _UPSERT_USER,
-            {"subject": principal.subject, "email": principal.email, "name": principal.name},
-        )
-    ).one()
+    user = (await session.execute(_READ_USER, {"subject": principal.subject})).first()
+    if user is None or user.personal_org_id is None or not _unchanged(user, principal):
+        # First contact or a changed profile: the locking upsert (rare).
+        user = (
+            await session.execute(
+                _UPSERT_USER,
+                {"subject": principal.subject, "email": principal.email, "name": principal.name},
+            )
+        ).one()
     if user.disabled_at is not None:
         raise ProblemError(401, "account-disabled", "This account has been disabled")
 

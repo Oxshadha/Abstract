@@ -386,6 +386,17 @@
             ],
             "title": "Pages Total"
           },
+          "seconds_left": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Seconds Left"
+          },
           "status": {
             "anyOf": [
               {

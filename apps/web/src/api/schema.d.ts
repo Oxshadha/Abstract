@@ -982,6 +982,8 @@ export interface components {
             pages_parsed_limit: number;
             /** Pages Total */
             pages_total: number | null;
+            /** Seconds Left */
+            seconds_left?: number | null;
             /** Status */
             status: string | null;
             /** Tables */

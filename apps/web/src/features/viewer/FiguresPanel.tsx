@@ -14,6 +14,7 @@ import {
   type TableEl,
 } from "./api";
 import type { PageBox } from "./citation-context";
+import { EnrichProgress } from "./EnrichProgress";
 
 type Show = (page: number, box: PageBox, label: string) => void;
 
@@ -142,12 +143,11 @@ export function FiguresPanel({ paperId, onShow }: { paperId: string; onShow: Sho
     <div className="flex flex-col gap-4">
       <div aria-live="polite" className="text-sm text-text-secondary">
         {running ? (
-          <p role="status" className="flex items-center gap-2">
-            <Loader2 aria-hidden className="size-4 animate-spin motion-reduce:animate-none" />
-            {data.pages_total
-              ? `Finding tables and figures (page ${String(Math.min(data.pages_done + 1, data.pages_total))} of ${String(data.pages_total)})`
-              : "Finding tables and figures"}
-          </p>
+          <EnrichProgress
+            done={data.pages_done}
+            total={data.pages_total === null ? null : Math.min(data.pages_total, data.pages_parsed_limit)}
+            secondsLeft={data.seconds_left}
+          />
         ) : data.status === "failed" ? (
           <div role="alert" className="flex flex-wrap items-center gap-2">
             <span>Tables and figures could not be found this time. The paper, summary and chat still work.</span>
