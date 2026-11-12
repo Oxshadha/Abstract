@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | Draft |
+| **Status** | Approved (owner, 2026-11-13): centred hero with the product image, then steps and feature cards; a real screenshot; "Free during preview"; "See how it works" scrolls to the steps (D93) |
 | **Week** | W4 |
-| **Decisions** | D27, D39, D42, D86, D89 |
+| **Decisions** | D27, D39, D42, D86, D89, D93 |
 | **Engineering practices (D67)** | Spec 016 item in `docs/engineering-practices.md` §3, included below as AC6 |
 | **Feature flag** | none (public page) |
 | **Mockup** | `UI/AI Research Made Clear-1.png`, `UI/Abstract AI Research Companion Landing Page-2.png` |
@@ -80,7 +80,7 @@ A visitor understands what Abstract does in a few seconds, sees the real product
 - **Lighthouse:** run against the production build (mobile profile), with the result recorded in the log.
 
 ## Open questions (owner)
-- **Q1:** Which layout? The two mockups differ: a left-aligned hero ("Read, understand, and explore research papers.") with steps and feature cards, or a centred hero ("Research papers, made clear.").
-- **Q2:** The product image: a real screenshot of the app, or a hand-built HTML picture of it?
-- **Q3:** What does the plans section say while there are no payments?
-- **Q4:** What does "See demo" or "See how it works" do?
+- **Q1 (answered):** both mockups combined. The centred hero "Research papers, made clear." with the product image, then the three steps and the four feature cards.
+- **Q2 (answered):** a real screenshot of the Workspace, light and dark.
+- **Q3 (answered):** one plan card, "Free during preview", with the Free limits (20 papers a month, 100 questions a day) and "Pro coming soon".
+- **Q4 (answered):** "See how it works" scrolls to the steps; no video.
