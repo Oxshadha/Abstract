@@ -17,12 +17,21 @@ export interface PageBox {
   height: number;
 }
 
+/** A box drawn on a page to ask about (spec 009 AC10). */
+export interface AskRegion extends PageBox {
+  page: number;
+}
+
 export interface CitationApi {
   target: CitationTarget | null;
   open: (page: number, quote: string) => void;
   /** Show a table, figure or region: scroll to its page and outline its box (spec 009 AC6). */
   openBox: (page: number, box: PageBox, label: string) => void;
   clear: () => void;
+  /** The region waiting to be asked about in chat, if any. */
+  region: AskRegion | null;
+  askRegion: (region: AskRegion) => void;
+  clearRegion: () => void;
 }
 
 export const CitationContext = createContext<CitationApi | null>(null);

@@ -1,9 +1,18 @@
 import { useMemo, useState, type ReactNode } from "react";
 
-import { CitationContext, type CitationApi, type CitationTarget } from "./citation-context";
+import { CitationContext, type AskRegion, type CitationApi, type CitationTarget } from "./citation-context";
 
-export function CitationProvider({ children, onOpen }: { children: ReactNode; onOpen?: () => void }) {
+export function CitationProvider({
+  children,
+  onOpen,
+  onAskRegion,
+}: {
+  children: ReactNode;
+  onOpen?: () => void;
+  onAskRegion?: () => void; // show the chat (desktop panel, phone tab)
+}) {
   const [target, setTarget] = useState<CitationTarget | null>(null);
+  const [region, setRegion] = useState<AskRegion | null>(null);
   const value = useMemo<CitationApi>(
     () => ({
       target,
@@ -18,8 +27,16 @@ export function CitationProvider({ children, onOpen }: { children: ReactNode; on
       clear: () => {
         setTarget(null);
       },
+      region,
+      askRegion: (next) => {
+        setRegion(next);
+        onAskRegion?.();
+      },
+      clearRegion: () => {
+        setRegion(null);
+      },
     }),
-    [target, onOpen],
+    [target, onOpen, region, onAskRegion],
   );
   return <CitationContext.Provider value={value}>{children}</CitationContext.Provider>;
 }

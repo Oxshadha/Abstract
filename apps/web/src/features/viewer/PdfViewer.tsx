@@ -2,15 +2,16 @@ import "react-pdf/dist/Page/TextLayer.css";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import workerUrl from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url"; // legacy: see vite.config.ts
-import { ChevronLeft, ChevronRight, Download, Minus, Plus, RotateCcw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Minus, Plus, RotateCcw, SquareDashedMousePointer } from "lucide-react";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 
 import { Select } from "@/components/menu/Select";
 
-import { useCitations } from "./citation-context";
+import { useCitations, type PageBox } from "./citation-context";
 import { getFileUrl, getPageSizes, viewerKeys, type PageSize } from "./api";
 import { locate, markItem, type Located, type TextPiece } from "./locate";
+import { RegionLayer } from "./RegionLayer";
 import { visibleWindow } from "./virtual";
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl; // AC7: pdf.js parses in its worker
@@ -35,6 +36,9 @@ export function PdfViewer({ paperId }: { paperId: string }) {
   const [found, setFound] = useState<{ id: number; located: Located | null } | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const frame = useRef<number | null>(null);
+  // Ask about this region (spec 009 AC10): drawing mode and the box being drawn.
+  const [selecting, setSelecting] = useState(false);
+  const [selection, setSelection] = useState<{ page: number; box: PageBox } | null>(null);
 
   // AC8: one layout update per animation frame for scroll and resize.
   const measure = useCallback(() => {
@@ -89,6 +93,25 @@ export function PdfViewer({ paperId }: { paperId: string }) {
   useEffect(() => {
     targetAt.current = Date.now();
   }, [target?.id]);
+  // Keep the reader's place when the panel width (and so the page scale) changes, e.g. when
+  // the chat opens or the divider moves: re-anchor to the same spot of the same page.
+  const anchor = useRef<{ page: number; within: number; scale: number } | null>(null);
+  useEffect(() => {
+    const index = Math.max(0, current - 1);
+    const height = heights[index] ?? 0;
+    if (height > 0 && anchor.current?.scale === scale) {
+      anchor.current = { page: current, within: Math.min(1, Math.max(0, (scroll.top - (offsets[index] ?? 0)) / height)), scale };
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scroll.top]);
+  useEffect(() => {
+    const previous = anchor.current;
+    anchor.current = previous ? { ...previous, scale } : { page: current, within: 0, scale };
+    if (!previous || previous.scale === scale || pages.length === 0) return;
+    if (target && Date.now() - targetAt.current <= 1500) return; // a citation is settling
+    goTo(previous.page, previous.within + 24 / Math.max(1, heights[previous.page - 1] ?? 1));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scale]);
   useEffect(() => {
     if (!target || pages.length === 0 || Date.now() - targetAt.current > 1500) return;
     goTo(target.page, target.box?.y ?? 0);
@@ -178,6 +201,16 @@ export function PdfViewer({ paperId }: { paperId: string }) {
         <button type="button" aria-label="Next page" disabled={current >= pages.length} onClick={() => { goTo(current + 1); }} className="inline-flex size-11 items-center justify-center rounded-md hover:bg-muted disabled:opacity-40">
           <ChevronRight aria-hidden className="size-5" />
         </button>
+        <button
+          type="button"
+          aria-pressed={selecting}
+          aria-label="Select region"
+          title="Select a region to ask about"
+          onClick={() => { setSelecting(!selecting); setSelection(null); }}
+          className={`inline-flex size-11 items-center justify-center rounded-md ${selecting ? "bg-primary text-primary-text" : "hover:bg-muted"}`}
+        >
+          <SquareDashedMousePointer aria-hidden className="size-5" />
+        </button>
         <span className="ml-auto flex items-center gap-1">
           <button type="button" aria-label="Zoom out" onClick={() => { setZoom(ZOOMS.filter((z) => z < scale - 0.01).at(-1) ?? ZOOMS[0] ?? 0.5); }} className="inline-flex size-11 items-center justify-center rounded-md hover:bg-muted">
             <Minus aria-hidden className="size-4" />
@@ -247,6 +280,20 @@ export function PdfViewer({ paperId }: { paperId: string }) {
                       onRenderError={() => { setFailed("A page could not be shown."); }}
                       onGetTextSuccess={(content) => { onText(p.page, content.items.flatMap((x) => ("str" in x ? [{ str: x.str, hasEOL: x.hasEOL }] : []))); }}
                       customTextRenderer={({ str, itemIndex }) => markItem(str, itemIndex, highlight?.page === p.page ? highlight.located : null)}
+                    />
+                  )}
+                  {selecting && i >= first && i <= last && (
+                    <RegionLayer
+                      page={p.page}
+                      box={selection?.page === p.page ? selection.box : null}
+                      onChange={(box) => { setSelection(box ? { page: p.page, box } : null); }}
+                      onAsk={() => {
+                        if (!selection) return;
+                        citations?.askRegion({ page: selection.page, ...selection.box });
+                        setSelecting(false);
+                        setSelection(null);
+                      }}
+                      onCancel={() => { setSelection(null); setSelecting(false); }}
                     />
                   )}
                   {target?.box && target.page === p.page && (

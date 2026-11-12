@@ -174,13 +174,18 @@ export default function WorkspacePage() {
     void markOpened(paperId).catch(() => undefined);
   }, [paperId]);
   // A citation click shows the Paper panel (desktop) or the Paper tab (phones), spec 008 AC4.
+  // "Ask about this region" brings up the chat: the side panel on desktop, the Chat tab on phones.
+  const openChat = useCallback(() => {
+    if (desktop) setChat(true);
+    else setMobile("chat");
+  }, [desktop, setChat]);
   const openPaper = useCallback(() => {
     if (desktop) showPaper();
     else setMobile("paper");
   }, [desktop, showPaper]);
 
   return (
-    <CitationProvider onOpen={openPaper}>
+    <CitationProvider onOpen={openPaper} onAskRegion={openChat}>
     <OpenFromUrl paperId={paperId} />
     {/* Desktop: the Workspace fills the screen under the top bar and each panel scrolls on its
         own, like an editor (D79); phones scroll the page. */}
