@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Approved (owner, 2026-11-12): 10 fields per template and 10 custom templates per user until plans exist; preview on demand; summaries update on request (D87) |
+| **Status** | Implemented (2026-11-12). Approved (owner, 2026-11-12): 10 fields per template and 10 custom templates per user until plans exist; preview on demand; summaries update on request (D87) |
 | **Week** | W3 |
 | **Decisions** | D15, D28, D36, D41, D56, D60, D86, D87 |
 | **Engineering practices (D67)** | Both items of `engineering-practices.md` §3 Spec 010 are included (AC9, AC10) |
@@ -19,26 +19,32 @@ Researchers decide what a summary extracts. On the Templates page they build the
 ## Acceptance criteria
 
 ### Templates page
-- [ ] **AC1** — `/app/templates` lists the system templates (read-only, with "Duplicate to customize") and the user's own templates (Edit, Duplicate, Delete), each with its field count and last update. Empty state explains what a custom template is with a "New template" button.
-- [ ] **AC2** — Deleting a custom template asks for confirmation; summaries already made with it keep working and keep showing its name (the template is hidden, not erased, while summaries use it).
+- [x] **AC1** — `/app/templates` lists the system templates (read-only, with "Duplicate to customize") and the user's own templates (Edit, Duplicate, Delete), each with its field count and last update. Empty state explains what a custom template is with a "New template" button.
+- [x] **AC2** — Deleting a custom template asks for confirmation; summaries already made with it keep working and keep showing its name (the template is hidden, not erased, while summaries use it).
 
 ### Builder
-- [ ] **AC3** — The builder edits name (1 to 80 characters), description and fields. A field has a label (1 to 60), an instruction (what to extract, 1 to 500 characters), an output style (Paragraph, Bullets, Short value) and Required. Fields can be added, removed, duplicated and reordered by dragging (dnd-kit, keyboard accessible: space to lift, arrows to move) and, on phones, with up and down buttons (D60).
-- [ ] **AC4** — Field keys are generated from labels and stay stable across edits, so saved summary fields and edits still map after a rename or reorder; two fields cannot share a label.
-- [ ] **AC5** — Saving creates a new version; summaries keep the version they were made with. The Summary panel says when a newer version of its template exists and offers "Update summary" (a new summary with the new version, keeping the old one in the switcher).
-- [ ] **AC6** — Unsaved changes are kept as a draft on this device and leaving the page with unsaved changes asks for confirmation.
+- [x] **AC3** — The builder edits name (1 to 80 characters), description and fields. A field has a label (1 to 60), an instruction (what to extract, 1 to 500 characters), an output style (Paragraph, Bullets, Short value) and Required. Fields can be added, removed, duplicated and reordered by dragging (dnd-kit, keyboard accessible: space to lift, arrows to move) and, on phones, with up and down buttons (D60).
+- [x] **AC4** — Field keys are generated from labels and stay stable across edits, so saved summary fields and edits still map after a rename or reorder; two fields cannot share a label.
+- [x] **AC5** — Saving creates a new version; summaries keep the version they were made with. The Summary panel says when a newer version of its template exists and offers "Update summary" (a new summary with the new version, keeping the old one in the switcher).
+- [x] **AC6** — Unsaved changes are kept as a draft on this device and leaving the page with unsaved changes asks for confirmation.
 
 ### Try it and use it
-- [ ] **AC7** — "Try on a paper" runs the template (saved or not) on a chosen paper from the library and shows the result in the builder, using the same summary pipeline, counted toward the spend caps; it never overwrites the paper's summaries.
-- [ ] **AC8** — Custom templates appear in the template step after upload and in the Summary panel's switcher, after the system ones.
+- [x] **AC7** — "Try on a paper" runs the template (saved or not) on a chosen paper from the library and shows the result in the builder, using the same summary pipeline, counted toward the spend caps; it never overwrites the paper's summaries.
+- [x] **AC8** — Custom templates appear in the template step after upload and in the Summary panel's switcher, after the system ones.
 
 ### Engineering practices (D67)
-- [ ] **AC9** — Limits come from an entitlements service (fields per template, custom templates per user, label and instruction lengths) and are validated in the form before submit and enforced by the API with the same numbers (AGENTS rule 6; spec 012 later adds plans).
-- [ ] **AC10** — Saving sends the base version; a concurrent save from another tab returns `409` with the newer version, and the builder offers to reload it or keep editing.
+- [x] **AC9** — Limits come from an entitlements service (fields per template, custom templates per user, label and instruction lengths) and are validated in the form before submit and enforced by the API with the same numbers (AGENTS rule 6; spec 012 later adds plans).
+- [x] **AC10** — Saving sends the base version; a concurrent save from another tab returns `409` with the newer version, and the builder offers to reload it or keep editing.
 
 ### Safety and portability
-- [ ] **AC11** — Instructions reach the model only as wrapped, length-limited data, never in the system prompt (AGENTS rule 8); an instruction asking to ignore rules has no effect (prompt-injection test).
-- [ ] **AC12** — Export a template as a small JSON file and import one (validated against the same schema and limits; unknown fields rejected).
+- [x] **AC11** — Instructions reach the model only as wrapped, length-limited data, never in the system prompt (AGENTS rule 8); an instruction asking to ignore rules has no effect (prompt-injection test).
+- [x] **AC12** — Export a template as a small JSON file and import one (validated against the same schema and limits; unknown fields rejected).
+
+## Implementation notes
+- API: `app/modules/summaries/templates.py` (CRUD, versions, stable keys, limits), `app/modules/summaries/preview.py` (Try on a paper over SSE, nothing saved), `app/modules/entitlements/` (limits and `/me/limits`, settings-backed until spec 012), migration 0011 (soft delete, update time, unique names per user). Summaries report `template_version` and `template_latest_version`.
+- Web: `src/features/templates/` (Templates page, builder, field cards with dnd-kit, draft and leave guard, conflict dialog, preview, import and export); the Summary panel shows the newest summary per template and offers Update summary.
+- Found while checking live: the leave guard blocked the builder's own move to the saved template (it read stale state); a switch knob used a size class that does not exist. Both fixed and verified on desktop and iPhone.
+- Deps: @dnd-kit/core 6.3.1, @dnd-kit/sortable 10.0.0, @dnd-kit/utilities 3.2.2 (all older than two weeks). The web container needs a rebuild with fresh node_modules after dependency changes (`up -V web`).
 
 ## API contract
 | Method | Path | Request | Response | Errors |

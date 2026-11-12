@@ -15,6 +15,13 @@ Entry format:
 
 ---
 
+## 2026-11-12: Spec 010 template builder implemented
+**Done:** Custom templates end to end: Templates page, form builder (fields with label, instruction, output style, required; drag or up/down to reorder; duplicate and remove), versions with stable keys and stale-save protection, limits from a new entitlements service (10 fields, 10 templates, D87), soft delete that keeps summaries working, Try on a paper, JSON import and export, Update summary when a template changes.
+**Verified:** live builder on desktop and iPhone with a real preview; Playwright in Chromium, WebKit and Firefox.
+**Decisions:** D87   **Specs:** 010 Implemented
+**Next:** owner merges #12 (013) into main, retargets and merges #13 (009), then the 010 PR; next spec per the plan: 015 reading aids.
+**Blockers / waiting on owner:** merges.
+
 ## 2026-11-12: Spec 009 tables, figures and regions implemented
 **Done:** Background enrichment with page triage and Docling (tables with cells, figures with crops, progress, retry, idempotent re-runs), tables and figures in the chat index and answers (named items first, figure images to the model, element citation chips), number checks against tables (flagged, never rewritten), Figures & tables view with Show in paper and cached AI descriptions, Ask about this region (draw, move, resize, keyboard; server-rendered crop; region citations). Phone-first principles written down (D86) and the floating pill navigation.
 **Verified:** live with real Gemini on the Attention paper (4 tables, 6 figures; a region around Table 2 answered "41.8 BLEU, Transformer (big)" citing the region and Table 2); Playwright in Chromium, WebKit and Firefox.
