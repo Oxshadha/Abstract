@@ -78,7 +78,7 @@ async def test_AC1_AC1b_AC3_tables_and_figures_from_triaged_pages_join_the_index
 ) -> None:
     job, paper, _user = await _ingested(api, worker)
     layout = FakeLayout()
-    kind, _ = await _enrich(worker, layout, job["org_id"])
+    kind, _job = await _enrich(worker, layout, job["org_id"])
     assert kind == "done"
     assert layout.calls == [([2, 3], [])]  # only the table and figure pages were parsed
     row = await worker.row(
@@ -87,6 +87,8 @@ async def test_AC1_AC1b_AC3_tables_and_figures_from_triaged_pages_join_the_index
         p=paper,
     )
     assert tuple(row) == ("done", 2, 2, 1, 1)
+    status = await worker.row("SELECT status FROM jobs WHERE id = :j", j=_job)
+    assert status[0] == "succeeded"  # the job record finishes too (seen running forever)
     async with worker.admin.connect() as conn:
         elements = (
             await conn.execute(
@@ -252,3 +254,26 @@ async def test_AC2_retry_only_after_a_failure_or_finish(api: PapersApi, worker: 
     retried = await api.client.post(f"/api/v1/papers/{paper}/enrichment/retry", headers=owner)
     assert retried.status_code == 202
     assert api.enqueued[-1][0] == ENRICH_TASK
+
+
+async def test_AC2_progress_includes_a_time_left_estimate(api: PapersApi, worker: Worker) -> None:
+    job, paper, user = await _ingested(api, worker)
+    _task, kwargs = worker.enqueued[-1]
+    async with worker.admin.begin() as conn:
+        await conn.execute(
+            text(
+                "UPDATE papers SET enrichment_status = 'running', enrichment_pages = 10,"
+                " enrichment_pages_done = 4 WHERE id = :p"
+            ),
+            {"p": paper},
+        )
+        await conn.execute(
+            text("UPDATE jobs SET started_at = now() - interval '40 seconds' WHERE id = :j"),
+            {"j": kwargs["job_id"]},
+        )
+    body = (await api.client.get(f"/api/v1/papers/{paper}/elements", headers=bearer(user))).json()
+    assert body["status"] == "running"
+    assert 55 <= body["seconds_left"] <= 65  # 10 s a page so far, 6 pages to go
+    await _enrich(worker, FakeLayout(), job["org_id"])
+    done = (await api.client.get(f"/api/v1/papers/{paper}/elements", headers=bearer(user))).json()
+    assert done["seconds_left"] is None

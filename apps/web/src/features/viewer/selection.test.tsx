@@ -104,3 +104,16 @@ describe("Spec 015 AC3: selection toolbar", () => {
     expect(screen.queryByRole("toolbar", { name: "Selected text" })).toBeNull();
   });
 });
+
+describe("Spec 015: selection tip", () => {
+  it("explains how to Explain or Ask once, then stays dismissed", async () => {
+    const { SelectionTip } = await import("./SelectionTip");
+    const first = render(<SelectionTip />);
+    expect(screen.getByRole("note", { name: "Tip" })).toHaveTextContent(/Select text with the mouse to Explain it or Ask about it/);
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss tip" }));
+    expect(screen.queryByRole("note", { name: "Tip" })).toBeNull();
+    first.unmount();
+    render(<SelectionTip />);
+    expect(screen.queryByRole("note", { name: "Tip" })).toBeNull();
+  });
+});

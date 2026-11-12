@@ -23,6 +23,7 @@ from app.core.tenancy import set_tenant
 from app.modules.llm.gateway import set_context as set_llm_context
 from app.modules.papers.chunking import Chunk, estimate_tokens
 from app.modules.papers.ingest import Deps, PaperGoneError, embed_chunks, lock_usable_paper
+from app.modules.papers.jobs import transition
 from app.modules.papers.keys import paper_prefix
 from app.ports.layout import FigureElement, LayoutParser, ParsedLayout, TableElement
 
@@ -173,6 +174,7 @@ async def run_enrich(deps: Deps, org_id: UUID, job_id: UUID) -> None:
             },
         )
         await check_numbers(session, paper.id)
+        await transition(session, job_id, "succeeded")
     log.info("enrich_done", tables=len(layout.tables), figures=len(layout.figures))
 
 

@@ -45,6 +45,7 @@ class ElementsOut(BaseModel):
     pages_total: int | None  # pages triage picked (AC4: more than were parsed when capped)
     pages_done: int
     pages_parsed_limit: int
+    seconds_left: int | None = None  # rough estimate while running; None before it can be made
     tables: list[TableOut]
     figures: list[FigureOut]
 
@@ -84,6 +85,44 @@ async def _paper_row(session: AsyncSession, owner_id: UUID, paper_id: UUID) -> A
     if row is None:
         raise ProblemError(404, "paper-not-found", "This paper was not found.")
     return row
+
+
+# Before the first batch finishes there is no measured speed: a typical pace stands in for it
+# (measured with Docling on the 4 GB development VM; the measured pace replaces it at once).
+SECONDS_PER_PAGE_GUESS = 6.0
+STARTUP_GUESS = 20.0  # loading the layout models before the first page
+
+
+def estimate_seconds_left(
+    elapsed: float, pages_done: int, pages_to_parse: int, guess: float = SECONDS_PER_PAGE_GUESS
+) -> int:
+    """Time left from the pace so far (or the guess before any page is done), whole seconds."""
+    remaining = max(0, pages_to_parse - pages_done)
+    if not remaining:
+        return 0
+    if pages_done > 0:
+        left = remaining * elapsed / pages_done
+    else:
+        left = STARTUP_GUESS + remaining * guess - elapsed
+    return max(1, round(left))
+
+
+async def _seconds_left(session: AsyncSession, paper: Any, parse_limit: int) -> int | None:
+    if paper.enrichment_status != "running" or paper.enrichment_pages is None:
+        return None
+    elapsed = (
+        await session.execute(
+            text(
+                "SELECT extract(epoch FROM now() - started_at) FROM jobs WHERE paper_id = :p"
+                " AND kind = 'enrich' AND started_at IS NOT NULL ORDER BY started_at DESC LIMIT 1"
+            ),
+            {"p": paper.id},
+        )
+    ).scalar()
+    if elapsed is None:
+        return None
+    to_parse = min(paper.enrichment_pages, parse_limit)
+    return estimate_seconds_left(float(elapsed), paper.enrichment_pages_done, to_parse)
 
 
 async def list_elements(
@@ -131,6 +170,7 @@ async def list_elements(
         pages_total=paper.enrichment_pages,
         pages_done=paper.enrichment_pages_done,
         pages_parsed_limit=parse_limit,
+        seconds_left=await _seconds_left(session, paper, parse_limit),
         tables=tables,
         figures=figures,
     )
