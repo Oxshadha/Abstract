@@ -18,7 +18,7 @@ This is lightweight spec-driven development. Each feature gets a one-to-two page
 | 009 | [Tables, figures and Ask about this region](009-figures-tables.md) (D85) | W3 | Implemented (AC14 production timing in 017) | [practices §3 Spec 009](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 010 | [Template builder](010-template-builder.md) (D87) | W3 | Implemented | [practices §3 Spec 010](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 011 | Admin v1: registry, flags, users, usage dashboard, jobs | W3 | Not started | [practices §3 Spec 011](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
-| 012 | [Plans, limits and the Settings page](012-entitlements-settings.md) (D90, D91) | W3 | Approved | [practices §3 Spec 012](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
+| 012 | [Plans, limits and the Settings page](012-entitlements-settings.md) (D90, D91) | W3 | Implemented | [practices §3 Spec 012](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 013 | [Library, collections, star, search](013-library-search.md) (D82 to D84) | W3 | Implemented | [practices §3 Spec 013](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 014 | Notes & references tab (Semantic Scholar) | W4 | Not started | [practices §3 Spec 014](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 015 | [Reading aids](015-reading-aids.md) (D88) | W4 | Implemented | [practices §3 Spec 015](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |

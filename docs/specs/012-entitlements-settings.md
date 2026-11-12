@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Approved (owner, 2026-11-12): Free and Pro numbers as listed; AI use shown as a percentage; Delete account in v1; platform cap $20 a day with the 80% alert (D91) |
+| **Status** | Implemented (2026-11-12). Approved (owner, 2026-11-12): Free and Pro numbers as listed; AI use shown as a percentage; Delete account in v1; platform cap $20 a day with the 80% alert (D91) |
 | **Week** | W3 |
 | **Decisions** | D53, D75, D87, D89, D90, D91 |
 | **Engineering practices (D67)** | Spec 012 items in `docs/engineering-practices.md` §3, included below as AC6 to AC9 |
@@ -30,14 +30,14 @@ Every limit in the product comes from the user's **plan**, so the team and stake
 ## Acceptance criteria
 
 ### Plans and limits
-- [ ] **AC1** — **Plans in the database.**
+- [x] **AC1** — **Plans in the database.**
   - **Seeds:** three plans are seeded.
     - **Free:** 20 papers a month, 100 chat messages a day, $0.50 AI spend a day, $5 a month, 10 fields per template, 10 custom templates, 2 concurrent processing jobs.
     - **Pro:** 200 papers a month, 1,000 messages a day, $5 AI spend a day and $50 a month, 20 fields per template, 50 custom templates, 4 concurrent jobs; not sold yet.
     - **Internal:** no per-user limits.
   - **No limit:** an empty value means no limit.
   - **Defaults:** every user has a plan; new users get Free.
-- [ ] **AC2** — **Every limit is read from the user's plan through `entitlements.limits_for` (rule 6).** This includes:
+- [x] **AC2** — **Every limit is read from the user's plan through `entitlements.limits_for` (rule 6).** This includes:
   - template limits (replacing the D87 settings);
   - spend caps (replacing the single per-user setting in the budget guard);
   - papers per month;
@@ -46,37 +46,37 @@ Every limit in the product comes from the user's **plan**, so the team and stake
   - concurrent jobs.
 
   No limit remains hard-coded or in settings, except the platform-wide daily cap.
-- [ ] **AC3** — **When a user reaches a limit, the action is refused before any work starts.**
+- [x] **AC3** — **When a user reaches a limit, the action is refused before any work starts.**
   - **The response:** `429` with a problem type for the limit (`papers-monthly-limit`, `messages-daily-limit`, `ai-daily-limit`, `ai-monthly-limit`) and when it resets.
   - **The SPA:** shows the reason and the reset time in plain words.
   - **Partly finished work is kept:** a summary already running finishes.
-- [ ] **AC4** — **Internal plan.** A user on Internal is never stopped by a per-user limit. Their usage is still counted and recorded per call: tokens, cost, model and task (D90).
-- [ ] **AC5** — **Platform safety net.**
+- [x] **AC4** — **Internal plan.** A user on Internal is never stopped by a per-user limit. Their usage is still counted and recorded per call: tokens, cost, model and task (D90).
+- [x] **AC5** — **Platform safety net.**
   - The platform-wide daily AI cap ($20 a day, D91) still applies to everyone, including Internal.
   - At 80% of it, an alert is logged once a day (`llm_global_cap_warning`). Spec 011 shows it.
 
 ### Abuse protection (engineering practices §3, spec 012)
-- [ ] **AC6** — **Rate limits.**
+- [x] **AC6** — **Rate limits.**
   - **How they work:** a Redis token bucket keyed by user and route class (upload, chat, search, other).
   - **Where the numbers come from:** read from the plan, never hard-coded.
-- [ ] **AC7** — **The `429` response.** It includes `Retry-After`, `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset`, and the SPA shows the wait time.
-- [ ] **AC8** — **Unauthenticated endpoints are rate-limited per IP.**
-- [ ] **AC9** — **Concurrent processing jobs.**
+- [x] **AC7** — **The `429` response.** It includes `Retry-After`, `RateLimit-Limit`, `RateLimit-Remaining` and `RateLimit-Reset`, and the SPA shows the wait time.
+- [x] **AC8** — **Unauthenticated endpoints are rate-limited per IP.**
+- [x] **AC9** — **Concurrent processing jobs.**
   - **The cap:** each user has a cap on processing jobs running at once (Free: 2).
   - **Beyond the cap:** further uploads are accepted as `queued` and start when a slot frees up; they are not refused.
 
 ### Admin API (screens in 011)
-- [ ] **AC10** — **Changing a user's plan.**
+- [x] **AC10** — **Changing a user's plan.**
   - **The endpoint:** `PUT /admin/users/{id}/plan` sets the plan.
   - **Who may call it:** only through the policy with `user.manage` (platform admins; rule 5).
   - **Effect:** audited, and applied on the user's next request.
   - **Before the admin screens exist:** `make plan USER=<email> PLAN=internal` calls the same service for local and demo setups.
 
 ### Settings page (user side)
-- [ ] **AC11** — **Profile.**
+- [x] **AC11** — **Profile.**
   - **Shown:** the user's name, email and initials.
   - **Editing:** name and email come from the sign-in account and say so; they are not edited here.
-- [ ] **AC12** — **Plan and usage.**
+- [x] **AC12** — **Plan and usage.**
   - **The plan:** the plan's name is shown.
   - **One meter per limit:**
     - papers this month;
@@ -85,13 +85,13 @@ Every limit in the product comes from the user's **plan**, so the team and stake
   - **Each meter shows:** what's used, the limit and when it resets.
   - **No limit:** a limit the plan doesn't have reads "No limit".
   - **Phones:** each meter is one line plus a bar.
-- [ ] **AC13** — **Appearance.** Theme is System, Light or Dark, using the existing theme setting, with a design-system segmented control.
-- [ ] **AC14** — **Account: sign out.**
-- [ ] **AC15** — **Account: delete account.**
+- [x] **AC13** — **Appearance.** Theme is System, Light or Dark, using the existing theme setting, with a design-system segmented control.
+- [x] **AC14** — **Account: sign out.**
+- [x] **AC15** — **Account: delete account.**
   - **What it removes:** every paper, file, summary, conversation, note and template the user owns, with the same cascade as paper deletion (architecture §4), and an audit entry.
   - **Confirmation:** the user types their email to confirm.
   - **Afterwards:** they are signed out.
-- [ ] **AC16** — **Quality bar.**
+- [x] **AC16** — **Quality bar.**
   - Works at 360 px with no horizontal scroll.
   - Keyboard reachable.
   - No serious axe violations.
@@ -142,6 +142,15 @@ Every limit in the product comes from the user's **plan**, so the team and stake
   - per-IP limits.
 - **Web:** Settings meters, "No limit", the theme control, delete confirmation, the `429` messages, axe.
 - **Playwright:** open Settings, see usage after asking a question.
+
+## As built
+- **Admin action name:** the admin endpoint uses the policy action `admin.users.plan` (admin-only, like the other `admin.*` actions) rather than `user.manage`.
+- **Make target:** `make plan EMAIL=<email> PLAN=<free|pro|internal>`; `USER` clashes with the shell's own variable.
+- **Internal template sizes:** Internal keeps bounded template sizes (20 fields, 50 templates). They shape prompts; they are not usage.
+- **Per-IP limits:** `settings.rate_limits` remains only for per-IP limits on unauthenticated routes and as the fallback when a plan cannot be read.
+- **Plan caching:** plan lookups for spend caps and rate limits are cached for 5 seconds per process, so a plan change shows within seconds.
+- **Concurrent jobs:** the cap counts ingest jobs. A held upload is released by the worker when one of the user's ingest jobs ends. Migration 0014 adds `jobs.held`.
+- **Delete account:** disables the account and removes its content with the same worker task as the sign-in provider's "user deleted" event (now also custom templates, collections and usage counters; migration 0015). The sign-in provider's own account is not deleted by this.
 
 ## Open questions (owner)
 - **Q1 (answered):** Free as listed; Pro defined now (AC1).

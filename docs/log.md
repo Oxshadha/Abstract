@@ -15,6 +15,13 @@ Entry format:
 
 ---
 
+## 2026-11-12: Spec 012 plans, limits and the Settings page implemented
+**Done:** Plans in the database (Free, Pro, Internal with the D91 numbers; null means no limit) and every limit read from the user's plan: template sizes, daily and monthly AI caps, papers a month, questions a day, rate limits (Redis token bucket with RateLimit headers), and concurrent processing (extra uploads wait, held, and start when a slot frees). Internal is counted but never stopped by a per-user limit; the platform cap ($20 a day) still applies and warns once at 80%. Admin API and `make plan` to move a user between plans (audited). Settings page: profile, plan and usage meters (AI as a percentage), theme, sign out, delete account. Limit messages show the reset in the reader's local time.
+**Tests:** API 377 passed (migrations 0013 to 0015); web 188 passed; one shared problem helper replaced five copies.
+**Decisions:** D91   **Specs:** 012 Implemented (as-built notes in the spec)
+**Next:** owner merges #17 (workspace fixes), #18 (identity) and the 012 PR; put stakeholders on Internal with `make plan EMAIL=... PLAN=internal`; next spec per D89: 011 admin.
+**Blockers / waiting on owner:** merges.
+
 ## 2026-11-12: Spec 015 reading aids implemented
 **Done:** Paper-specific suggested questions (cheap model, stored, generic fallback); up to three follow-ups from the same answer call (held back while streaming, sent in `done`); select text in the PDF for a floating Explain (Plain or Expert, remembered on the device) and Ask (quote chip) toolbar, answered in the chat with citations; Export in the Summary panel: branded PDF made by the server (ReportLab 5.1.0, Nunito Sans embedded only in the PDF), Markdown and BibTeX (DOI or arXiv id found in the paper).
 **Fixed on the way:** react-pdf rebuilt the text layer on every re-render and dropped selections (one renderer per page now); Safari selected the rest of the page when a drag left a line (pdf.js's endOfContent fix ported); a click on text cleared a citation highlight and the selection; a failed conversation start lost the question; the suggestions route held a transaction (and the user's row lock) across its model call.
