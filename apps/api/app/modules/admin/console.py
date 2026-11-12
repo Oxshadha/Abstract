@@ -8,7 +8,7 @@ import base64
 import json
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
-from typing import Annotated, Any
+from typing import Annotated, Any, Literal
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -58,16 +58,19 @@ def _uncursor(cursor: str) -> tuple[datetime, UUID]:
         raise ProblemError(400, "invalid-cursor", "The page cursor is not valid.") from exc
 
 
-async def audit(ctx: Context, action: str, resource: str, metadata: dict[str, Any]) -> None:
+async def audit(
+    ctx: Context, action: str, resource: str, metadata: dict[str, Any], kind: str = "user"
+) -> None:
     await ctx.session.execute(
         text(
             "INSERT INTO audit_log (org_id, actor_user_id, action, resource_type, resource_id,"
-            " metadata) VALUES (:o, :u, :a, 'user', :r, CAST(:m AS jsonb))"
+            " metadata) VALUES (:o, :u, :a, :t, :r, CAST(:m AS jsonb))"
         ),
         {
             "o": ctx.identity.org_id,
             "u": ctx.identity.user_id,
             "a": action,
+            "t": kind,
             "r": resource,
             "m": json.dumps(metadata),
         },
@@ -402,4 +405,102 @@ async def update_plan(
     )
     return PlanOut(
         id=row.id, name=row.name, limits=PlanLimits.model_validate(row.limits), users=row.users
+    )
+
+
+# ---------- jobs (AC8) ----------
+
+JOB_TASKS = {
+    "ingest": "app.worker.tasks.ingest_paper",
+    "ocr": "app.worker.tasks.ocr_pages",
+    "enrich": "app.worker.tasks.enrich_paper",
+    "scan": "app.worker.tasks.scan_paper",
+}
+JobFilter = Literal["failed", "enqueue_failed", "stuck"]
+
+
+class AdminJob(BaseModel):
+    id: UUID
+    kind: str
+    status: str
+    stuck: bool
+    owner_email: str | None
+    attempts: int
+    last_error: str | None
+    held: bool
+    at: datetime | None
+    retryable: bool
+
+
+class AdminJobs(BaseModel):
+    items: list[AdminJob]
+    counts: dict[str, int]
+
+
+@router.get(
+    "/jobs",
+    response_model=AdminJobs,
+    summary="Failed, never-enqueued and stuck jobs with their last error, and job counts",
+    dependencies=[Depends(user_rate_limit("read"))],
+)
+async def list_jobs(
+    ctx: Annotated[Context, Depends(require("admin.jobs.read"))],
+    status: Annotated[list[JobFilter] | None, Query()] = None,
+) -> AdminJobs:
+    statuses = status or ["failed", "enqueue_failed", "stuck"]
+    rows = (
+        await ctx.session.execute(
+            text(
+                "SELECT j.*, u.email FROM admin_jobs(CAST(:s AS text[]), 100) j"
+                " LEFT JOIN users u ON u.id = j.owner_id"
+            ),
+            {"s": statuses},
+        )
+    ).all()
+    counts = (await ctx.session.execute(text("SELECT * FROM admin_job_counts()"))).one()
+    return AdminJobs(
+        items=[
+            AdminJob(
+                id=r.id,
+                kind=r.kind,
+                status=r.status,
+                stuck=r.status == "running",
+                owner_email=r.email,
+                attempts=r.attempts,
+                last_error=r.last_error,
+                held=r.held,
+                at=r.finished_at or r.started_at or r.queued_at,
+                retryable=r.kind in JOB_TASKS,
+            )
+            for r in rows
+        ],
+        counts={k: int(getattr(counts, k)) for k in ("queued", "held", "running", "failed_24h")},
+    )
+
+
+@router.post(
+    "/jobs/{job_id}/retry",
+    status_code=202,
+    summary="Queue a failed, never-enqueued or stuck job again (audited)",
+    dependencies=[Depends(user_rate_limit("write"))],
+)
+async def retry_job(
+    job_id: UUID, request: Request, ctx: Annotated[Context, Depends(require("admin.jobs.retry"))]
+) -> None:
+    row = (
+        await ctx.session.execute(text("SELECT * FROM admin_requeue_job(:j)"), {"j": job_id})
+    ).one()
+    if row.outcome == "not_found":
+        raise ProblemError(404, "job-not-found", "This job was not found.")
+    if row.outcome != "queued":
+        raise ProblemError(
+            409,
+            "not-retryable",
+            "Only failed, never-enqueued or stuck processing jobs can be retried here."
+            " Summaries are retried from the paper.",
+        )
+    await audit(ctx, "admin.jobs.retry", str(job_id), {"kind": row.kind}, kind="job")
+    await ctx.session.commit()  # queued before it is enqueued (004 AC7)
+    request.app.state.enqueue(
+        JOB_TASKS[row.kind], {"job_id": str(job_id), "org_id": str(row.org_id)}
     )
