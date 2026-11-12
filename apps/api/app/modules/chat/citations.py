@@ -35,6 +35,7 @@ class Passage:
     section: str
     text: str
     element: dict[str, Any] | None = None  # table or figure behind this passage (spec 009 AC9)
+    region: dict[str, Any] | None = None  # the asked-about region (AC11)
 
 
 @dataclass(frozen=True)
@@ -47,6 +48,7 @@ class Citation:
     quote: str
     score: float
     element: dict[str, Any] | None = None
+    region: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -99,6 +101,7 @@ def validate(answer: str, passages: list[Passage]) -> Validated:
                     quote,
                     score,
                     passage.element,
+                    passage.region,
                 )
     cleaned = re.sub(r"[ \t]+([.,;:])", r"\1", cleaned)
     return Validated(cleaned.strip(), sorted(citations.values(), key=lambda c: c.marker), removed)

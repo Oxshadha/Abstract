@@ -76,6 +76,16 @@
             "title": "Quote",
             "type": "string"
           },
+          "region": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Region"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "section": {
             "anyOf": [
               {
@@ -812,6 +822,16 @@
             "title": "Id",
             "type": "string"
           },
+          "region": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Region"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "retrieval_mode": {
             "anyOf": [
               {
@@ -1410,6 +1430,51 @@
         "title": "Received",
         "type": "object"
       },
+      "Region": {
+        "additionalProperties": false,
+        "description": "A box on one page as fractions (0 to 1, origin top left), drawn in the viewer (AC10).\nOnly coordinates come from the browser; the server renders the crop (AC11).",
+        "properties": {
+          "height": {
+            "maximum": 1.0,
+            "minimum": 0.02,
+            "title": "Height",
+            "type": "number"
+          },
+          "page": {
+            "maximum": 10000.0,
+            "minimum": 1.0,
+            "title": "Page",
+            "type": "integer"
+          },
+          "width": {
+            "maximum": 1.0,
+            "minimum": 0.02,
+            "title": "Width",
+            "type": "number"
+          },
+          "x": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "X",
+            "type": "number"
+          },
+          "y": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Y",
+            "type": "number"
+          }
+        },
+        "required": [
+          "page",
+          "x",
+          "y",
+          "width",
+          "height"
+        ],
+        "title": "Region",
+        "type": "object"
+      },
       "RegistryEntryOut": {
         "additionalProperties": false,
         "properties": {
@@ -1591,6 +1656,16 @@
             "minLength": 1,
             "title": "Content",
             "type": "string"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Region"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [

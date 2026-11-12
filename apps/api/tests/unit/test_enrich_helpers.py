@@ -4,7 +4,8 @@ import io
 
 from PIL import Image
 
-from app.modules.papers.enrich import label_for, numbers_in, render_crop, table_markdown
+from app.adapters.pdf.render import render_crop
+from app.modules.papers.enrich import label_for, numbers_in, table_markdown
 from app.ports.layout import Box, TableElement
 from tests.fakes.pdfs import make_rich_pdf
 

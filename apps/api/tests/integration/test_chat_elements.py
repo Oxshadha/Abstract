@@ -2,13 +2,14 @@
 
 from collections.abc import AsyncIterator, Iterator
 from typing import Any
+from uuid import uuid4
 
 import pytest
 
 from app.ports.llm import ImagePart, StreamChunk
 from tests.fakes.auth import bearer
 from tests.integration.papers_fixtures import PapersApi, Worker
-from tests.integration.test_chat import ScriptedChat, ask, conversation
+from tests.integration.test_chat import ScriptedChat, ask, conversation, parse
 from tests.integration.test_enrichment import FakeLayout, _enrich, _ingested
 
 pytestmark = [pytest.mark.integration, pytest.mark.enable_socket]
@@ -73,3 +74,50 @@ async def test_AC9_figure_questions_send_the_figure_image(
     cid = await conversation(api, user, paper)
     await ask(api, user, cid, "What does Figure 1 show?")
     assert _images(seeing.answer_messages) == 1  # the crop, at most MAX_FIGURE_IMAGES
+
+
+async def _ask_region(
+    api: PapersApi, user: str, cid: str, region: dict[str, Any], question: str = "What is this?"
+) -> Any:
+    return await api.client.post(
+        f"/api/v1/conversations/{cid}/messages",
+        json={"content": question, "region": region},
+        headers={**bearer(user), "Idempotency-Key": str(uuid4())},
+    )
+
+
+async def test_AC10_AC11_a_region_question_sees_the_crop_and_cites_the_region(
+    api: PapersApi, worker: Worker, seeing: SeeingChat
+) -> None:
+    _job, paper, user = await _ingested(api, worker)
+    cid = await conversation(api, user, paper)
+    region = {"page": 2, "x": 0.1, "y": 0.2, "width": 0.7, "height": 0.15}
+    response = await _ask_region(api, user, cid, region)
+    assert response.status_code == 200, response.text
+    events = parse(response.text)
+    (citations,) = [data["items"] for name, data in events if name == "citations"]
+    assert citations[0]["region"] == region  # [S1] is the region
+    assert citations[0]["section"] == "Selected region"
+    assert _images(seeing.answer_messages) >= 1  # the server-rendered crop
+    assert any(task == "region_answer" for task, _ in seeing.calls)
+    page = (
+        await api.client.get(f"/api/v1/conversations/{cid}/messages", headers=bearer(user))
+    ).json()
+    question = next(m for m in page["items"] if m["role"] == "user")
+    answer = next(m for m in page["items"] if m["role"] == "assistant")
+    assert question["region"] == region  # the chip on the question survives a reload
+    assert answer["citations"][0]["region"] == region
+
+
+async def test_AC11_regions_are_bounded(api: PapersApi, worker: Worker, seeing: SeeingChat) -> None:
+    _job, paper, user = await _ingested(api, worker)
+    cid = await conversation(api, user, paper)
+    bad: list[dict[str, Any]] = [
+        {"page": 1, "x": 0.1, "y": 0.1, "width": 0.01, "height": 0.2},  # too small
+        {"page": 1, "x": 0.8, "y": 0.1, "width": 0.5, "height": 0.2},  # off the page
+        {"page": 99, "x": 0.1, "y": 0.1, "width": 0.3, "height": 0.2},  # no such page
+        {"page": 1, "x": 0.1, "y": 0.1, "width": 0.3, "height": 0.2, "image": "data:"},  # extra
+    ]
+    for region in bad:
+        response = await _ask_region(api, user, cid, region)
+        assert response.status_code == 422, region

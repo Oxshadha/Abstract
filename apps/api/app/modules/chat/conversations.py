@@ -128,7 +128,8 @@ async def messages(
     rows = (
         await session.execute(
             text(
-                "SELECT id, role, content, status, retrieval_mode, created_at, seq FROM messages"
+                "SELECT id, role, content, status, retrieval_mode, created_at, seq, region"
+                " FROM messages"
                 " WHERE conversation_id = :c AND (CAST(:cur AS bigint) IS NULL OR seq < :cur)"
                 " ORDER BY seq DESC LIMIT :n"
             ),
@@ -143,7 +144,7 @@ async def messages(
             await session.execute(
                 text(
                     "SELECT mc.message_id, mc.marker, mc.page_start, mc.page_end, mc.section,"
-                    " mc.quote, e.id AS element_id, e.kind AS element_kind, e.label AS"
+                    " mc.quote, mc.region, e.id AS element_id, e.kind AS element_kind, e.label AS"
                     " element_label, e.bbox AS element_box FROM message_citations mc"
                     " LEFT JOIN chunks c ON c.id = mc.chunk_id"
                     " LEFT JOIN paper_elements e ON e.id = c.element_id"
@@ -160,6 +161,7 @@ async def messages(
                     section=c.section,
                     quote=c.quote,
                     element=citation_element(c),
+                    region=c.region,
                 )
             )
     return MessagePage(
@@ -172,6 +174,7 @@ async def messages(
                 retrieval_mode=r.retrieval_mode,
                 citations=citations.get(r.id, []),
                 created_at=r.created_at,
+                region=r.region,
             )
             for r in page
         ],
@@ -186,3 +189,14 @@ def citation_element(row: Any) -> CitationElement | None:
     return CitationElement(
         id=row.element_id, kind=row.element_kind, label=row.element_label, box=row.element_box
     )
+
+
+async def check_region_page(session: AsyncSession, paper_id: UUID, page: int) -> None:
+    """AC11: a region must be on a page of this paper."""
+    pages = (
+        await session.execute(text("SELECT pages FROM papers WHERE id = :p"), {"p": paper_id})
+    ).scalar_one_or_none()
+    if pages is None or page > pages:
+        raise ProblemError(
+            422, "region-out-of-bounds", "That region is not on a page of this paper."
+        )

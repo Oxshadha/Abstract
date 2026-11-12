@@ -6,7 +6,6 @@ progress; elements, crops and their chunks replace any earlier run in one transa
 """
 
 import asyncio
-import io
 import json
 import re
 from collections.abc import Callable
@@ -14,10 +13,10 @@ from dataclasses import dataclass
 from typing import Any
 from uuid import UUID
 
-import pypdfium2 as pdfium
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.adapters.pdf.render import render_crop
 from app.adapters.pdf.triage import triage
 from app.core.logging import get_logger
 from app.core.tenancy import set_tenant
@@ -25,14 +24,13 @@ from app.modules.llm.gateway import set_context as set_llm_context
 from app.modules.papers.chunking import Chunk, estimate_tokens
 from app.modules.papers.ingest import Deps, PaperGoneError, embed_chunks, lock_usable_paper
 from app.modules.papers.keys import paper_prefix
-from app.ports.layout import Box, FigureElement, LayoutParser, ParsedLayout, TableElement
+from app.ports.layout import FigureElement, LayoutParser, ParsedLayout, TableElement
 
 log = get_logger(__name__)
 
 MAX_PAGES = 60  # pages parsed per paper (AC13): beyond this the view says so (AC4)
 BATCH = 4  # pages per parser call: progress updates and bounded memory
 ELEMENT_ORDINAL_BASE = 1_000_000  # element chunks never collide with text chunk ordinals
-CROP_SCALE = 2.0  # figure crops at 144 dpi: sharp on screens, small enough to store
 MAX_CELL_CHARS = 200
 
 
@@ -69,32 +67,6 @@ def label_for(kind: str, caption: str | None, ordinal: int) -> str:
             number = match.group(2)
             return f"{word} {number if number.isdigit() else number.upper()}"
     return f"{'Table' if kind == 'table' else 'Figure'} {ordinal}"
-
-
-def render_crop(data: bytes, page_no: int, box: Box, scale: float = CROP_SCALE) -> bytes:
-    """PNG of one box of one page, rendered from the sanitized PDF (never from the browser)."""
-    pdf = pdfium.PdfDocument(data)
-    try:
-        page = pdf[page_no - 1]
-        try:
-            width, height = page.get_size()
-            b = box.clamped()
-            image = page.render(
-                scale=scale,
-                crop=(
-                    b.x * width,
-                    (1 - b.y - b.height) * height,
-                    (1 - b.x - b.width) * width,
-                    b.y * height,
-                ),
-            ).to_pil()
-        finally:
-            page.close()
-    finally:
-        pdf.close()
-    out = io.BytesIO()
-    image.convert("RGB").save(out, "PNG", optimize=True)
-    return out.getvalue()
 
 
 async def _load(session: AsyncSession, job_id: UUID) -> _Paper:

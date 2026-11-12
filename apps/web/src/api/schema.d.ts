@@ -729,6 +729,7 @@ export interface components {
             page_start: number | null;
             /** Quote */
             quote: string;
+            region?: components["schemas"]["Region"] | null;
             /** Section */
             section: string | null;
         };
@@ -1030,6 +1031,7 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            region?: components["schemas"]["Region"] | null;
             /** Retrieval Mode */
             retrieval_mode: ("hybrid" | "keyword" | "cache") | null;
             /**
@@ -1236,6 +1238,23 @@ export interface components {
             /** Received */
             received: boolean;
         };
+        /**
+         * Region
+         * @description A box on one page as fractions (0 to 1, origin top left), drawn in the viewer (AC10).
+         *     Only coordinates come from the browser; the server renders the crop (AC11).
+         */
+        Region: {
+            /** Height */
+            height: number;
+            /** Page */
+            page: number;
+            /** Width */
+            width: number;
+            /** X */
+            x: number;
+            /** Y */
+            y: number;
+        };
         /** RegistryEntryOut */
         RegistryEntryOut: {
             /** Deadline Seconds */
@@ -1320,6 +1339,7 @@ export interface components {
         SendMessage: {
             /** Content */
             content: string;
+            region?: components["schemas"]["Region"] | null;
         };
         /** StepOut */
         StepOut: {
