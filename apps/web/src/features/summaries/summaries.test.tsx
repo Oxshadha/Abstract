@@ -104,6 +104,19 @@ describe("AC8: summary panel", () => {
   });
 });
 
+describe("Spec 010 AC5: newer template versions", () => {
+  it("offers Update summary when the template changed since the summary", async () => {
+    vi.mocked(listSummaries).mockResolvedValue([
+      { id: "s1", template_id: QUICK_ID, template_name: "Quick Summary", status: "ready", template_version: 1, template_latest_version: 2 },
+    ]);
+    vi.mocked(createSummary).mockResolvedValue({ id: "s9", template_id: QUICK_ID, template_name: "Quick Summary", status: "queued", template_version: 2 });
+    await renderAt("/app/papers/p1");
+    expect(await screen.findByText("A newer version of this template exists.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Update summary" }));
+    await vi.waitFor(() => { expect(createSummary).toHaveBeenCalledWith("p1", QUICK_ID); });
+  });
+});
+
 describe("AC9, AC12: editing", () => {
   it("autosaves 1 s after typing with the summary version, then shows Saved", async () => {
     vi.mocked(editField).mockResolvedValue(4);

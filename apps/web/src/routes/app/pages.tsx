@@ -14,10 +14,6 @@ export function LibraryPage() {
   return <LibraryView />;
 }
 
-export function TemplatesPage() {
-  return <PageHeader title="Templates" description="Choose or design how summaries are structured." />;
-}
-
 export function SettingsPage() {
   return <PageHeader title="Settings" description="Account, appearance, and workspace preferences." />;
 }
