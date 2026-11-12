@@ -164,3 +164,68 @@ async def consume(session: AsyncSession, org_id: UUID, user_id: UUID, metric: Me
     ).scalar()
     if counted is None:
         raise _refusal(metric, int(limit or 0))
+
+
+# ---------- what the user sees in Settings (AC12) ----------
+
+
+class Meter(BaseModel):
+    key: Literal["papers", "messages", "ai"]
+    used: int | None  # count, or for "ai" the percent of today's allowance (None: no limit)
+    limit: int | None  # None: no limit
+    resets_at: datetime
+
+
+class PlanRef(BaseModel):
+    id: str
+    name: str
+
+
+class Usage(BaseModel):
+    plan: PlanRef
+    meters: list[Meter]
+
+
+async def usage(session: AsyncSession, user_id: UUID) -> Usage:
+    """Three queries: the plan, both counters, today's AI spend. AI use is a percentage of the
+    daily allowance, never dollars (D91)."""
+    plan = await plan_of(session, user_id)
+    counters = {
+        r.metric: int(r.value)
+        for r in await session.execute(
+            text(
+                "SELECT metric, value FROM usage_counters WHERE user_id = :u AND ("
+                " (metric = 'papers' AND period = 'month' AND period_start = :m)"
+                " OR (metric = 'messages' AND period = 'day' AND period_start = :d))"
+            ),
+            {"u": user_id, "m": period_start("month"), "d": period_start("day")},
+        )
+    }
+    spent = (
+        await session.execute(text("SELECT user_day FROM llm_spend_periods(:u)"), {"u": user_id})
+    ).scalar()
+    cap = plan.limits.ai_usd_per_day
+    ai_percent = None if not cap else round(float(spent or 0) / cap * 100)
+    return Usage(
+        plan=PlanRef(id=plan.id, name=plan.name),
+        meters=[
+            Meter(
+                key="papers",
+                used=counters.get("papers", 0),
+                limit=plan.limits.papers_per_month,
+                resets_at=resets_at("month"),
+            ),
+            Meter(
+                key="messages",
+                used=counters.get("messages", 0),
+                limit=plan.limits.messages_per_day,
+                resets_at=resets_at("day"),
+            ),
+            Meter(
+                key="ai",
+                used=ai_percent,
+                limit=100 if cap else None,
+                resets_at=resets_at("day"),
+            ),
+        ],
+    )

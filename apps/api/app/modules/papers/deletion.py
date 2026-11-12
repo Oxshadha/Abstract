@@ -122,6 +122,12 @@ async def delete_account_content(session: AsyncSession, storage: Storage, user_i
         .all()
     )
     await session.execute(text("DELETE FROM idempotency_keys WHERE user_id = :u"), {"u": user_id})
+    # Spec 012 AC15: the rest of what they own (summaries and chats went with the papers).
+    await session.execute(text("DELETE FROM collections WHERE owner_id = :u"), {"u": user_id})
+    await session.execute(
+        text("DELETE FROM templates WHERE owner_id = :u AND kind = 'custom'"), {"u": user_id}
+    )
+    await session.execute(text("DELETE FROM usage_counters WHERE user_id = :u"), {"u": user_id})
     for paper in deleted:
         await delete_objects(storage, paper.org_id, paper.paper_id, paper.quarantine_key)
     await storage.delete(list(uploads))

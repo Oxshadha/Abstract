@@ -118,7 +118,11 @@ async def test_AC3_user_deleted_disables_audits_and_enqueues_once(
     async with engine.connect() as conn:
         audits = (
             await conn.execute(
-                text("SELECT count(*) FROM audit_log WHERE action = 'account.delete_requested'")
+                text(
+                    "SELECT count(*) FROM audit_log WHERE action = 'account.delete_requested'"
+                    " AND resource_id = :r"
+                ),
+                {"r": me.json()["user"]["id"]},
             )
         ).scalar()
         # Restore the shared demo user so test order never matters.

@@ -21,6 +21,7 @@ OWNERS: frozenset[str] = frozenset({"owner"})
 # action -> org roles allowed. Actions starting with "admin." require platform_role=admin.
 POLICY: dict[str, frozenset[str]] = {
     "me.read": MEMBERS,
+    "me.delete": MEMBERS,  # spec 012 AC15: the caller's own account only
     "org.update": OWNERS,
     "paper.read": MEMBERS,
     "paper.create": MEMBERS,
