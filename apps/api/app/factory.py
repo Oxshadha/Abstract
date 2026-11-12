@@ -23,6 +23,7 @@ from app.core.middleware import RequestContextMiddleware
 from app.core.observability import init_sentry
 from app.core.ratelimit import CounterStore, RedisCounterStore
 from app.core.readiness import ReadinessCheck
+from app.modules.admin import console as admin_console
 from app.modules.admin import router as admin_router
 from app.modules.chat import router as chat_router
 from app.modules.entitlements import router as entitlements_router
@@ -127,6 +128,7 @@ def create_app(
     app.include_router(identity_router.router, prefix=API_PREFIX)
     app.include_router(identity_webhooks.router, prefix=API_PREFIX)
     app.include_router(admin_router.router, prefix=API_PREFIX)
+    app.include_router(admin_console.router, prefix=API_PREFIX)
     app.include_router(papers_router.router, prefix=API_PREFIX)
     app.include_router(summaries_router.router, prefix=API_PREFIX)
     app.include_router(chat_router.router, prefix=API_PREFIX)
