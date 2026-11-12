@@ -9,7 +9,7 @@ import { paper } from "@/features/papers/fixtures";
 import { createAppRouter } from "@/router";
 import { seriousViolations } from "@/test/axe";
 
-import { StaleVersionError, createSummary, editField, getSummary, listSummaries, listTemplates, retrySummary } from "./api";
+import { StaleVersionError, createSummary, editField, exportSummary, getSummary, listSummaries, listTemplates, retrySummary } from "./api";
 import { DETAILED_ID, QUICK_ID, summary, templates } from "./fixtures";
 import { Markdown } from "./Markdown";
 import { pageLabel } from "./pages";
@@ -22,7 +22,7 @@ vi.mock("@/features/papers/api", async (orig) => ({ ...(await orig<typeof import
 vi.mock("./api", async (orig) => ({
   ...(await orig<typeof import("./api")>()),
   listTemplates: vi.fn(), listSummaries: vi.fn(), getSummary: vi.fn(), createSummary: vi.fn(),
-  editField: vi.fn(), resetField: vi.fn(), retrySummary: vi.fn(),
+  editField: vi.fn(), resetField: vi.fn(), retrySummary: vi.fn(), exportSummary: vi.fn(),
 }));
 
 async function renderAt(path: string) {
@@ -145,6 +145,39 @@ describe("AC9, AC12: editing", () => {
     vi.useRealTimers();
     expect(await screen.findByText(/changed in another tab/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Reload" })).toBeInTheDocument();
+  });
+});
+
+describe("Spec 015 AC6: export", () => {
+  it("downloads the branded PDF made by the server", async () => {
+    vi.mocked(exportSummary).mockResolvedValue({ blob: new Blob(["%PDF"]), filename: "attention-summary.pdf" });
+    const created = vi.fn(() => "blob:x");
+    vi.stubGlobal("URL", Object.assign(URL, { createObjectURL: created, revokeObjectURL: vi.fn() }));
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
+    await renderAt("/app/papers/p1");
+    const panel = await screen.findByRole("region", { name: "Summary" });
+    await within(panel).findByText("Research Problem");
+    fireEvent.click(within(panel).getByRole("button", { name: "Export" }));
+    const menu = screen.getByRole("menu", { name: "Export" });
+    expect(within(menu).getByRole("menuitem", { name: "Markdown" })).toBeEnabled();
+    expect(within(menu).getByRole("menuitem", { name: "Citation (BibTeX)" })).toBeEnabled();
+    fireEvent.click(within(menu).getByRole("menuitem", { name: "PDF" }));
+    await vi.waitFor(() => { expect(click).toHaveBeenCalled(); });
+    expect(exportSummary).toHaveBeenCalledWith("s1", "pdf");
+    const anchor = click.mock.contexts[0] as HTMLAnchorElement;
+    expect(anchor.download).toBe("attention-summary.pdf");
+    click.mockRestore();
+  });
+
+  it("is disabled with the reason while the summary is being written", async () => {
+    vi.mocked(getSummary).mockResolvedValue(summary({ status: "generating", expected_fields: 5 }));
+    await renderAt("/app/papers/p1");
+    const panel = await screen.findByRole("region", { name: "Summary" });
+    await within(panel).findByText("Building your summary");
+    fireEvent.click(await within(panel).findByRole("button", { name: "Export" }));
+    const menu = screen.getByRole("menu", { name: "Export" });
+    expect(within(menu).getByRole("menuitem", { name: "PDF" })).toBeDisabled();
+    expect(within(menu).getByText("Export opens when the summary is finished.")).toBeInTheDocument();
   });
 });
 

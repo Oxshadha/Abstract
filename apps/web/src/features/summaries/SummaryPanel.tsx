@@ -6,11 +6,14 @@ import {
   BookOpen,
   Compass,
   Database,
+  Download,
+  FileDown,
   FileText,
   Flag,
   Gauge,
   Layers,
   Pencil,
+  Quote,
   Plus,
   RotateCcw,
   Search,
@@ -18,21 +21,26 @@ import {
   Target,
   type LucideIcon,
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 import { SummaryCardSkeleton } from "@/components/feedback/Skeleton";
+import { Menu } from "@/components/menu/Menu";
 import { Select } from "@/components/menu/Select";
 import { StatusPill } from "@/components/status/StatusPill";
+import { toast } from "@/components/status/toast";
+import { saveBlob } from "@/lib/download";
 
 import {
   StaleVersionError,
   createSummary,
   editField,
+  exportSummary,
   listSummaries,
   listTemplates,
   resetField,
   retrySummary,
   summaryKeys,
+  type ExportFormat,
   type Summary,
   type SummaryField,
 } from "./api";
@@ -313,6 +321,44 @@ function SummaryBody({ summary }: { summary: Summary }) {
 }
 
 /** Workspace Summary panel (spec 006 AC8, mockup). */
+/** Spec 015 AC6: Markdown, a branded PDF made by the server, or the paper's BibTeX entry. */
+function ExportMenu({ summary }: { summary: Summary | undefined }) {
+  const ready = summary?.status === "ready";
+  const download = async (format: ExportFormat) => {
+    if (!summary) return;
+    try {
+      const file = await exportSummary(summary.id, format);
+      saveBlob(file.blob, file.filename);
+    } catch (err) {
+      toast(err instanceof Error ? err.message : "Could not export the summary.");
+    }
+  };
+  const item = (format: ExportFormat, label: string, icon: ReactNode) => ({
+    label,
+    icon,
+    disabled: !ready,
+    onSelect: () => void download(format),
+  });
+  return (
+    <Menu
+      label="Export"
+      trigger={<Download aria-hidden className="size-5" />}
+      items={[
+        item("pdf", "PDF", <FileDown aria-hidden className="size-4" />),
+        item("md", "Markdown", <FileText aria-hidden className="size-4" />),
+        item("bib", "Citation (BibTeX)", <Quote aria-hidden className="size-4" />),
+      ]}
+      footer={
+        ready ? null : (
+          <p className="px-2 py-1.5 text-xs text-text-secondary">
+            {summary ? "Export opens when the summary is finished." : "Create a summary to export it."}
+          </p>
+        )
+      }
+    />
+  );
+}
+
 export function SummaryPanel({ paperId }: { paperId: string }) {
   const queryClient = useQueryClient();
   const summaries = useQuery({ queryKey: summaryKeys.forPaper(paperId), queryFn: () => listSummaries(paperId) });
@@ -343,7 +389,10 @@ export function SummaryPanel({ paperId }: { paperId: string }) {
     <div className="flex h-full min-h-0 flex-col gap-4">
       <div className="flex shrink-0 items-center justify-between gap-2">
         <h2 className="font-display text-lg font-bold whitespace-nowrap">Summary</h2>
-        <TemplateSwitcher current={templateId} onChoose={choose} />
+        <span className="flex min-w-0 items-center gap-1">
+          <TemplateSwitcher current={templateId} onChoose={choose} />
+          <ExportMenu summary={summary.data} />
+        </span>
       </div>
       <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-1 max-lg:pb-28">
       {outdated && templateId && (
