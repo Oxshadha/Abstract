@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | Draft |
+| **Status** | Approved (owner, 2026-11-12): plan limits and the platform cap editable in the panel (audited); flags for Figures & tables, Search and Reading aids; admins never see content (D92) |
 | **Week** | W3 |
-| **Decisions** | D3, D10, D11, D13, D72, D89, D90, D91 |
+| **Decisions** | D3, D10, D11, D13, D72, D89, D90, D91, D92 |
 | **Engineering practices (D67)** | Spec 011 items in `docs/engineering-practices.md` §3, included below as AC6, AC8 and AC9 |
 | **Feature flag** | none (the admin area is gated by the platform admin role) |
 | **Mockup** | none; follows `docs/design-principles.md` (desktop uses the width, phones one-line rows, design-system controls only) |
@@ -78,7 +78,7 @@ The team can run Abstract without touching the database or the command line. In 
   - **`GET /me/flags`:** returns the caller's evaluated flags; the SPA gates routes and components on them.
   - **Reading:** flags are read once per request (no extra cache layer in v1).
   - **Admin:** the admin lists and toggles them, audited.
-- [ ] **AC7** — **The first flags.** The optional features chosen by the owner (Q3) are behind flags, default on. Turning one off hides it in the UI and refuses its API routes.
+- [ ] **AC7** — **The first flags:** `figures` (Figures & tables, its tab, region questions and background enrichment), `search` (Ctrl/Cmd+K search) and `reading_aids` (Explain and Ask on selected text, suggested questions and follow-ups, export). All are on by default. Turning one off hides it in the UI and refuses its API routes (403 `feature-off`).
 
 ### Jobs (engineering practices §3)
 - [ ] **AC8** — **The jobs monitor.**
@@ -94,6 +94,16 @@ The team can run Abstract without touching the database or the command line. In 
   - **The list:** every task in the Model Registry with its primary model, fallbacks, parameters, budget behaviour and on/off state.
   - **Editing:** an admin edits a task with design-system controls, validated as the API validates (D72).
   - **Versions:** saving makes a new registry version, audited, and takes effect on the next call.
+
+### Plans and the platform cap (Q1, Q2)
+- [ ] **AC12** — **Plan limits.**
+  - **Editing:** an admin edits a plan's limits in the panel (each number, or "No limit"), validated (whole numbers, amounts of at least 0, template sizes at least 1).
+  - **Effect:** applies within seconds (the 5 s plan cache).
+  - **Audit:** the change is audited with before and after.
+- [ ] **AC13** — **Platform cap.**
+  - **Storage:** the platform-wide daily AI cap is stored in platform settings and edited in the Overview.
+  - **Audit:** the change is audited.
+  - **Fallback:** the deployment setting is used only until the first edit.
 
 ### Quality bar
 - [ ] **AC11** — **Layout and accessibility.**
@@ -120,6 +130,8 @@ New:
 | GET | `/admin/flags` | none | `200 [{key, description, enabled, audience}]` | 403 |
 | PUT | `/admin/flags/{key}` | `{enabled, audience}` | `200` | 403, 404 |
 | GET | `/admin/jobs` | `?status=` | `200 {items, counts}` | 403 |
+| GET/PUT | `/admin/plans`, `/admin/plans/{id}` | `{limits}` | `200` | 403, 404, 422 |
+| PUT | `/admin/llm/cap` | `{daily_usd}` | `200` | 403, 422 |
 | POST | `/admin/jobs/{id}/retry` | none | `202` | 403, 404, 409 not retryable |
 
 ## Data model changes (migration 0016)
@@ -158,7 +170,7 @@ New:
 - **Playwright:** an admin moves a user to Internal and sees it in the list.
 
 ## Open questions (owner)
-- **Q1:** Should admins also edit plan limits (the Free, Pro and Internal numbers) in the panel, audited, or keep them as seeded (D91)?
-- **Q2:** Should the platform-wide daily cap be editable in the panel (stored in platform settings, audited), or stay a deployment setting?
-- **Q3:** Which features go behind flags first?
-- **Q4:** Privacy (AC2): admins never see paper titles or content, only counts and usage. Is that right?
+- **Q1 (answered):** plan limits are editable in the panel, audited (AC12).
+- **Q2 (answered):** the platform cap is editable in the panel, audited (AC13).
+- **Q3 (answered):** the first flags are Figures & tables, Search and Reading aids (AC7). Custom templates stay core.
+- **Q4 (answered):** admins never see paper titles or content (AC2).
