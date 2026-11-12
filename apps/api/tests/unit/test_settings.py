@@ -27,3 +27,12 @@ def test_AC7_openrouter_requires_key() -> None:
 def test_AC7_vertex_requires_credentials() -> None:
     with pytest.raises(ValidationError, match="GOOGLE_APPLICATION_CREDENTIALS"):
         make_settings(llm_provider="vertex")
+
+
+def test_empty_variables_mean_not_set(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Compose passes unset values as "": Clerk and webhooks must stay off, not half-configured.
+    monkeypatch.setenv("CLERK_ISSUER", "")
+    monkeypatch.setenv("CLERK_WEBHOOK_SECRET", "")
+    settings = make_settings()
+    assert settings.clerk_issuer is None
+    assert settings.clerk_webhook_secret is None

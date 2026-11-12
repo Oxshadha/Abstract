@@ -4,6 +4,9 @@ import { darkColors, fonts, lightColors, radius } from "@/styles/tokens";
 export function clerkAppearance(theme: "light" | "dark") {
   const c = theme === "dark" ? darkColors : lightColors;
   return {
+    // "Continue with Google" (and any other provider enabled in Clerk) as a full-width button
+    // above the email form.
+    layout: { socialButtonsPlacement: "top" as const, socialButtonsVariant: "blockButton" as const },
     variables: {
       colorPrimary: c.primary,
       colorBackground: c.surface,
