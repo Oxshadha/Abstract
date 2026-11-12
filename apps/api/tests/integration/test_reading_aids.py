@@ -1,5 +1,6 @@
 """Spec 015: suggested questions, follow-ups, Explain and Ask on a selection."""
 
+import asyncio
 import json
 from collections.abc import AsyncIterator, Iterator
 from typing import Any
@@ -39,11 +40,16 @@ class ReadingChat(ScriptedChat):
         )
         self.fail_suggestions = fail_suggestions
         self.suggest_calls = 0
+        self.gate: asyncio.Event | None = None  # holds the model call open when set
+        self.calling = asyncio.Event()  # set once the model call has started
         self.answer_messages: list[Any] = []
 
     async def complete(self, **kwargs: Any) -> Completion:
         if kwargs["task"] == "suggest_questions":
             self.suggest_calls += 1
+            self.calling.set()
+            if self.gate is not None:
+                await self.gate.wait()
             if self.fail_suggestions:
                 raise ConnectionError("model unavailable")
             return Completion(
@@ -101,6 +107,23 @@ async def test_AC1_a_failure_falls_back_silently_and_retries_later(
     reading.fail_suggestions = False
     assert (await _suggestions(api, user, paper)).json()["questions"][0] == QUESTIONS[0]
     assert reading.suggest_calls == 2
+
+
+async def test_AC1_writing_questions_never_stalls_the_readers_other_requests(
+    api: PapersApi, worker: Worker, reading: ReadingChat
+) -> None:
+    # Every request locks the reader's user row until its transaction ends; the model call must
+    # run with no transaction open, or this read would wait for it.
+    user, paper = await ready_paper(api, worker)
+    reading.gate = asyncio.Event()
+    pending = asyncio.create_task(_suggestions(api, user, paper))
+    await asyncio.wait_for(reading.calling.wait(), timeout=5)
+    other = await asyncio.wait_for(
+        api.client.get(f"/api/v1/papers/{paper}", headers=bearer(user)), timeout=5
+    )
+    assert other.status_code == 200
+    reading.gate.set()
+    assert (await pending).json()["questions"][0] == QUESTIONS[0]
 
 
 async def test_AC2_follow_ups_come_in_done_and_never_stream(

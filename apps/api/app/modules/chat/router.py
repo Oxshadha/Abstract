@@ -23,6 +23,7 @@ from app.modules.chat.schemas import (
     SuggestionList,
 )
 from app.modules.identity.service import RequestContext
+from app.modules.llm.gateway import set_context as set_llm_context
 from app.modules.llm.registry import UnknownTaskError
 
 router = APIRouter(tags=["chat"])
@@ -47,10 +48,18 @@ async def list_conversations(
     dependencies=[Depends(user_rate_limit("read"))],
 )
 async def paper_suggestions(
-    paper_id: UUID, request: Request, ctx: Annotated[Context, Depends(require("chat.read"))]
+    paper_id: UUID,
+    request: Request,
+    identity: Annotated[RequestContext, Depends(require_identity("chat.read"))],
 ) -> SuggestionList:
+    # Short sessions inside: no transaction stays open across the model call.
+    set_llm_context(org_id=identity.org_id, user_id=identity.user_id, paper_id=paper_id)
     questions = await suggestions.suggestions(
-        ctx.session, ctx.identity.user_id, paper_id, request.app.state.llm.gateway
+        request.app.state.sessionmaker,
+        identity.org_id,
+        identity.user_id,
+        paper_id,
+        request.app.state.llm.gateway,
     )
     return SuggestionList(questions=questions)
 

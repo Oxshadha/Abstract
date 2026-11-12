@@ -2,6 +2,8 @@
 
 Written once per paper by the cheap model from its title, opening text and section headings, then
 stored. Any failure returns the generic questions and stores nothing, so the next request retries.
+No transaction is open during the model call: every request locks the reader's user row until its
+transaction ends, so holding one across a model call would stall their other requests.
 """
 
 import json
@@ -9,10 +11,11 @@ from typing import Any
 from uuid import UUID
 
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.core.errors import ProblemError
 from app.core.logging import get_logger
+from app.core.tenancy import set_tenant
 from app.modules.llm.prompts import Prompt, register, using
 from app.ports.llm import JsonSchema, LLMGateway
 
@@ -57,9 +60,10 @@ def _clean(raw: Any) -> list[str]:
     return questions[:COUNT]
 
 
-async def suggestions(
-    session: AsyncSession, owner_id: UUID, paper_id: UUID, gateway: LLMGateway
-) -> list[str]:
+async def _inputs(
+    session: AsyncSession, owner_id: UUID, paper_id: UUID
+) -> list[str] | dict[str, str]:
+    """The stored questions, or what the model needs to write them."""
     paper = (
         await session.execute(
             text(
@@ -95,13 +99,26 @@ async def suggestions(
             )
         ).scalars()
     ]
+    return {"title": str(paper.title), "headings": "\n".join(headings), "opening": opening}
+
+
+async def suggestions(
+    maker: async_sessionmaker[AsyncSession],
+    org_id: UUID,
+    owner_id: UUID,
+    paper_id: UUID,
+    gateway: LLMGateway,
+) -> list[str]:
+    async with maker() as session, session.begin():
+        await set_tenant(session, org_id)
+        found = await _inputs(session, owner_id, paper_id)
+    if isinstance(found, list):
+        return found
     try:
         with using(SUGGEST):
             completion = await gateway.complete(
                 task="suggest_questions",
-                messages=SUGGEST.messages(
-                    title=str(paper.title), headings="\n".join(headings), opening=opening
-                ),
+                messages=SUGGEST.messages(**found),
                 json_schema=_SCHEMA,
             )
         questions = _clean(json.loads(completion.text).get("questions"))
@@ -110,8 +127,13 @@ async def suggestions(
         return GENERIC
     if len(questions) < 2:
         return GENERIC
-    await session.execute(
-        text("UPDATE papers SET suggested_questions = CAST(:q AS jsonb) WHERE id = :p"),
-        {"q": json.dumps(questions), "p": paper_id},
-    )
+    async with maker() as session, session.begin():
+        await set_tenant(session, org_id)
+        await session.execute(
+            text(
+                "UPDATE papers SET suggested_questions = CAST(:q AS jsonb)"
+                " WHERE id = :p AND owner_id = :o AND suggested_questions IS NULL"
+            ),
+            {"q": json.dumps(questions), "p": paper_id, "o": owner_id},
+        )
     return questions
