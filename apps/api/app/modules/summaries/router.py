@@ -4,7 +4,7 @@ from collections.abc import AsyncIterator
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, Path, Request, Response
+from fastapi import APIRouter, Depends, Header, Path, Query, Request, Response
 from fastapi.responses import JSONResponse, StreamingResponse
 
 from app.core import idempotency
@@ -16,7 +16,7 @@ from app.core.tenancy import set_tenant
 from app.modules.entitlements.service import limits_for
 from app.modules.identity.service import RequestContext
 from app.modules.llm.gateway import set_context as set_llm_context
-from app.modules.summaries import edits, preview, service, templates
+from app.modules.summaries import edits, export, preview, service, templates
 from app.modules.summaries.schemas import (
     CreatedSummary,
     CreateSummary,
@@ -220,6 +220,39 @@ async def get_summary(
         return Response(status_code=304, headers=headers)
     response.headers.update(headers)
     return summary
+
+
+@router.get(
+    "/summaries/{summary_id}/export",
+    summary="Download the summary as Markdown or a branded PDF, or the paper's BibTeX entry",
+    response_class=Response,
+    responses={
+        200: {
+            "content": {
+                "text/markdown": {},
+                "application/pdf": {},
+                "application/x-bibtex": {},
+            }
+        }
+    },
+    dependencies=[Depends(user_rate_limit("read"))],
+)
+async def export_summary(
+    summary_id: UUID,
+    ctx: Annotated[Context, Depends(require("summary.read"))],
+    format: Annotated[export.Format, Query()] = "md",
+) -> Response:
+    data = await export.load(ctx.session, ctx.identity.user_id, summary_id)
+    body = await asyncio.to_thread(export.render, data, format)
+    return Response(
+        body,
+        media_type=export.MEDIA[format],
+        headers={
+            "Content-Disposition": export.disposition(export.filename(data, format)),
+            "Cache-Control": "private, no-store",
+            "X-Content-Type-Options": "nosniff",
+        },
+    )
 
 
 @router.get(

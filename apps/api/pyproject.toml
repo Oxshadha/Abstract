@@ -21,6 +21,7 @@ dependencies = [
     "pytesseract>=0.3.13",
     "rapidfuzz>=3.14.6",
     "redis>=8.1.0",
+    "reportlab==5.1.0",
     "sentry-sdk[fastapi]>=2.74.0",
     "sqlalchemy[asyncio]>=2",
     "structlog>=26.1.0",
@@ -92,7 +93,7 @@ files = ["app", "tests"]
 
 [[tool.mypy.overrides]]
 module = [
-    "celery.*", "testcontainers.*", "boto3.*", "botocore.*", "pytest_socket.*",
+    "celery.*", "reportlab.*", "testcontainers.*", "boto3.*", "botocore.*", "pytest_socket.*",
     "pypdfium2.*", "pytesseract.*",
 ]
 ignore_missing_imports = true
