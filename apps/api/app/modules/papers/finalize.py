@@ -18,12 +18,14 @@ from app.core.context import Context
 from app.core.errors import ProblemError
 from app.core.logging import get_logger
 from app.core.tenancy import set_tenant
+from app.modules.entitlements import service as entitlements
+from app.modules.papers import slots
 from app.modules.papers.jobs import transition
 from app.modules.papers.keys import paper_prefix
 from app.modules.papers.schemas import FinalizeResponse, JobOut, PaperOut
+from app.modules.papers.slots import INGEST_TASK
 from app.ports.storage import Storage
 
-INGEST_TASK = "app.worker.tasks.ingest_paper"
 SCAN_TASK = "app.worker.tasks.scan_paper"
 PDF_MAGIC = b"%PDF-"
 log = get_logger(__name__)
@@ -150,13 +152,16 @@ async def finalize(
         winner = await _existing(session, identity.user_id, upload.declared_sha256)
         assert winner is not None
         return await _duplicate(session, storage, upload_id, key, winner.id)
+    # Spec 012 AC9: beyond the plan's concurrent jobs the upload waits (held) for a free slot.
+    plan = await entitlements.plan_of(session, identity.user_id)
+    held = await slots.must_hold(session, identity.user_id, plan.limits.concurrent_jobs)
     job_id = (
         await session.execute(
             text(
-                "INSERT INTO jobs (org_id, paper_id, kind, step, uploaded_at) VALUES"
-                " (:org, :paper, 'ingest', 'extracting', now()) RETURNING id"
+                "INSERT INTO jobs (org_id, paper_id, kind, step, uploaded_at, held) VALUES"
+                " (:org, :paper, 'ingest', 'extracting', now(), :held) RETURNING id"
             ),
-            {"org": identity.org_id, "paper": paper_id},
+            {"org": identity.org_id, "paper": paper_id, "held": held},
         )
     ).scalar_one()
     scan_job: UUID | None = None
@@ -186,7 +191,10 @@ async def finalize(
     # session must not be used after this commit.
     await session.commit()
     try:
-        enqueue(INGEST_TASK, {"job_id": str(job_id), "org_id": str(identity.org_id)})
+        if held:  # started by slots.release_next when one of the user's papers finishes
+            log.info("job_held", job_id=str(job_id))
+        else:
+            enqueue(INGEST_TASK, {"job_id": str(job_id), "org_id": str(identity.org_id)})
     except Exception as exc:
         log.error("enqueue_failed", job_id=str(job_id), error=type(exc).__name__)
         async with sessionmaker() as retry_session, retry_session.begin():

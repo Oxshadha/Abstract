@@ -9,7 +9,7 @@ from uuid import UUID
 from celery.exceptions import SoftTimeLimitExceeded
 
 from app.modules.llm import reindex as reindex_module
-from app.modules.papers import deletion
+from app.modules.papers import deletion, slots
 from app.modules.papers import enrich as enrich_module
 from app.modules.papers import ingest as ingest_module
 from app.modules.papers import ocr as ocr_module
@@ -105,7 +105,15 @@ def _job_task(
 @celery_app.task(bind=True, name="app.worker.tasks.ingest_paper", max_retries=MAX_RETRIES)  # type: ignore[untyped-decorator]
 def ingest_paper(self: Any, job_id: str, org_id: str) -> str:
     """Fast path for one uploaded PDF (spec 004 AC10, AC11)."""
-    return _job_task(self, ingest_module.ingest, job_id, org_id, name="ingest-paper")
+    kind = _job_task(self, ingest_module.ingest, job_id, org_id, name="ingest-paper")
+    asyncio.run(_release_slot(UUID(job_id), UUID(org_id)))  # done, failed or skipped
+    return kind
+
+
+async def _release_slot(job_id: UUID, org_id: UUID) -> None:
+    """Spec 012 AC9: a finished upload frees a slot for the user's next held one."""
+    async with worker_deps() as deps:
+        await slots.release_next(deps, org_id, job_id)
 
 
 @celery_app.task(bind=True, name="app.worker.tasks.generate_summary", max_retries=MAX_RETRIES)  # type: ignore[untyped-decorator]
