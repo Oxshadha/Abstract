@@ -16,10 +16,11 @@ import {
   NotFoundPage,
 } from "@/routes/app/pages";
 import { SettingsPage } from "@/features/settings/SettingsPage";
-import { HomePage } from "@/routes/HomePage";
+import { LandingPage } from "@/features/landing/LandingPage";
 
 const rootRoute = createRootRoute({ component: Outlet, notFoundComponent: NotFoundPage });
-const indexRoute = createRoute({ getParentRoute: () => rootRoute, path: "/", component: HomePage });
+// The landing page (spec 016); production serves it prerendered (landing.html).
+const indexRoute = createRoute({ getParentRoute: () => rootRoute, path: "/", component: LandingPage });
 const appRoute = createRoute({ getParentRoute: () => rootRoute, path: "/app", component: GatedAppShell });
 const signInRoute = createRoute({ getParentRoute: () => rootRoute, path: "/sign-in/$", component: SignInPage });
 const signUpRoute = createRoute({ getParentRoute: () => rootRoute, path: "/sign-up/$", component: SignUpPage });

@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/abstract-icon-light.svg" />
+    <title>Abstract. Research papers, made clear.</title>
+    <meta name="description" content="Upload a research paper and get a structured summary, tables and figures explained, and answers to your questions with a source for every point." />
+    <meta name="theme-color" content="#FAFAF8" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#161616" media="(prefers-color-scheme: dark)" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Abstract." />
+    <meta property="og:title" content="Abstract. Research papers, made clear." />
+    <meta property="og:description" content="Structured summaries, figures explained, and cited answers for any research paper." />
+    <meta name="twitter:card" content="summary_large_image" />
+    <!--site-meta-->
+    <link rel="preload" as="image" type="image/webp" href="/landing/workspace-light-1600.webp" imagesrcset="/landing/workspace-light-960.webp 960w, /landing/workspace-light-1600.webp 1600w" imagesizes="(min-width: 1200px) 1152px, 94vw" media="(prefers-color-scheme: light)" />
+    <link rel="preload" as="image" type="image/webp" href="/landing/workspace-dark-1600.webp" imagesrcset="/landing/workspace-dark-960.webp 960w, /landing/workspace-dark-1600.webp 1600w" imagesizes="(min-width: 1200px) 1152px, 94vw" media="(prefers-color-scheme: dark)" />
+    <script>
+      // Apply the saved theme before first paint (spec 003 AC3). Mirrors src/theme/theme.ts.
+      try {
+        var t = localStorage.getItem("abstract.theme");
+        if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"><!--landing--></div>
+    <script type="module" src="/src/features/landing/entry-client.tsx"></script>
+  </body>
+</html>
