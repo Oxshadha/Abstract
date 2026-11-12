@@ -294,8 +294,8 @@ async def get_elements(
 
 @router.get(
     "/{paper_id}/figures/{figure_id}/image",
-    status_code=302,
-    summary="A short-lived link to a figure's image",
+    response_model=FileUrl,
+    summary="A 5-minute link to a figure's image (JSON, like the PDF link)",
     dependencies=[Depends(user_rate_limit("read"))],
 )
 async def get_figure_image(
@@ -303,10 +303,10 @@ async def get_figure_image(
     figure_id: UUID,
     request: Request,
     ctx: Annotated[Context, Depends(require("paper.read"))],
-) -> RedirectResponse:
+) -> FileUrl:
     key = await elements.figure_image_key(ctx.session, ctx.identity.user_id, paper_id, figure_id)
     url = await request.app.state.storage.presigned_get_url(key, expires_seconds=300)
-    return RedirectResponse(url, status_code=302, headers={"Cache-Control": "private, max-age=240"})
+    return FileUrl(url=url, expires_at=datetime.now(UTC) + timedelta(seconds=300))
 
 
 @router.post(

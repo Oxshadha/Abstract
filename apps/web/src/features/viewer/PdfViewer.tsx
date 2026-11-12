@@ -69,9 +69,11 @@ export function PdfViewer({ paperId }: { paperId: string }) {
   const [first, last] = pages.length ? visibleWindow(offsets, heights, scroll.top, scroll.height) : [0, -1];
   const current = Math.min(pages.length, Math.max(1, offsets.findIndex((o, i) => o + (heights[i] ?? 0) > scroll.top + scroll.height / 3) + 1));
 
-  const goTo = (page: number) => {
+  const goTo = (page: number, within = 0) => {
     const el = scroller.current as (Partial<HTMLDivElement> & { scrollTop: number }) | null;
-    const top = offsets[page - 1];
+    const pageTop = offsets[page - 1];
+    // `within` (0 to 1) scrolls to a spot inside the page, e.g. a table's top edge.
+    const top = pageTop === undefined ? undefined : Math.max(0, pageTop + within * (heights[page - 1] ?? 0) - 24);
     if (!el || top === undefined) return;
     if (el.scrollTo) el.scrollTo({ top, behavior: "auto" });
     else el.scrollTop = top; // browsers without element.scrollTo (tests)
@@ -80,11 +82,19 @@ export function PdfViewer({ paperId }: { paperId: string }) {
   // AC4: a citation request scrolls to its page; the page highlights it when its text arrives.
   const target = citations?.target ?? null;
   const highlight = target ? { page: target.page, id: target.id, located: found?.id === target.id ? found.located : null } : null;
+  // Scroll for a new target, and again while the layout settles right after it (the viewer may
+  // have been hidden behind Figures & tables and is only now measured): never later, so a reader
+  // who scrolled away is not pulled back when they resize a panel.
+  const targetAt = useRef(0);
   useEffect(() => {
-    if (target && pages.length > 0) goTo(target.page);
-    // goTo depends on layout; scroll only for a new citation
+    targetAt.current = Date.now();
+  }, [target?.id]);
+  useEffect(() => {
+    if (!target || pages.length === 0 || Date.now() - targetAt.current > 1500) return;
+    goTo(target.page, target.box?.y ?? 0);
+    // goTo depends on layout; scroll for a new citation and while its layout settles
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [target?.id, pages.length]);
+  }, [target?.id, pages.length, scale]);
 
   // react-pdf reports a page's text once per load, so keep it: a citation for a page that is
   // already on screen is located from this cache.
@@ -92,6 +102,7 @@ export function PdfViewer({ paperId }: { paperId: string }) {
   useEffect(() => { texts.current.clear(); }, [paperId]);
   const resolve = () => {
     if (!target || found?.id === target.id) return;
+    if (target.box) return; // a table, figure or region: outlined from its box, no text to find
     const items = texts.current.get(target.page);
     if (!items) return; // located when the page's text arrives
     const located = locate(items, target.quote);
@@ -183,8 +194,10 @@ export function PdfViewer({ paperId }: { paperId: string }) {
           </button>
         </span>
       </div>
-      <p className="sr-only" aria-live="polite">{announcement}</p>
-      {highlight && found?.id === highlight.id && !highlight.located && (
+      <p className="sr-only" aria-live="polite">
+        {target?.box ? `Showing ${target.label ?? "the selection"} on page ${String(target.page)}.` : announcement}
+      </p>
+      {highlight && !target?.box && found?.id === highlight.id && !highlight.located && (
         <p className="mt-2 text-sm text-text-secondary">{announcement}</p>
       )}
       <div
@@ -203,6 +216,9 @@ export function PdfViewer({ paperId }: { paperId: string }) {
         {/* react-pdf suspends by default; a suspend reaching the app's outer boundary would hide
             the whole Workspace and reset its effects, cancelling a streaming chat answer. */}
         <Suspense fallback={null}>
+        {/* The full height exists before the PDF loads (react-pdf renders nothing until then),
+            so a citation can scroll to its page straight away (008 AC6, 009 AC6). */}
+        <div style={{ height: pages.length > 0 ? total : undefined, position: "relative" }}>
         {file.data && pages.length > 0 && (
           <Document
             suspense={false}
@@ -212,7 +228,7 @@ export function PdfViewer({ paperId }: { paperId: string }) {
             onLoadError={() => { setFailed("The PDF could not be loaded."); }}
             loading=""
           >
-            <div style={{ height: total, position: "relative" }}>
+            
               {pages.map((p, i) => (
                 <div
                   key={p.page}
@@ -233,11 +249,27 @@ export function PdfViewer({ paperId }: { paperId: string }) {
                       customTextRenderer={({ str, itemIndex }) => markItem(str, itemIndex, highlight?.page === p.page ? highlight.located : null)}
                     />
                   )}
+                  {target?.box && target.page === p.page && (
+                    // Spec 009 AC6: the chosen table, figure or region, in the citation colour.
+                    <div
+                      aria-hidden
+                      data-outline="true"
+                      className="pointer-events-none absolute rounded-sm"
+                      style={{
+                        left: `${String(target.box.x * 100)}%`,
+                        top: `${String(target.box.y * 100)}%`,
+                        width: `${String(target.box.width * 100)}%`,
+                        height: `${String(target.box.height * 100)}%`,
+                        outline: "2px solid var(--color-highlight)",
+                        backgroundColor: "color-mix(in srgb, var(--color-highlight) 18%, transparent)",
+                      }}
+                    />
+                  )}
                 </div>
               ))}
-            </div>
           </Document>
         )}
+        </div>
         </Suspense>
       </div>
     </div>

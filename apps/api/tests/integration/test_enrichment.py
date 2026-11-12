@@ -234,8 +234,8 @@ async def test_AC5_AC6_AC7_elements_api_is_owner_only_with_images_and_cached_des
     image = await api.client.get(
         f"/api/v1/papers/{paper}/figures/{figure['id']}/image", headers=owner
     )
-    assert image.status_code == 302
-    assert "figures/1.png" in image.headers["location"]
+    assert image.status_code == 200
+    assert "figures/1.png" in image.json()["url"]
     url = f"/api/v1/papers/{paper}/figures/{figure['id']}/describe"
     first = (await api.client.post(url, headers=owner)).json()
     second = (await api.client.post(url, headers=owner)).json()

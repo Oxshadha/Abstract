@@ -429,7 +429,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** A short-lived link to a figure's image */
+        /** A 5-minute link to a figure's image (JSON, like the PDF link) */
         get: operations["get_figure_image_api_v1_papers__paper_id__figures__figure_id__image_get"];
         put?: never;
         post?: never;
@@ -2636,12 +2636,12 @@ export interface operations {
         requestBody?: never;
         responses: {
             /** @description Successful Response */
-            302: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["FileUrl"];
                 };
             };
             /** @description Validation Error */

@@ -11,6 +11,10 @@ export function CitationProvider({ children, onOpen }: { children: ReactNode; on
         onOpen?.(); // show the Paper panel (D79) or switch to the Paper tab on phones
         setTarget({ page, quote, id: Date.now() + Math.random() });
       },
+      openBox: (page, box, label) => {
+        onOpen?.();
+        setTarget({ page, quote: "", box, label, id: Date.now() + Math.random() });
+      },
       clear: () => {
         setTarget(null);
       },
