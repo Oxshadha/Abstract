@@ -175,7 +175,9 @@ export function SettingsPage() {
       </Section>
 
       <Section title="Appearance" icon={Palette}>
-        <ThemeToggle />
+        <div className="self-start">
+          <ThemeToggle />
+        </div>
       </Section>
 
       <Section title="Account" icon={LogOut}>
