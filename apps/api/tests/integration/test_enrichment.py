@@ -78,7 +78,7 @@ async def test_AC1_AC1b_AC3_tables_and_figures_from_triaged_pages_join_the_index
 ) -> None:
     job, paper, _user = await _ingested(api, worker)
     layout = FakeLayout()
-    kind, _ = await _enrich(worker, layout, job["org_id"])
+    kind, _job = await _enrich(worker, layout, job["org_id"])
     assert kind == "done"
     assert layout.calls == [([2, 3], [])]  # only the table and figure pages were parsed
     row = await worker.row(
@@ -87,6 +87,8 @@ async def test_AC1_AC1b_AC3_tables_and_figures_from_triaged_pages_join_the_index
         p=paper,
     )
     assert tuple(row) == ("done", 2, 2, 1, 1)
+    status = await worker.row("SELECT status FROM jobs WHERE id = :j", j=_job)
+    assert status[0] == "succeeded"  # the job record finishes too (seen running forever)
     async with worker.admin.connect() as conn:
         elements = (
             await conn.execute(
