@@ -15,6 +15,22 @@ Entry format:
 
 ---
 
+## 2026-11-12: Spec 010 template builder implemented
+**Done:** Custom templates end to end: Templates page, form builder (fields with label, instruction, output style, required; drag or up/down to reorder; duplicate and remove), versions with stable keys and stale-save protection, limits from a new entitlements service (10 fields, 10 templates, D87), soft delete that keeps summaries working, Try on a paper, JSON import and export, Update summary when a template changes.
+**Verified:** live builder on desktop and iPhone with a real preview; Playwright in Chromium, WebKit and Firefox.
+**Decisions:** D87   **Specs:** 010 Implemented
+**Next:** owner merges #12 (013) into main, retargets and merges #13 (009), then the 010 PR; next spec per the plan: 015 reading aids.
+**Blockers / waiting on owner:** merges.
+
+## 2026-11-12: Spec 009 tables, figures and regions implemented
+**Done:** Background enrichment with page triage and Docling (tables with cells, figures with crops, progress, retry, idempotent re-runs), tables and figures in the chat index and answers (named items first, figure images to the model, element citation chips), number checks against tables (flagged, never rewritten), Figures & tables view with Show in paper and cached AI descriptions, Ask about this region (draw, move, resize, keyboard; server-rendered crop; region citations). Phone-first principles written down (D86) and the floating pill navigation.
+**Verified:** live with real Gemini on the Attention paper (4 tables, 6 figures; a region around Table 2 answered "41.8 BLEU, Transformer (big)" citing the region and Table 2); Playwright in Chromium, WebKit and Firefox.
+**Measured:** triage recall 1.0 on three papers (70 pages); Docling 1.3 s per page warm natively, slower in Docker on the 4 GB development VM.
+**Ops:** the host disk filled during the first enrichment image build and hung Docker; restarted it, rebuilt images, cleared 17.4 GB of build cache.
+**Decisions:** D85, D86   **Specs:** 009 Implemented except AC14 production timing (spec 017)
+**Next:** owner merges #11 (008) and #12 (013), then the 009 PR; next specs per the plan (010 template builder, 015 reading aids, 014 notes and references).
+**Blockers / waiting on owner:** merges.
+
 ## 2026-11-12: Spec 013 Library, collections and search implemented
 **Done:** Home (upload plus the five papers opened most recently) and Library (every paper, All/Starred, sort, grid/list, infinite loading, Add Paper with drop-anywhere upload); star and rename; collections as sidebar folders with move and remove; Ctrl/Cmd+K search over titles, authors and passages with no model tokens (debounced, aborted, cached), passages open at their page highlighted. Menus and dropdowns now float above panels; Delete and Sign out are red. API with migration 0008, query budget and index tests.
 **Verified:** Playwright in Chromium, WebKit and Firefox, desktop and phone.

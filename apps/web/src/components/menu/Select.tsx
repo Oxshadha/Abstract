@@ -21,6 +21,7 @@ interface Props<T extends string> {
   footer?: ReactNode; // e.g. a link below the options
   width?: string;
   placeholder?: string; // shown when no option matches `value`
+  compact?: boolean; // a smaller trigger for dense toolbars
 }
 
 /**
@@ -29,7 +30,7 @@ interface Props<T extends string> {
  * clicking outside closes it.
  */
 export function Select<T extends string>({
-  label, value, options, onChange, icon, align = "right", className = "", footer, width = "w-56", placeholder = "",
+  label, value, options, onChange, icon, align = "right", className = "", footer, width = "w-56", placeholder = "", compact = false,
 }: Props<T>) {
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
@@ -93,7 +94,7 @@ export function Select<T extends string>({
         onKeyDown={(event) => {
           if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); show(); }
         }}
-        className="inline-flex min-h-11 min-w-0 items-center gap-2 rounded-md border border-border bg-surface px-3 text-sm hover:bg-muted"
+        className={`inline-flex min-h-11 min-w-0 items-center rounded-md border border-border bg-surface text-sm hover:bg-muted ${compact ? "gap-1 px-2" : "gap-2 px-3"}`}
       >
         {icon}
         <span className="sr-only">{`${label}: `}</span>

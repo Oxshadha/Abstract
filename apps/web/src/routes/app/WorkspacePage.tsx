@@ -12,6 +12,7 @@ import { markOpened } from "@/features/library/api";
 import { StarButton } from "@/features/library/PaperActions";
 import { CitationProvider } from "@/features/viewer/citations";
 import { useCitations } from "@/features/viewer/citation-context";
+import { FiguresPanel } from "@/features/viewer/FiguresPanel";
 import { PdfViewer } from "@/features/viewer/PdfViewer";
 import { useIsDesktop, useWorkspaceLayout } from "@/features/workspace/layout";
 import { PillBar } from "@/components/shell/PillBar";
@@ -45,18 +46,65 @@ function OpenFromUrl({ paperId }: { paperId: string }) {
   return null;
 }
 
+/** Paper panel: the pages, or the paper's tables and figures (spec 009 AC5, D85). */
 function PaperPanel({ paperId }: { paperId: string }) {
-  return <PdfViewer paperId={paperId} />;
+  const [view, setView] = useState<"pages" | "figures">("pages");
+  const citations = useCitations();
+  return (
+    <div className="flex h-full min-h-0 flex-col gap-2">
+      <div role="group" aria-label="Paper view" className="flex w-fit rounded-pill border border-border p-1">
+        {(["pages", "figures"] as const).map((v) => (
+          <button
+            key={v}
+            type="button"
+            aria-pressed={view === v}
+            onClick={() => { setView(v); }}
+            className={`min-h-9 rounded-pill px-3 text-sm ${view === v ? "bg-primary text-primary-text" : "text-text-secondary hover:text-text"}`}
+          >
+            {v === "pages" ? "Pages" : "Figures & tables"}
+          </button>
+        ))}
+      </div>
+      {/* Both stay mounted: switching back keeps the viewer's place. */}
+      {/* Phones and tablets: the viewer gets the screen height under the bars, so it scrolls
+          itself and can jump to a citation or table (the page would otherwise grow instead). */}
+      <div hidden={view !== "pages"} className="min-h-0 flex-1">
+        <PdfViewer paperId={paperId} />
+      </div>
+      {view === "figures" && (
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain max-lg:pb-28">
+        <FiguresPanel
+          paperId={paperId}
+          onShow={(page, box, label) => {
+            setView("pages");
+            citations?.openBox(page, box, label);
+          }}
+        />
+        </div>
+      )}
+    </div>
+  );
 }
 
 function Panel({
-  label, children, className = "", width,
-}: { label: string; children: ReactNode; className?: string; width?: number }) {
+  label, children, className = "", width, bare,
+}: { label: string; children: ReactNode; className?: string; width?: number; bare?: "scroll" | "fill" | "under" }) {
+  // Phones: no card frame, the panel uses the whole screen and the pill bar floats over it
+  // ("scroll" pages through its content; "fill" hands the height to a viewer or chat).
+  const frame = bare
+    ? `h-full min-w-0 ${
+        bare === "scroll"
+          ? "overflow-y-auto px-4 pt-2 pb-28"
+          : bare === "fill"
+            ? "flex flex-col overflow-hidden px-2 pt-2 pb-24"
+            : "flex flex-col overflow-hidden px-2 pt-2" // the viewer scrolls under the pill itself
+      }`
+    : "flex min-h-64 min-w-0 flex-col overflow-hidden rounded-lg border border-border bg-surface p-4"; // content scrolls inside
   return (
     <section
       aria-label={label}
       style={width === undefined ? undefined : { flex: `0 0 ${String(width)}%` }}
-      className={`min-h-64 min-w-0 overflow-auto rounded-lg border border-border bg-surface p-4 ${className}`}
+      className={`${frame} ${className}`}
     >
       <ErrorBoundary name={`the ${label.toLowerCase()} panel`}>{children}</ErrorBoundary>
     </section>
@@ -139,15 +187,22 @@ export default function WorkspacePage() {
     void markOpened(paperId).catch(() => undefined);
   }, [paperId]);
   // A citation click shows the Paper panel (desktop) or the Paper tab (phones), spec 008 AC4.
+  // "Ask about this region" brings up the chat: the side panel on desktop, the Chat tab on phones.
+  const openChat = useCallback(() => {
+    if (desktop) setChat(true);
+    else setMobile("chat");
+  }, [desktop, setChat]);
   const openPaper = useCallback(() => {
     if (desktop) showPaper();
     else setMobile("paper");
   }, [desktop, showPaper]);
 
   return (
-    <CitationProvider onOpen={openPaper}>
+    <CitationProvider onOpen={openPaper} onAskRegion={openChat}>
     <OpenFromUrl paperId={paperId} />
-    <div className="flex h-full flex-col">
+    {/* Desktop: the Workspace fills the screen under the top bar and each panel scrolls on its
+        own, like an editor (D79); phones scroll the page. */}
+    <div className="flex h-full min-h-0 flex-col">
       {/* One line on every screen: back, title (with type and authors beneath), star; the
           panel toggles follow on desktop (owner review: phones wrapped into three lines). */}
       <header className="flex min-w-0 items-center gap-2 px-2 pt-3 sm:gap-3 sm:px-4 sm:pt-4">
@@ -208,12 +263,12 @@ export default function WorkspacePage() {
       ) : (
       <>
       {/* Phones and tablets: one panel at a time (D60). */}
-      <div className="flex-1 p-4 pb-24">
+      <div className="relative min-h-0 flex-1">
         {/* Hidden, not unmounted: a citation tapped mid-answer switches to Paper without
             cancelling the streaming answer, and the viewer keeps its place. */}
-        <div hidden={mobile !== "paper"}><Panel label="Paper"><PaperPanel paperId={paperId} /></Panel></div>
-        <div hidden={mobile !== "summary"}><Panel label="Summary"><SummaryPanel paperId={paperId} /></Panel></div>
-        <div hidden={mobile !== "chat"}><Panel label="Ask Abstract"><ChatPanel paperId={paperId} /></Panel></div>
+        <div hidden={mobile !== "paper"} className="h-full"><Panel label="Paper" bare="under"><PaperPanel paperId={paperId} /></Panel></div>
+        <div hidden={mobile !== "summary"} className="h-full"><Panel label="Summary" bare="under"><SummaryPanel paperId={paperId} /></Panel></div>
+        <div hidden={mobile !== "chat"} className="h-full"><Panel label="Ask Abstract" bare="fill"><ChatPanel paperId={paperId} /></Panel></div>
       </div>
       <PillBar
         label="Workspace panels"

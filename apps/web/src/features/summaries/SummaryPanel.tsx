@@ -319,7 +319,12 @@ export function SummaryPanel({ paperId }: { paperId: string }) {
   const templates = useQuery({ queryKey: summaryKeys.templates, queryFn: listTemplates });
   const [chosen, setChosen] = useState<string | null>(null);
   const templateId = chosen ?? summaries.data?.[0]?.template_id ?? templates.data?.[0]?.id ?? null;
-  const brief = summaries.data?.find((s) => s.template_id === templateId) ?? null;
+  // The newest summary for this template (an "Update summary" adds one per template version).
+  const brief =
+    summaries.data
+      ?.filter((s) => s.template_id === templateId)
+      .sort((a, b) => b.template_version - a.template_version)[0] ?? null;
+  const outdated = Boolean(brief?.template_latest_version && brief.template_latest_version > brief.template_version);
   const summary = useSummary(brief?.id ?? null);
 
   const start = useMutation({
@@ -334,11 +339,28 @@ export function SummaryPanel({ paperId }: { paperId: string }) {
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
+    // The heading and template switcher stay put; only the summary scrolls (design principle 5).
+    <div className="flex h-full min-h-0 flex-col gap-4">
+      <div className="flex shrink-0 items-center justify-between gap-2">
         <h2 className="font-display text-lg font-bold whitespace-nowrap">Summary</h2>
         <TemplateSwitcher current={templateId} onChoose={choose} />
       </div>
+      <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-1 max-lg:pb-28">
+      {outdated && templateId && (
+        // Spec 010 AC5: the template changed since this summary; updating is the user's choice.
+        <div role="status" className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted p-3 text-sm">
+          <span className="min-w-0 flex-1">A newer version of this template exists.</span>
+          <button
+            type="button"
+            disabled={start.isPending}
+            onClick={() => { start.mutate(templateId); }}
+            className="inline-flex min-h-11 items-center gap-2 rounded-md border border-border bg-surface px-3 hover:bg-muted disabled:opacity-50"
+          >
+            <RotateCcw aria-hidden className="size-4" />
+            Update summary
+          </button>
+        </div>
+      )}
       {summaries.isPending || (brief && summary.isPending) ? (
         <div role="status" aria-label="Loading the summary" className="flex flex-col gap-3">
           <SummaryCardSkeleton />
@@ -361,6 +383,7 @@ export function SummaryPanel({ paperId }: { paperId: string }) {
           </button>
         </div>
       )}
+      </div>
     </div>
   );
 }

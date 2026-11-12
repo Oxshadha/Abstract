@@ -57,6 +57,10 @@ class SummaryBrief(BaseModel):
     template_id: UUID
     template_name: str
     status: SummaryStatus
+    template_version: int = 1  # the version this summary was made with
+    # The template's current version; higher than template_version when it was edited since
+    # (spec 010 AC5: "Update summary"). None when the template was deleted.
+    template_latest_version: int | None = None
 
 
 class SummaryList(BaseModel):

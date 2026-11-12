@@ -6,6 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, Header, Query, Request, Response
 from fastapi.responses import JSONResponse, RedirectResponse, StreamingResponse
 from sqlalchemy import text
+from starlette.background import BackgroundTask
 
 from app.adapters.pdf.text import page_sizes
 from app.core import idempotency
@@ -15,7 +16,10 @@ from app.core.policy import require, require_identity
 from app.core.ratelimit import user_rate_limit
 from app.modules.identity.service import RequestContext
 from app.modules.library import collections
-from app.modules.papers import deletion, events, finalize, queries, service
+from app.modules.llm.gateway import set_context as set_llm_context
+from app.modules.papers import deletion, elements, events, finalize, queries, service
+from app.modules.papers.enrich import MAX_PAGES
+from app.modules.papers.ingest import ENRICH_TASK
 from app.modules.papers.schemas import (
     FileUrl,
     FinalizeRequest,
@@ -274,6 +278,79 @@ async def _sanitized_key(ctx: Context, paper_id: UUID) -> str:
         raise ProblemError(409, "not-ready", "This PDF is still being prepared.")
     key: str = row.storage_key
     return key
+
+
+@router.get(
+    "/{paper_id}/elements",
+    response_model=elements.ElementsOut,
+    summary="Tables and figures found in the paper, with enrichment progress",
+    dependencies=[Depends(user_rate_limit("read"))],
+)
+async def get_elements(
+    paper_id: UUID, ctx: Annotated[Context, Depends(require("paper.read"))]
+) -> elements.ElementsOut:
+    return await elements.list_elements(ctx.session, ctx.identity.user_id, paper_id, MAX_PAGES)
+
+
+@router.get(
+    "/{paper_id}/figures/{figure_id}/image",
+    response_model=FileUrl,
+    summary="A 5-minute link to a figure's image (JSON, like the PDF link)",
+    dependencies=[Depends(user_rate_limit("read"))],
+)
+async def get_figure_image(
+    paper_id: UUID,
+    figure_id: UUID,
+    request: Request,
+    ctx: Annotated[Context, Depends(require("paper.read"))],
+) -> FileUrl:
+    key = await elements.figure_image_key(ctx.session, ctx.identity.user_id, paper_id, figure_id)
+    url = await request.app.state.storage.presigned_get_url(key, expires_seconds=300)
+    return FileUrl(url=url, expires_at=datetime.now(UTC) + timedelta(seconds=300))
+
+
+@router.post(
+    "/{paper_id}/figures/{figure_id}/describe",
+    response_model=elements.DescriptionOut,
+    summary="An AI-generated description of a figure (cached per figure)",
+    responses={409: {"description": "The figure has no image"}},
+    dependencies=[Depends(user_rate_limit("write"))],
+)
+async def describe_figure(
+    paper_id: UUID,
+    figure_id: UUID,
+    request: Request,
+    ctx: Annotated[Context, Depends(require("chat.create"))],
+) -> elements.DescriptionOut:
+    set_llm_context(user_id=ctx.identity.user_id, paper_id=paper_id)
+    return await elements.describe(
+        ctx.session,
+        ctx.identity.user_id,
+        paper_id,
+        figure_id,
+        storage=request.app.state.storage,
+        gateway=request.app.state.llm.gateway,
+    )
+
+
+@router.post(
+    "/{paper_id}/enrichment/retry",
+    status_code=202,
+    summary="Find tables and figures again after a failure",
+    responses={409: {"description": "Already running"}},
+    dependencies=[Depends(user_rate_limit("write"))],
+)
+async def retry_enrichment(
+    paper_id: UUID, request: Request, ctx: Annotated[Context, Depends(require("paper.update"))]
+) -> Response:
+    job_id = await elements.retry(ctx.session, ctx.identity.org_id, ctx.identity.user_id, paper_id)
+    # Queued after the response, when the request's transaction (and the job row) is committed.
+    task = BackgroundTask(
+        request.app.state.enqueue,
+        ENRICH_TASK,
+        {"job_id": str(job_id), "org_id": str(ctx.identity.org_id)},
+    )
+    return Response(status_code=202, background=task)
 
 
 @router.get(

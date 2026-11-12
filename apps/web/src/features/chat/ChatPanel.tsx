@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowUp, BookOpen, ChevronDown, FileText, Loader2, Plus, RotateCcw, Sparkles, Square, User, X } from "lucide-react";
+import { ArrowUp, BookOpen, ChevronDown, FileText, Loader2, Plus, RotateCcw, Sparkles, Square, SquareDashedMousePointer, User, X } from "lucide-react";
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 
 import { StatusPill } from "@/components/status/StatusPill";
@@ -15,6 +15,7 @@ import {
   type Citation,
   type Conversation,
   type Message,
+  type Region,
 } from "./api";
 import { useCitations } from "@/features/viewer/citation-context";
 
@@ -30,6 +31,9 @@ const EXAMPLES = [
 function citationLabel(c: Citation): string {
   const pages =
     c.page_start == null ? "" : c.page_end != null && c.page_end !== c.page_start ? `p. ${String(c.page_start)}-${String(c.page_end)}` : `p. ${String(c.page_start)}`;
+  // A table or figure reads like the paper names it (spec 009 AC9): "[2] Table 2, p. 8".
+  if (c.element) return `[${String(c.marker)}] ${c.element.label}, ${pages}`;
+  if (c.region) return `[${String(c.marker)}] Region, ${pages}`;
   const section = c.section && !/front matter/i.test(c.section) ? ` (${c.section.slice(0, 28)})` : "";
   return `[${String(c.marker)}] ${pages}${section}`;
 }
@@ -50,7 +54,12 @@ function Citations({ items }: { items: Citation[] }) {
             onClick={() => {
               setOpen(open === c.marker ? null : c.marker);
               // Spec 008 AC4: open the cited page with the sentence highlighted.
-              if (c.page_start != null && open !== c.marker) viewer?.open(c.page_start, c.quote);
+              if (c.page_start != null && open !== c.marker) {
+                // A table or figure is outlined in the paper; a passage highlights its sentence.
+                if (c.element) viewer?.openBox(c.page_start, c.element.box, c.element.label);
+                else if (c.region) viewer?.openBox(c.page_start, c.region, "the selected region");
+                else viewer?.open(c.page_start, c.quote);
+              }
             }}
             className="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-border px-2 text-sm hover:bg-muted"
           >
@@ -65,6 +74,29 @@ function Citations({ items }: { items: Citation[] }) {
         </blockquote>
       )}
     </div>
+  );
+}
+
+/** A region of a page (spec 009 AC10): opens the box in the paper; removable while composing. */
+function RegionChip({ region, onRemove }: { region: Region; onRemove?: () => void }) {
+  const viewer = useCitations();
+  const label = `Region, p. ${String(region.page)}`;
+  return (
+    <span className="inline-flex items-center rounded-md border border-border bg-surface text-sm">
+      <button
+        type="button"
+        onClick={() => { viewer?.openBox(region.page, region, "the selected region"); }}
+        className="inline-flex min-h-9 items-center gap-1.5 px-2 hover:bg-muted"
+      >
+        <SquareDashedMousePointer aria-hidden className="size-4" />
+        {label}
+      </button>
+      {onRemove && (
+        <button type="button" aria-label={`Remove ${label}`} onClick={onRemove} className="inline-flex size-9 items-center justify-center hover:bg-muted">
+          <X aria-hidden className="size-3.5" />
+        </button>
+      )}
+    </span>
   );
 }
 
@@ -194,6 +226,7 @@ function ConversationSwitcher({
 export function ChatPanel({ paperId, onClose }: { paperId: string; onClose?: () => void }) {
   const queryClient = useQueryClient();
   const inputId = useId();
+  const viewerApi = useCitations(); // a region waiting to be asked about (spec 009 AC10)
   const status = useQuery({ queryKey: paperKeys.status(paperId), queryFn: () => getStatus(paperId),
     refetchInterval: (q) => (q.state.data?.chat_available ? false : 3000) });
   const available = status.data?.chat_available === true;
@@ -234,15 +267,19 @@ export function ChatPanel({ paperId, onClose }: { paperId: string; onClose?: () 
       setChosen(conversation.id);
       return;
     }
-    await send(text);
+    const region = viewerApi?.region ?? null;
+    viewerApi?.clearRegion();
+    await send(text, undefined, region);
   };
   useEffect(() => {
     if (conversationId && pendingQuestion.current) {
       const text = pendingQuestion.current;
       pendingQuestion.current = null;
-      void send(text);
+      const region = viewerApi?.region ?? null;
+      viewerApi?.clearRegion();
+      void send(text, undefined, region);
     }
-  }, [conversationId, send]);
+  }, [conversationId, send, viewerApi]);
 
   const onKey = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter" && !event.shiftKey) {
@@ -291,7 +328,10 @@ export function ChatPanel({ paperId, onClose }: { paperId: string; onClose?: () 
         ) : (
           items.map((m) =>
             m.role === "user" ? (
-              <Bubble key={m.id} role="user">{m.content}</Bubble>
+              <Bubble key={m.id} role="user">
+                {m.region && <span className="mb-1.5 block"><RegionChip region={m.region} /></span>}
+                {m.content}
+              </Bubble>
             ) : (
               <AssistantMessage key={m.id} message={m} />
             ),
@@ -313,12 +353,17 @@ export function ChatPanel({ paperId, onClose }: { paperId: string; onClose?: () 
       <p className="sr-only" aria-live="polite">{draft ? completedSentences(draft.text) : ""}</p>
 
       <form
-        className="mt-3 flex items-end gap-2 rounded-lg border border-border p-2"
+        className="mt-3 flex flex-wrap items-end gap-2 rounded-lg border border-border p-2"
         onSubmit={(e) => {
           e.preventDefault();
           void ask(input);
         }}
       >
+        {viewerApi?.region && (
+          <span className="basis-full pb-1">
+            <RegionChip region={viewerApi.region} onRemove={viewerApi.clearRegion} />
+          </span>
+        )}
         <label htmlFor={inputId} className="sr-only">Ask about this paper</label>
         <textarea
           id={inputId}

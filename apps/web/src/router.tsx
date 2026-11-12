@@ -15,7 +15,6 @@ import {
   LibraryPage,
   NotFoundPage,
   SettingsPage,
-  TemplatesPage,
 } from "@/routes/app/pages";
 import { HomePage } from "@/routes/HomePage";
 
@@ -31,7 +30,10 @@ const appIndexRoute = createRoute({ getParentRoute: () => appRoute, path: "/", b
 const libraryRoute = createRoute({ getParentRoute: () => appRoute, path: "/library", component: LibraryPage, validateSearch: parseLibrarySearch });
 // Collections are folders in the Library sidebar now (D82); old links land on the Library.
 const collectionsRoute = createRoute({ getParentRoute: () => appRoute, path: "/collections", beforeLoad: () => redirect({ to: "/app/library", throw: true }) });
-const templatesRoute = createRoute({ getParentRoute: () => appRoute, path: "/templates", component: TemplatesPage });
+const templatesRoute = createRoute({ getParentRoute: () => appRoute, path: "/templates", component: lazyRouteComponent(() => import("@/features/templates/TemplatesRoute"), "TemplatesIndex") });
+// Template builder (spec 010): a new template, or one of the user's own.
+const newTemplateRoute = createRoute({ getParentRoute: () => appRoute, path: "/templates/new", component: lazyRouteComponent(() => import("@/features/templates/TemplatesRoute"), "NewTemplate") });
+const editTemplateRoute = createRoute({ getParentRoute: () => appRoute, path: "/templates/$templateId", component: lazyRouteComponent(() => import("@/features/templates/TemplatesRoute"), "EditTemplate") });
 const settingsRoute = createRoute({ getParentRoute: () => appRoute, path: "/settings", component: SettingsPage });
 const templateRoute = createRoute({ getParentRoute: () => appRoute, path: "/papers/$paperId/template", component: lazyRouteComponent(() => import("@/features/summaries/TemplateStep")) });
 const processingRoute = createRoute({ getParentRoute: () => appRoute, path: "/papers/$paperId/processing", component: lazyRouteComponent(() => import("@/features/papers/ProcessingPage")) });
@@ -51,7 +53,7 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   signInRoute,
   signUpRoute,
-  appRoute.addChildren([appIndexRoute, homeRoute, libraryRoute, collectionsRoute, templatesRoute, settingsRoute, templateRoute, processingRoute, workspaceRoute]),
+  appRoute.addChildren([appIndexRoute, homeRoute, libraryRoute, collectionsRoute, templatesRoute, newTemplateRoute, editTemplateRoute, settingsRoute, templateRoute, processingRoute, workspaceRoute]),
 ]);
 
 export function createAppRouter(history?: RouterHistory) {

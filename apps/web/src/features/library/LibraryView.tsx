@@ -208,7 +208,8 @@ export function LibraryView() {
   };
 
   return (
-    <div ref={page} className="flex min-h-full flex-col gap-6 px-4 pt-6 pb-10 md:px-8">
+    // Header and toolbar stay put; only the list scrolls (design principle 5).
+    <div ref={page} className="flex h-full min-h-0 flex-col gap-4 px-4 pt-4 sm:pt-6 md:px-8">
       <header className="flex flex-wrap items-start gap-4">
         <div className="min-w-0 flex-1">
           <h1 className="truncate text-3xl font-bold tracking-tight">{collection?.name ?? "Your Library"}</h1>
@@ -220,10 +221,11 @@ export function LibraryView() {
       </header>
 
       {(
-        <section aria-labelledby="papers-heading" className="flex flex-col gap-4">
+        <section aria-labelledby="papers-heading" className="flex min-h-0 flex-1 flex-col gap-4">
           <h2 id="papers-heading" className="sr-only">Papers</h2>
           <CollectionChips />
           <Toolbar params={params} view={view} onView={changeView} />
+          <div className="-mx-4 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-4 pt-1 pb-28 md:-mx-8 md:px-8 md:pb-10">
           {papers.isPending ? (
             <Loading label="Loading your papers">
               <ListRowSkeleton />
@@ -266,6 +268,7 @@ export function LibraryView() {
               {isFetchingNextPage ? "Loading" : "Show more"}
             </button>
           )}
+          </div>
         </section>
       )}
     </div>

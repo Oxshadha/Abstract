@@ -1,4 +1,5 @@
 /// <reference types="vitest/config" />
+import { cpSync } from "node:fs";
 import { fileURLToPath, URL } from "node:url";
 
 import tailwindcss from "@tailwindcss/vite";
@@ -22,11 +23,26 @@ const sentryUpload = process.env.SENTRY_AUTH_TOKEN
     ]
   : [];
 
+/**
+ * pdf.js needs its standard fonts (for PDFs that do not embed theirs) and character maps (CJK)
+ * served next to the app. Copied from the installed pdfjs-dist at startup and build, so the
+ * version always matches; the copy is git-ignored.
+ */
+const pdfjsAssets = {
+  name: "pdfjs-assets",
+  buildStart() {
+    const root = fileURLToPath(new URL(".", import.meta.url));
+    for (const dir of ["standard_fonts", "cmaps"]) {
+      cpSync(`${root}node_modules/pdfjs-dist/${dir}`, `${root}public/pdfjs/${dir}`, { recursive: true });
+    }
+  },
+};
+
 export default defineConfig({
   // One .env at the repo root; only VITE_-prefixed values reach the browser.
   envDir: "../..",
   build: { sourcemap: "hidden" },
-  plugins: [react(), tailwindcss(), ...sentryUpload],
+  plugins: [react(), tailwindcss(), pdfjsAssets, ...sentryUpload],
   resolve: {
     alias: [
       { find: "@", replacement: fileURLToPath(new URL("./src", import.meta.url)) },

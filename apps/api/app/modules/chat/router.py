@@ -116,12 +116,28 @@ async def _replay(maker: Any, identity: RequestContext, message_id: UUID) -> lis
             )
         ).one()
         citations = [
-            dict(r._mapping)
+            {
+                "marker": r.marker,
+                "page_start": r.page_start,
+                "page_end": r.page_end,
+                "section": r.section,
+                "quote": r.quote,
+                "region": r.region,
+                "element": (
+                    element.model_dump(mode="json")
+                    if (element := conversations.citation_element(r))
+                    else None
+                ),
+            }
             for r in (
                 await session.execute(
                     text(
-                        "SELECT marker, page_start, page_end, section, quote FROM"
-                        " message_citations WHERE message_id = :m ORDER BY marker"
+                        "SELECT mc.marker, mc.page_start, mc.page_end, mc.section, mc.quote,"
+                        " mc.region,"
+                        " e.id AS element_id, e.kind AS element_kind, e.label AS element_label,"
+                        " e.bbox AS element_box FROM message_citations mc LEFT JOIN chunks c ON"
+                        " c.id = mc.chunk_id LEFT JOIN paper_elements e ON e.id = c.element_id"
+                        " WHERE mc.message_id = :m ORDER BY mc.marker"
                     ),
                     {"m": message_id},
                 )
@@ -186,7 +202,10 @@ async def send_message(
             paper_id=conversation.paper_id,
             conversation_id=conversation_id,
             question=body.content,
+            region=body.region.model_dump() if body.region else None,
         )
+        if body.region is not None:
+            await conversations.check_region_page(session, conversation.paper_id, body.region.page)
         user_message = await engine.save_message_in(session, turn, "user", body.content)
         await idempotency.store(
             ctx,
@@ -204,6 +223,7 @@ async def send_message(
         tracer=llm.gateway.tracer,
         answer_model=(await llm.registry.get("answer")).primary.model,
         reranker=await _reranker(llm, state.settings),
+        storage=state.storage,
     )
 
     async def events() -> AsyncIterator[str]:

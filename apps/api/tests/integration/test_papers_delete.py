@@ -35,7 +35,8 @@ async def test_AC15_delete_removes_rows_objects_and_is_audited(
     user = new_user()
     paper = await processed_paper(api, worker, user)
     before = await worker.row(COUNTS, p=paper)
-    assert (before.chunks > 0, before.pages, before.jobs) == (True, 1, 1)
+    # ingest plus the enrichment job it queues (spec 009)
+    assert (before.chunks > 0, before.pages, before.jobs) == (True, 1, 2)
     keys = [k for k in api.storage.objects if paper in k or k == api.storage.posts[-1][0]]
     assert len(keys) == 2  # quarantined original + sanitized copy
 
