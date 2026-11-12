@@ -15,6 +15,14 @@ Entry format:
 
 ---
 
+## 2026-11-12: Spec 011 admin panel implemented
+**Done:** Admin area for platform admins: Overview (spend today against an editable daily cap with the 80% warning, kill switch, spend this month, top users, usage by task and model, queues, AI errors, job counts), Users (search, plan, admin role, disable and enable), Plans (every limit editable, empty means no limit), Models (each task's model chain with If-Match and the re-index confirmation), Flags (on or off for everyone, admins or one plan) and Jobs (failed and stuck jobs with their last error, audited retry). Feature flags `figures`, `search` and `reading_aids` gate their UI and API. Admins never see paper content (D92).
+**Verified:** live on desktop and iPhone; a stuck enrichment job retried from the admin API finished as succeeded, confirming the #17 fix; 57 older stuck enrichment jobs in the dev database were marked succeeded (dev data only).
+**Tests:** API 397 passed (migrations 0016 to 0019); web 200 passed. One API test failed once in a full run and could not be reproduced in seven more runs; watching for it.
+**Decisions:** D92   **Specs:** 011 Implemented (as-built notes in the spec)
+**Next:** owner merges the 011 PR; next spec per D89: 016 landing page.
+**Blockers / waiting on owner:** merge.
+
 ## 2026-11-12: Spec 012 plans, limits and the Settings page implemented
 **Done:** Plans in the database (Free, Pro, Internal with the D91 numbers; null means no limit) and every limit read from the user's plan: template sizes, daily and monthly AI caps, papers a month, questions a day, rate limits (Redis token bucket with RateLimit headers), and concurrent processing (extra uploads wait, held, and start when a slot frees). Internal is counted but never stopped by a per-user limit; the platform cap ($20 a day) still applies and warns once at 80%. Admin API and `make plan` to move a user between plans (audited). Settings page: profile, plan and usage meters (AI as a percentage), theme, sign out, delete account. Limit messages show the reset in the reader's local time.
 **Tests:** API 377 passed (migrations 0013 to 0015); web 188 passed; one shared problem helper replaced five copies.

@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Approved (owner, 2026-11-12): plan limits and the platform cap editable in the panel (audited); flags for Figures & tables, Search and Reading aids; admins never see content (D92) |
+| **Status** | Implemented (2026-11-12). Approved (owner, 2026-11-12): plan limits and the platform cap editable in the panel (audited); flags for Figures & tables, Search and Reading aids; admins never see content (D92) |
 | **Week** | W3 |
 | **Decisions** | D3, D10, D11, D13, D72, D89, D90, D91, D92 |
 | **Engineering practices (D67)** | Spec 011 items in `docs/engineering-practices.md` §3, included below as AC6, AC8 and AC9 |
@@ -37,26 +37,26 @@ The team can run Abstract without touching the database or the command line. In 
 ## Acceptance criteria
 
 ### Access
-- [ ] **AC1** — **Who can open it.**
+- [x] **AC1** — **Who can open it.**
   - **Admins:** see "Admin" in the navigation (sidebar on desktop, a pill item on phones) and can open `/app/admin/*`.
   - **Everyone else:** sees no link and gets "Page not found" for those addresses.
   - **The API:** every admin route goes through the policy (`admin.*` actions, rule 5) and every change is written to the audit log.
-- [ ] **AC2** — **Privacy.** Admins see accounts, counts, usage and costs, never paper titles, file names, text, summaries or conversations.
+- [x] **AC2** — **Privacy.** Admins see accounts, counts, usage and costs, never paper titles, file names, text, summaries or conversations.
 
 ### Overview
-- [ ] **AC3** — **Spend and safety.**
+- [x] **AC3** — **Spend and safety.**
   - **Spend:** today against the platform cap (with the 80% warning state, D91) and this month.
   - **AI usage:**
     - calls, tokens and cost by task and by model;
     - the top 10 users by spend today and this month.
   - **The kill switch:** a confirmation, then all paid AI calls pause or resume.
-- [ ] **AC4** — **Health.**
+- [x] **AC4** — **Health.**
   - **Queue depth** per queue (fast, enrichment, scan, deletion).
   - **AI error rate** per provider over the last 24 hours.
   - **Failed jobs** in the last 24 hours, linking to Jobs.
 
 ### Users
-- [ ] **AC5** — **Finding and changing users.**
+- [x] **AC5** — **Finding and changing users.**
   - **The list:** search by email or name, paged.
   - **Each row:**
     - name and email;
@@ -73,40 +73,40 @@ The team can run Abstract without touching the database or the command line. In 
   - **Confirmation:** destructive changes ask first. Every change is audited.
 
 ### Flags (engineering practices §3)
-- [ ] **AC6** — **Feature flags.**
+- [x] **AC6** — **Feature flags.**
   - **Storage:** flags live in a `feature_flags` table (key, description, enabled, audience: everyone, admins only, or chosen plans).
   - **`GET /me/flags`:** returns the caller's evaluated flags; the SPA gates routes and components on them.
   - **Reading:** flags are read once per request (no extra cache layer in v1).
   - **Admin:** the admin lists and toggles them, audited.
-- [ ] **AC7** — **The first flags:** `figures` (Figures & tables, its tab, region questions and background enrichment), `search` (Ctrl/Cmd+K search) and `reading_aids` (Explain and Ask on selected text, suggested questions and follow-ups, export). All are on by default. Turning one off hides it in the UI and refuses its API routes (403 `feature-off`).
+- [x] **AC7** — **The first flags:** `figures` (Figures & tables, its tab, region questions and background enrichment), `search` (Ctrl/Cmd+K search) and `reading_aids` (Explain and Ask on selected text, suggested questions and follow-ups, export). All are on by default. Turning one off hides it in the UI and refuses its API routes (403 `feature-off`).
 
 ### Jobs (engineering practices §3)
-- [ ] **AC8** — **The jobs monitor.**
+- [x] **AC8** — **The jobs monitor.**
   - **The list:** jobs that are `failed`, `enqueue_failed` or stuck `running` for over 15 minutes, with kind, owner, attempts, last error and time.
   - **Retry:** re-queues the job, and the retry is audited.
   - **Counts:** queued, held and running.
 
 ### Overview data (engineering practices §3)
-- [ ] **AC9** — **Data sources.** The overview is read from existing tables and Redis; no metrics backend.
+- [x] **AC9** — **Data sources.** The overview is read from existing tables and Redis; no metrics backend.
 
 ### Models
-- [ ] **AC10** — **Models.**
+- [x] **AC10** — **Models.**
   - **The list:** every task in the Model Registry with its primary model, fallbacks, parameters, budget behaviour and on/off state.
   - **Editing:** an admin edits a task with design-system controls, validated as the API validates (D72).
   - **Versions:** saving makes a new registry version, audited, and takes effect on the next call.
 
 ### Plans and the platform cap (Q1, Q2)
-- [ ] **AC12** — **Plan limits.**
+- [x] **AC12** — **Plan limits.**
   - **Editing:** an admin edits a plan's limits in the panel (each number, or "No limit"), validated (whole numbers, amounts of at least 0, template sizes at least 1).
   - **Effect:** applies within seconds (the 5 s plan cache).
   - **Audit:** the change is audited with before and after.
-- [ ] **AC13** — **Platform cap.**
+- [x] **AC13** — **Platform cap.**
   - **Storage:** the platform-wide daily AI cap is stored in platform settings and edited in the Overview.
   - **Audit:** the change is audited.
   - **Fallback:** the deployment setting is used only until the first edit.
 
 ### Quality bar
-- [ ] **AC11** — **Layout and accessibility.**
+- [x] **AC11** — **Layout and accessibility.**
   - **Desktop:** uses the width (design principle 6b).
   - **Phones:** lists are one-line rows with the detail a tap away.
   - **Accessibility:** keyboard reachable, no serious axe violations, destructive actions in the error colour.
@@ -168,6 +168,20 @@ New:
   - flags gate the UI;
   - axe.
 - **Playwright:** an admin moves a user to Internal and sees it in the list.
+
+## As built
+- **Policy actions:**
+  - `admin.users.read` and `admin.users.update`;
+  - `admin.plans.update`;
+  - `admin.cap.update`;
+  - `admin.flags.update`;
+  - `admin.jobs.read` and `admin.jobs.retry`;
+  - the Overview reads with the existing `admin.usage.read`; lists use `admin.access`.
+- **Data across workspaces:** comes only from SECURITY DEFINER functions (migrations 0017, 0019) that return counts, sums, times, IDs and yes/no. No admin response carries a paper title, file name or text.
+- **Job retry:** covers ingest, OCR, enrichment and scan jobs. Summary jobs are retried by their owner from the paper, which also resets the summary.
+- **While `reading_aids` is off:** suggested questions fall back to the generic three (their API refuses) and follow-ups come back empty.
+- **Platform cap:** stored in platform settings (migration 0018, null until first set); the spend guard re-reads it every 2 seconds.
+- **Migrations:** 0016 (feature flags), 0017 (admin aggregates), 0018 (cap setting, plan updates by the app role), 0019 (job retry).
 
 ## Open questions (owner)
 - **Q1 (answered):** plan limits are editable in the panel, audited (AC12).
