@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | Draft |
+| **Status** | Approved (owner, 2026-11-12): 10 fields per template and 10 custom templates per user until plans exist; preview on demand; summaries update on request (D87) |
 | **Week** | W3 |
-| **Decisions** | D15, D28, D36, D41, D56, D60, D86 |
+| **Decisions** | D15, D28, D36, D41, D56, D60, D86, D87 |
 | **Engineering practices (D67)** | Both items of `engineering-practices.md` §3 Spec 010 are included (AC9, AC10) |
 | **Feature flag** | none (core) |
 | **Mockup** | none for the builder; it follows the form-builder pattern of D36 and `docs/design-principles.md`. The template step (`UI/Abstract Summary Template Selection.png`) lists custom templates beside the system ones |
@@ -67,6 +67,6 @@ Builder actions under 150 ms server time; a preview costs one summary call on th
 Integration: CRUD and versioning, ownership and RLS, system templates read-only, soft delete with summaries, stale saves (409), limits from entitlements, import validation, preview through the summary pipeline with the fake provider, injection test. Web: builder form, drag and keyboard reorder, up/down on phones, limits in the form, draft restore and leave warning, conflict dialog, axe. Playwright: create a template, add and reorder fields, use it on an uploaded paper.
 
 ## Open questions (owner)
-- **Q1:** Default limits until plans exist (spec 012).
-- **Q2:** Preview: on demand ("Try on a paper") or live while editing.
-- **Q3:** After a template changes, update existing summaries automatically or on request.
+- **Q1 (answered):** until plans exist, 10 fields per template and 10 custom templates per user (labels 60, instructions 500 characters).
+- **Q2 (answered):** preview on demand with "Try on a paper"; no model calls while typing.
+- **Q3 (answered):** existing summaries update on request ("Update summary"), never automatically.
