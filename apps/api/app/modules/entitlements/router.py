@@ -13,10 +13,10 @@ router = APIRouter(tags=["entitlements"])
 @router.get(
     "/me/limits",
     response_model=Limits,
-    summary="The caller's limits (templates today; plans in spec 012)",
+    summary="The caller's template limits, from their plan",
     dependencies=[Depends(user_rate_limit("read"))],
 )
 async def my_limits(
     request: Request, ctx: Annotated[Context, Depends(require("me.read"))]
 ) -> Limits:
-    return limits_for(request.app.state.settings, ctx.identity.user_id)
+    return await limits_for(ctx.session, ctx.identity.user_id)
