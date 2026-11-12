@@ -13,9 +13,20 @@ const RATE_GROUPS = ["read", "write", "upload", "search"] as const;
 const FREE_RATES = { read: 300, write: 60, upload: 20, search: 120 };
 const RATE_LABELS: Record<(typeof RATE_GROUPS)[number], string> = { read: "Read", write: "Write", upload: "Upload", search: "Search" };
 
+/** The API returns rates as a map; the edit form uses the four known groups. */
+function editable(limits: Plan["limits"]): PlanLimits {
+  const rates = limits.rate_per_minute;
+  return {
+    ...limits,
+    rate_per_minute: rates
+      ? { read: rates.read ?? FREE_RATES.read, write: rates.write ?? FREE_RATES.write, upload: rates.upload ?? FREE_RATES.upload, search: rates.search ?? FREE_RATES.search }
+      : null,
+  };
+}
+
 function PlanCard({ plan }: { plan: Plan }) {
   const queryClient = useQueryClient();
-  const [limits, setLimits] = useState<PlanLimits>(plan.limits);
+  const [limits, setLimits] = useState<PlanLimits>(() => editable(plan.limits));
   const set = <K extends keyof PlanLimits>(key: K) => (value: PlanLimits[K]) => { setLimits((l) => ({ ...l, [key]: value })); };
   const save = useMutation({
     mutationFn: () => updatePlan(plan.id, limits),
@@ -25,7 +36,7 @@ function PlanCard({ plan }: { plan: Plan }) {
     },
     onError: (e) => { toast(e.message); },
   });
-  const changed = JSON.stringify(limits) !== JSON.stringify(plan.limits);
+  const changed = JSON.stringify(limits) !== JSON.stringify(editable(plan.limits));
   return (
     <Card title={plan.name} action={<span className="text-sm text-text-secondary">{`${count(plan.users)} ${plan.users === 1 ? "account" : "accounts"}`}</span>}>
       <p className="text-xs text-text-secondary">Leave a box empty for no limit.</p>

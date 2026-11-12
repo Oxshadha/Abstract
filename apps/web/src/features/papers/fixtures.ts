@@ -28,6 +28,7 @@ export function status(overrides: Partial<PaperStatus> = {}): PaperStatus {
     text_status: "pending",
     chat_available: false,
     error_message: null,
+    waiting: false,
     steps: [
       { key: "uploading", state: "done" },
       { key: "extracting", state: "done" },
