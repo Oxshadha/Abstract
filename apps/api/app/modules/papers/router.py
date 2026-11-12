@@ -14,6 +14,7 @@ from app.core.context import Context
 from app.core.errors import ProblemError
 from app.core.policy import require, require_identity
 from app.core.ratelimit import user_rate_limit
+from app.modules.entitlements import service as entitlements
 from app.modules.identity.service import RequestContext
 from app.modules.library import collections
 from app.modules.llm.gateway import set_context as set_llm_context
@@ -51,6 +52,7 @@ async def create_upload(
     request: Request,
     ctx: Annotated[Context, Depends(require("paper.create"))],
 ) -> UploadTicket:
+    await entitlements.check(ctx.session, ctx.identity.user_id, "papers")  # before any upload
     return await service.create_upload(
         ctx, body, storage=request.app.state.storage, settings=request.app.state.settings
     )
@@ -79,6 +81,10 @@ async def finalize_upload(
 
     async def remember(result: FinalizeResponse) -> None:
         status = 200 if result.duplicate else 202
+        if not result.duplicate:  # spec 012 AC2: a new paper counts, a duplicate does not
+            await entitlements.consume(
+                ctx.session, ctx.identity.org_id, ctx.identity.user_id, "papers"
+            )
         await idempotency.store(
             ctx, idempotency_key, digest, status, result.model_dump(mode="json")
         )

@@ -22,6 +22,7 @@ from app.modules.chat.schemas import (
     SendMessage,
     SuggestionList,
 )
+from app.modules.entitlements import service as entitlements
 from app.modules.identity.service import RequestContext
 from app.modules.llm.gateway import set_context as set_llm_context
 from app.modules.llm.registry import UnknownTaskError
@@ -234,6 +235,8 @@ async def send_message(
         )
         if body.region is not None:
             await conversations.check_region_page(session, conversation.paper_id, body.region.page)
+        # Spec 012 AC2, AC3: counted with the question, in this transaction.
+        await entitlements.consume(session, identity.org_id, identity.user_id, "messages")
         user_message = await engine.save_message_in(session, turn, "user", body.content)
         await idempotency.store(
             ctx,
