@@ -101,3 +101,28 @@ async def test_AC2_disabled_user_is_rejected(database: dict[str, str]) -> None:
 
 def test_demo_subject_constant_is_stable() -> None:
     assert DEMO_SUBJECT == "dev_user_demo"
+
+
+async def test_R10_a_users_parallel_requests_do_not_wait_on_each_other(
+    database: dict[str, str],
+) -> None:
+    # A known user's requests only read their row, so one open transaction (a long request)
+    # must not block another request by the same person.
+    engine = create_async_engine(database["app"], pool_size=4)
+    maker = async_sessionmaker(engine, expire_on_commit=False)
+    principal = Principal(subject="user_parallel", email="p@example.org", name="Par")
+    try:
+        async with maker() as session, session.begin():
+            await provision(session, principal)  # first contact
+        async with maker() as long_request, long_request.begin():
+            await provision(long_request, principal)
+            async with maker() as other, other.begin():
+                await other.execute(text("SET LOCAL lock_timeout = '1s'"))
+                context = await asyncio.wait_for(provision(other, principal), timeout=5)
+        assert context.email == "p@example.org"
+        # A changed profile is still written.
+        changed = Principal(subject="user_parallel", email="new@example.org", name="Par")
+        async with maker() as session, session.begin():
+            assert (await provision(session, changed)).email == "new@example.org"
+    finally:
+        await engine.dispose()
