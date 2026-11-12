@@ -29,6 +29,10 @@ x-api-env: &api-env
   # Fake scanner in `make dev`; `make dev-full` sets clamav (D77, spec 004 AC16).
   MALWARE_SCAN: ${MALWARE_SCAN:-fake}
   CLAMAV_HOST: clamav
+  # Clerk sign-in (spec 002, D70): empty keeps the development login.
+  CLERK_ISSUER: ${CLERK_ISSUER:-}
+  CLERK_AUTHORIZED_PARTIES: ${CLERK_AUTHORIZED_PARTIES:-["http://localhost:5173"]}
+  CLERK_WEBHOOK_SECRET: ${CLERK_WEBHOOK_SECRET:-}
 
 services:
   postgres:
@@ -148,6 +152,8 @@ services:
     build: { context: ./apps/web, target: dev }
     environment:
       API_PROXY_TARGET: http://api:8000
+      # Clerk sign-in in the browser (empty: the development login).
+      VITE_CLERK_PUBLISHABLE_KEY: ${VITE_CLERK_PUBLISHABLE_KEY:-}
     ports: ["${WEB_PORT:-5173}:5173"]
     volumes:
       - ./apps/web:/app

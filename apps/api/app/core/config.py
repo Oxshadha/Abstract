@@ -17,6 +17,9 @@ class Settings(BaseSettings):
         env_file=("../../.env", ".env"),
         env_file_encoding="utf-8",
         extra="ignore",
+        # An empty variable means "not set" (compose passes unset values as ""), so optional
+        # integrations such as Clerk or Sentry stay off until they are given a value.
+        env_ignore_empty=True,
     )
 
     env: Environment = "development"

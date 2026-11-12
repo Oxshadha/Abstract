@@ -41,7 +41,11 @@ const pdfjsAssets = {
 export default defineConfig({
   // One .env at the repo root; only VITE_-prefixed values reach the browser.
   envDir: "../..",
-  build: { sourcemap: "hidden" },
+  build: {
+    sourcemap: "hidden",
+    // The app shell and the landing page (spec 016): each with only its own code.
+    rollupOptions: { input: { app: "index.html", landing: "landing.html" } },
+  },
   plugins: [react(), tailwindcss(), pdfjsAssets, ...sentryUpload],
   resolve: {
     alias: [

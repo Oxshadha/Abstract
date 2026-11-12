@@ -93,7 +93,7 @@ files = ["app", "tests"]
 
 [[tool.mypy.overrides]]
 module = [
-    "celery.*", "reportlab.*", "testcontainers.*", "boto3.*", "botocore.*", "pytest_socket.*",
+    "celery.*", "reportlab.*", "docling.*", "docling_core.*", "testcontainers.*", "boto3.*", "botocore.*", "pytest_socket.*",
     "pypdfium2.*", "pytesseract.*",
 ]
 ignore_missing_imports = true
