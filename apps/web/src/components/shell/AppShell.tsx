@@ -4,12 +4,13 @@ import { useEffect, useState } from "react";
 
 import { ErrorBoundary } from "@/components/feedback/ErrorBoundary";
 import { OfflineBanner } from "@/components/feedback/offline";
+import { useFlag } from "@/features/flags/api";
 import { SearchDialog } from "@/features/library/SearchDialog";
 import { useOpenCollection } from "@/features/library/useOpenCollection";
 
 import { LogoMark } from "@/components/brand/Logo";
 
-import { NAV_ITEMS } from "./navigation";
+import { useNavItems } from "./navigation";
 import { PillBar } from "./PillBar";
 import { Sidebar } from "./Sidebar";
 import { UserMenu } from "./UserMenu";
@@ -27,18 +28,20 @@ export function AppShell() {
   const collection = useOpenCollection();
   const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.userAgent);
   const shortcut = isMac ? "Cmd+K" : "Ctrl+K";
+  const search = useFlag("search"); // spec 011 AC7
+  const navItems = useNavItems();
 
   // Ctrl+K or Cmd+K opens search from anywhere (spec 013 AC8); no badge on screen (D82).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === "k") {
+      if (search && (e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setSearchOpen(true);
       }
     };
     document.addEventListener("keydown", onKey);
     return () => { document.removeEventListener("keydown", onKey); };
-  }, []);
+  }, [search]);
 
   return (
     <div className="flex h-dvh overflow-hidden bg-bg text-text">
@@ -54,6 +57,8 @@ export function AppShell() {
             <LogoMark className="size-7" />
             <span className="ml-1.5 font-display text-xl font-bold tracking-tight">abstract.</span>
           </Link>
+          {search ? (
+          <>
           <button
             type="button"
             title={`Search (${shortcut})`}
@@ -74,6 +79,10 @@ export function AppShell() {
           >
             <Search aria-hidden className="size-5" />
           </button>
+          </>
+          ) : (
+            <span className="ml-auto" />
+          )}
           <div className="flex items-center gap-1 sm:ml-auto">
             <button
               type="button"
@@ -95,7 +104,7 @@ export function AppShell() {
         {!inWorkspace && (
           <PillBar
             label="Navigation"
-            items={NAV_ITEMS.map(({ to, label, Icon }) => ({
+            items={navItems.map(({ to, label, Icon }) => ({
               key: to,
               label,
               icon: <Icon aria-hidden className="size-5" />,

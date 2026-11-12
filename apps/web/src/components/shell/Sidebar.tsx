@@ -3,17 +3,18 @@ import { Link } from "@tanstack/react-router";
 import { Logo } from "@/components/brand/Logo";
 import { SidebarCollections } from "@/features/library/SidebarCollections";
 
-import { NAV_ITEMS } from "./navigation";
+import { useNavItems } from "./navigation";
 
 /** Sidebar from the Library mockup (spec 003 AC6); collections as folders (spec 013, D82). */
 export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
+  const navItems = useNavItems();
   return (
     <nav aria-label="Main" className="flex h-full min-h-0 flex-col gap-6 p-4">
       <Link to="/app/home" onClick={onNavigate} className="px-2">
         <Logo />
       </Link>
       <ul className="flex flex-col gap-1">
-        {NAV_ITEMS.map(({ to, label, Icon }) => (
+        {navItems.map(({ to, label, Icon }) => (
           <li key={to}>
             <Link
               to={to}

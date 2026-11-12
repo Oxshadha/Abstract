@@ -21,6 +21,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/flags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every feature flag and who it is on for */
+        get: operations["list_flags_api_v1_admin_flags_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/flags/{key}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Switch a feature on or off, or limit it to admins or chosen plans (audited) */
+        put: operations["update_flag_api_v1_admin_flags__key__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/jobs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Failed, never-enqueued and stuck jobs with their last error, and job counts */
+        get: operations["list_jobs_api_v1_admin_jobs_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/jobs/{job_id}/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Queue a failed, never-enqueued or stuck job again (audited) */
+        post: operations["retry_job_api_v1_admin_jobs__job_id__retry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/llm/cap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set the platform-wide daily AI cap (spec 011 AC13, audited) */
+        put: operations["set_platform_cap_api_v1_admin_llm_cap_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/llm/kill-switch": {
         parameters: {
             query?: never;
@@ -84,6 +169,108 @@ export interface paths {
         /** Update one task's models, limits and fallbacks */
         put: operations["update_model_api_v1_admin_models__task__put"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/overview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Spend against the cap, usage by task and model, top users, queues, errors, jobs */
+        get: operations["overview_api_v1_admin_overview_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Plans with their limits and how many accounts are on each */
+        get: operations["list_plans_api_v1_admin_plans_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/plans/{plan_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Change a plan's limits (applies within seconds; audited with before and after) */
+        put: operations["update_plan_api_v1_admin_plans__plan_id__put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Accounts with plan, role, status, papers, spend this month and last activity */
+        get: operations["list_users_api_v1_admin_users_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Disable an account: every later request is refused (audited) */
+        post: operations["disable_user_api_v1_admin_users__user_id__disable_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/users/{user_id}/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Re-enable a disabled account (audited); deleted accounts cannot come back */
+        post: operations["enable_user_api_v1_admin_users__user_id__enable_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -285,6 +472,23 @@ export interface paths {
          *     content is removed in the background, as for an account deleted at the sign-in provider.
          */
         delete: operations["delete_me_api_v1_me_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/flags": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's feature flags, evaluated (spec 011 AC6) */
+        get: operations["my_flags_api_v1_me_flags_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -829,6 +1033,87 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** AdminJob */
+        AdminJob: {
+            /** At */
+            at: string | null;
+            /** Attempts */
+            attempts: number;
+            /** Held */
+            held: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Kind */
+            kind: string;
+            /** Last Error */
+            last_error: string | null;
+            /** Owner Email */
+            owner_email: string | null;
+            /** Retryable */
+            retryable: boolean;
+            /** Status */
+            status: string;
+            /** Stuck */
+            stuck: boolean;
+        };
+        /** AdminJobs */
+        AdminJobs: {
+            /** Counts */
+            counts: {
+                [key: string]: number;
+            };
+            /** Items */
+            items: components["schemas"]["AdminJob"][];
+        };
+        /** AdminUser */
+        AdminUser: {
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Disabled */
+            disabled: boolean;
+            /** Display Name */
+            display_name: string | null;
+            /** Email */
+            email: string | null;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Last Active */
+            last_active: string | null;
+            /** Papers */
+            papers: number;
+            /** Plan Id */
+            plan_id: string;
+            /** Platform Role */
+            platform_role: string;
+            /** Spend Month Usd */
+            spend_month_usd: number;
+        };
+        /** AdminUserPage */
+        AdminUserPage: {
+            /** Items */
+            items: components["schemas"]["AdminUser"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** Audience */
+        Audience: {
+            /** Plans */
+            plans?: string[];
+            /**
+             * Who
+             * @enum {string}
+             */
+            who: "everyone" | "admins" | "plans";
+        };
         /**
          * CitationElement
          * @description The table or figure a citation points at (spec 009 AC9): the chip opens its box.
@@ -1103,6 +1388,22 @@ export interface components {
             job?: components["schemas"]["JobOut"] | null;
             paper: components["schemas"]["PaperOut"];
         };
+        /** FlagOut */
+        FlagOut: {
+            audience: components["schemas"]["Audience"];
+            /** Description */
+            description: string;
+            /** Enabled */
+            enabled: boolean;
+            /** Key */
+            key: string;
+        };
+        /** FlagUpdate */
+        FlagUpdate: {
+            audience: components["schemas"]["Audience"];
+            /** Enabled */
+            enabled: boolean;
+        };
         /** HTTPValidationError */
         HTTPValidationError: {
             /** Detail */
@@ -1275,6 +1576,46 @@ export interface components {
              */
             provider: "vertex" | "openrouter" | "fake";
         };
+        /** MyFlags */
+        MyFlags: {
+            /** Flags */
+            flags: {
+                [key: string]: boolean;
+            };
+        };
+        /** Overview */
+        Overview: {
+            /** By Model */
+            by_model: components["schemas"]["UsageLine"][];
+            /** By Task */
+            by_task: components["schemas"]["UsageLine"][];
+            /** Cap Usd */
+            cap_usd: number;
+            /** Cap Warning */
+            cap_warning: boolean;
+            /** Jobs */
+            jobs: {
+                [key: string]: number;
+            };
+            /** Paid Calls Enabled */
+            paid_calls_enabled: boolean;
+            /** Provider Errors */
+            provider_errors: components["schemas"]["ProviderErrors"][];
+            /** Queues */
+            queues: {
+                [key: string]: number;
+            } | null;
+            /** Spend Month Usd */
+            spend_month_usd: number;
+            /** Spend Today Usd */
+            spend_today_usd: number;
+            /** Tokens Today */
+            tokens_today: number;
+            /** Top Month */
+            top_month: components["schemas"]["TopUser"][];
+            /** Top Today */
+            top_today: components["schemas"]["TopUser"][];
+        };
         /** PageSize */
         PageSize: {
             /** Height */
@@ -1416,12 +1757,70 @@ export interface components {
             /** Plan Id */
             plan_id: string;
         };
+        /** PlanLimits */
+        PlanLimits: {
+            /** Ai Usd Per Day */
+            ai_usd_per_day: number | null;
+            /** Ai Usd Per Month */
+            ai_usd_per_month: number | null;
+            /** Concurrent Jobs */
+            concurrent_jobs: number | null;
+            /** Custom Templates */
+            custom_templates: number;
+            /** Fields Per Template */
+            fields_per_template: number;
+            /** Messages Per Day */
+            messages_per_day: number | null;
+            /** Papers Per Month */
+            papers_per_month: number | null;
+            /** Rate Per Minute */
+            rate_per_minute: {
+                [key: string]: number;
+            } | null;
+        };
+        /** PlanLimitsIn */
+        PlanLimitsIn: {
+            /** Ai Usd Per Day */
+            ai_usd_per_day: number | null;
+            /** Ai Usd Per Month */
+            ai_usd_per_month: number | null;
+            /** Concurrent Jobs */
+            concurrent_jobs: number | null;
+            /** Custom Templates */
+            custom_templates: number;
+            /** Fields Per Template */
+            fields_per_template: number;
+            /** Messages Per Day */
+            messages_per_day: number | null;
+            /** Papers Per Month */
+            papers_per_month: number | null;
+            rate_per_minute: components["schemas"]["Rates"] | null;
+        };
+        /** PlanOut */
+        PlanOut: {
+            /** Id */
+            id: string;
+            limits: components["schemas"]["PlanLimits"];
+            /** Name */
+            name: string;
+            /** Users */
+            users: number;
+        };
         /** PlanRef */
         PlanRef: {
             /** Id */
             id: string;
             /** Name */
             name: string;
+        };
+        /** PlanUpdate */
+        PlanUpdate: {
+            limits: components["schemas"]["PlanLimitsIn"];
+        };
+        /** PlatformCap */
+        PlatformCap: {
+            /** Daily Usd */
+            daily_usd: number;
         };
         /** Pong */
         Pong: {
@@ -1439,6 +1838,15 @@ export interface components {
             paper_id: string;
             template: components["schemas"]["TemplateIn"];
         };
+        /** ProviderErrors */
+        ProviderErrors: {
+            /** Calls */
+            calls: number;
+            /** Errors */
+            errors: number;
+            /** Provider */
+            provider: string;
+        };
         /**
          * Quote
          * @description Text the reader selected in the PDF (spec 015 AC4, AC5); data, never instructions.
@@ -1448,6 +1856,17 @@ export interface components {
             page: number;
             /** Text */
             text: string;
+        };
+        /** Rates */
+        Rates: {
+            /** Read */
+            read: number;
+            /** Search */
+            search: number;
+            /** Upload */
+            upload: number;
+            /** Write */
+            write: number;
         };
         /** Ready */
         Ready: {
@@ -1796,6 +2215,22 @@ export interface components {
             /** Name */
             name: string;
         };
+        /** TopUser */
+        TopUser: {
+            /** Calls */
+            calls: number;
+            /** Display Name */
+            display_name: string | null;
+            /** Email */
+            email: string | null;
+            /** Spend Usd */
+            spend_usd: number;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
+        };
         /** UploadRequest */
         UploadRequest: {
             /**
@@ -1835,6 +2270,17 @@ export interface components {
             /** Meters */
             meters: components["schemas"]["Meter"][];
             plan: components["schemas"]["PlanRef"];
+        };
+        /** UsageLine */
+        UsageLine: {
+            /** Calls */
+            calls: number;
+            /** Cost Usd */
+            cost_usd: number;
+            /** Name */
+            name: string;
+            /** Tokens */
+            tokens: number;
         };
         /** UsageRow */
         UsageRow: {
@@ -1917,6 +2363,156 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Pong"];
+                };
+            };
+        };
+    };
+    list_flags_api_v1_admin_flags_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlagOut"][];
+                };
+            };
+        };
+    };
+    update_flag_api_v1_admin_flags__key__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FlagUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FlagOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_jobs_api_v1_admin_jobs_get: {
+        parameters: {
+            query?: {
+                status?: ("failed" | "enqueue_failed" | "stuck")[] | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminJobs"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retry_job_api_v1_admin_jobs__job_id__retry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_platform_cap_api_v1_admin_llm_cap_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlatformCap"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlatformCap"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -2049,6 +2645,172 @@ export interface operations {
             };
             /** @description Stale */
             412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    overview_api_v1_admin_overview_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Overview"];
+                };
+            };
+        };
+    };
+    list_plans_api_v1_admin_plans_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanOut"][];
+                };
+            };
+        };
+    };
+    update_plan_api_v1_admin_plans__plan_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlanUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlanOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_users_api_v1_admin_users_get: {
+        parameters: {
+            query?: {
+                q?: string | null;
+                cursor?: string | null;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminUserPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    disable_user_api_v1_admin_users__user_id__disable_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    enable_user_api_v1_admin_users__user_id__enable_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -2584,6 +3346,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    my_flags_api_v1_me_flags_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyFlags"];
                 };
             };
         };

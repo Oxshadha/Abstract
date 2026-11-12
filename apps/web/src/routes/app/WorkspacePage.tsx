@@ -16,6 +16,7 @@ import { FiguresPanel } from "@/features/viewer/FiguresPanel";
 import { PdfViewer } from "@/features/viewer/PdfViewer";
 import { useIsDesktop, useWorkspaceLayout } from "@/features/workspace/layout";
 import { PillBar } from "@/components/shell/PillBar";
+import { useFlag } from "@/features/flags/api";
 
 type PanelId = "paper" | "summary" | "chat";
 const MOBILE_TABS = [
@@ -50,8 +51,10 @@ function OpenFromUrl({ paperId }: { paperId: string }) {
 function PaperPanel({ paperId }: { paperId: string }) {
   const [view, setView] = useState<"pages" | "figures">("pages");
   const citations = useCitations();
+  const figures = useFlag("figures"); // spec 011 AC7
   return (
     <div className="flex h-full min-h-0 flex-col gap-2">
+      {figures && (
       <div role="group" aria-label="Paper view" className="flex w-fit rounded-pill border border-border p-1">
         {(["pages", "figures"] as const).map((v) => (
           <button
@@ -65,13 +68,14 @@ function PaperPanel({ paperId }: { paperId: string }) {
           </button>
         ))}
       </div>
+      )}
       {/* Both stay mounted: switching back keeps the viewer's place. */}
       {/* Phones and tablets: the viewer gets the screen height under the bars, so it scrolls
           itself and can jump to a citation or table (the page would otherwise grow instead). */}
       <div hidden={view !== "pages"} className="min-h-0 flex-1">
         <PdfViewer paperId={paperId} />
       </div>
-      {view === "figures" && (
+      {figures && view === "figures" && (
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain max-lg:pb-28">
         <FiguresPanel
           paperId={paperId}
