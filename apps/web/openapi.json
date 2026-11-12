@@ -265,6 +265,22 @@
         "title": "CreatedSummary",
         "type": "object"
       },
+      "DeleteAccount": {
+        "additionalProperties": false,
+        "properties": {
+          "confirm_email": {
+            "maxLength": 320,
+            "minLength": 3,
+            "title": "Confirm Email",
+            "type": "string"
+          }
+        },
+        "required": [
+          "confirm_email"
+        ],
+        "title": "DeleteAccount",
+        "type": "object"
+      },
       "DescriptionOut": {
         "properties": {
           "cached": {
@@ -751,6 +767,7 @@
         "type": "object"
       },
       "Limits": {
+        "description": "Template limits, as the builder needs them (spec 010 AC9).",
         "properties": {
           "custom_templates": {
             "title": "Custom Templates",
@@ -994,6 +1011,54 @@
           "next_cursor"
         ],
         "title": "MessagePage",
+        "type": "object"
+      },
+      "Meter": {
+        "properties": {
+          "key": {
+            "enum": [
+              "papers",
+              "messages",
+              "ai"
+            ],
+            "title": "Key",
+            "type": "string"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit"
+          },
+          "resets_at": {
+            "format": "date-time",
+            "title": "Resets At",
+            "type": "string"
+          },
+          "used": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Used"
+          }
+        },
+        "required": [
+          "key",
+          "used",
+          "limit",
+          "resets_at"
+        ],
+        "title": "Meter",
         "type": "object"
       },
       "ModelParams": {
@@ -1391,6 +1456,11 @@
             ],
             "title": "Text Status",
             "type": "string"
+          },
+          "waiting": {
+            "default": false,
+            "title": "Waiting",
+            "type": "boolean"
           }
         },
         "required": [
@@ -1464,6 +1534,40 @@
           "snippet"
         ],
         "title": "PassageHit",
+        "type": "object"
+      },
+      "PlanChange": {
+        "additionalProperties": false,
+        "properties": {
+          "plan_id": {
+            "maxLength": 10000,
+            "pattern": "^[a-z]{2,20}$",
+            "title": "Plan Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "plan_id"
+        ],
+        "title": "PlanChange",
+        "type": "object"
+      },
+      "PlanRef": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "PlanRef",
         "type": "object"
       },
       "Pong": {
@@ -2450,6 +2554,26 @@
         "title": "UploadTicket",
         "type": "object"
       },
+      "Usage": {
+        "properties": {
+          "meters": {
+            "items": {
+              "$ref": "#/components/schemas/Meter"
+            },
+            "title": "Meters",
+            "type": "array"
+          },
+          "plan": {
+            "$ref": "#/components/schemas/PlanRef"
+          }
+        },
+        "required": [
+          "plan",
+          "meters"
+        ],
+        "title": "Usage",
+        "type": "object"
+      },
       "UsageRow": {
         "properties": {
           "calls": {
@@ -2528,6 +2652,25 @@
           "rows"
         ],
         "title": "UsageSummary",
+        "type": "object"
+      },
+      "UserPlan": {
+        "properties": {
+          "plan_id": {
+            "title": "Plan Id",
+            "type": "string"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "plan_id"
+        ],
+        "title": "UserPlan",
         "type": "object"
       },
       "ValidationError": {
@@ -2808,6 +2951,60 @@
           }
         },
         "summary": "Grant Admin",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/users/{user_id}/plan": {
+      "put": {
+        "description": "Move a user to another plan (D90): applies within seconds, audited.",
+        "operationId": "set_plan_api_v1_admin_users__user_id__plan_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanChange"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPlan"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set Plan",
         "tags": [
           "admin"
         ]
@@ -3362,6 +3559,44 @@
       }
     },
     "/api/v1/me": {
+      "delete": {
+        "description": "Spec 012 AC15: the account is disabled at once (every later request is refused) and its\ncontent is removed in the background, as for an account deleted at the sign-in provider.",
+        "operationId": "delete_me_api_v1_me_delete",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteAccount"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete the signed-in user's account and everything they own",
+        "tags": [
+          "identity"
+        ]
+      },
       "get": {
         "operationId": "me_api_v1_me_get",
         "responses": {
@@ -3397,7 +3632,28 @@
             "description": "Successful Response"
           }
         },
-        "summary": "The caller's limits (templates today; plans in spec 012)",
+        "summary": "The caller's template limits, from their plan",
+        "tags": [
+          "entitlements"
+        ]
+      }
+    },
+    "/api/v1/me/usage": {
+      "get": {
+        "operationId": "my_usage_api_v1_me_usage_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Usage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "The caller's plan and what they have used (Settings)",
         "tags": [
           "entitlements"
         ]

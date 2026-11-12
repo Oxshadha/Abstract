@@ -1,6 +1,6 @@
 import { api } from "@/api/client";
 import type { components } from "@/api/schema";
-import { HttpError } from "@/lib/queryClient";
+import { problem } from "@/lib/problem";
 
 export type Paper = components["schemas"]["PaperOut"];
 export type PaperPage = components["schemas"]["PaperPage"];
@@ -15,15 +15,6 @@ export const paperKeys = {
 };
 
 /** problem+json `detail` is written for users (spec 001 AC5); fall back to a calm default. */
-async function problem(response: Response, fallback: string): Promise<HttpError> {
-  try {
-    const body = (await response.clone().json()) as { detail?: unknown };
-    if (typeof body.detail === "string" && body.detail) return new HttpError(response.status, body.detail);
-  } catch {
-    // not JSON
-  }
-  return new HttpError(response.status, fallback);
-}
 
 export async function listPapers(cursor: string | null): Promise<PaperPage> {
   const { data, response } = await api.GET("/api/v1/papers", {

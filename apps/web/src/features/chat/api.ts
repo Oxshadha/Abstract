@@ -2,7 +2,7 @@ import { api, apiBaseUrl } from "@/api/client";
 import type { components } from "@/api/schema";
 import { currentToken, refreshToken } from "@/auth/session";
 import { createSseParser } from "@/features/papers/progress";
-import { HttpError } from "@/lib/queryClient";
+import { problem } from "@/lib/problem";
 
 export type Conversation = components["schemas"]["ConversationOut"];
 export type Region = components["schemas"]["Region"];
@@ -23,16 +23,6 @@ export const chatKeys = {
   conversations: (paperId: string) => ["papers", paperId, "conversations"] as const,
   messages: (conversationId: string) => ["conversations", conversationId, "messages"] as const,
 };
-
-async function problem(response: Response, fallback: string): Promise<HttpError> {
-  try {
-    const body = (await response.clone().json()) as { detail?: unknown };
-    if (typeof body.detail === "string" && body.detail) return new HttpError(response.status, body.detail);
-  } catch {
-    // not JSON
-  }
-  return new HttpError(response.status, fallback);
-}
 
 export async function listConversations(paperId: string): Promise<Conversation[]> {
   const { data, response } = await api.GET("/api/v1/papers/{paper_id}/conversations", {

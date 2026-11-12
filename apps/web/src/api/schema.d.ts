@@ -107,6 +107,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/users/{user_id}/plan": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * Set Plan
+         * @description Move a user to another plan (D90): applies within seconds, audited.
+         */
+        put: operations["set_plan_api_v1_admin_users__user_id__plan_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/users/{user_id}/revoke-admin": {
         parameters: {
             query?: never;
@@ -259,7 +279,12 @@ export interface paths {
         get: operations["me_api_v1_me_get"];
         put?: never;
         post?: never;
-        delete?: never;
+        /**
+         * Delete the signed-in user's account and everything they own
+         * @description Spec 012 AC15: the account is disabled at once (every later request is refused) and its
+         *     content is removed in the background, as for an account deleted at the sign-in provider.
+         */
+        delete: operations["delete_me_api_v1_me_delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -272,8 +297,25 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The caller's limits (templates today; plans in spec 012) */
+        /** The caller's template limits, from their plan */
         get: operations["my_limits_api_v1_me_limits_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/me/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's plan and what they have used (Settings) */
+        get: operations["my_usage_api_v1_me_usage_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -892,6 +934,11 @@ export interface components {
             created: boolean;
             summary: components["schemas"]["SummaryBrief"];
         };
+        /** DeleteAccount */
+        DeleteAccount: {
+            /** Confirm Email */
+            confirm_email: string;
+        };
         /** DescriptionOut */
         DescriptionOut: {
             /** Cached */
@@ -1084,7 +1131,10 @@ export interface components {
             /** Paid Calls Enabled */
             paid_calls_enabled: boolean;
         };
-        /** Limits */
+        /**
+         * Limits
+         * @description Template limits, as the builder needs them (spec 010 AC9).
+         */
         Limits: {
             /** Custom Templates */
             custom_templates: number;
@@ -1174,6 +1224,23 @@ export interface components {
             items: components["schemas"]["MessageOut"][];
             /** Next Cursor */
             next_cursor: string | null;
+        };
+        /** Meter */
+        Meter: {
+            /**
+             * Key
+             * @enum {string}
+             */
+            key: "papers" | "messages" | "ai";
+            /** Limit */
+            limit: number | null;
+            /**
+             * Resets At
+             * Format: date-time
+             */
+            resets_at: string;
+            /** Used */
+            used: number | null;
         };
         /** ModelParams */
         ModelParams: {
@@ -1312,6 +1379,11 @@ export interface components {
              * @enum {string}
              */
             text_status: "pending" | "ready" | "failed";
+            /**
+             * Waiting
+             * @default false
+             */
+            waiting: boolean;
         };
         /**
          * PaperUpdate
@@ -1336,6 +1408,18 @@ export interface components {
             paper_title: string;
             /** Snippet */
             snippet: string;
+        };
+        /** PlanChange */
+        PlanChange: {
+            /** Plan Id */
+            plan_id: string;
+        };
+        /** PlanRef */
+        PlanRef: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
         };
         /** Pong */
         Pong: {
@@ -1744,6 +1828,12 @@ export interface components {
             /** Url */
             url: string;
         };
+        /** Usage */
+        Usage: {
+            /** Meters */
+            meters: components["schemas"]["Meter"][];
+            plan: components["schemas"]["PlanRef"];
+        };
         /** UsageRow */
         UsageRow: {
             /** Calls */
@@ -1776,6 +1866,16 @@ export interface components {
              * Format: date-time
              */
             since: string;
+        };
+        /** UserPlan */
+        UserPlan: {
+            /** Plan Id */
+            plan_id: string;
+            /**
+             * User Id
+             * Format: uuid
+             */
+            user_id: string;
         };
         /** ValidationError */
         ValidationError: {
@@ -1981,6 +2081,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RoleChange"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    set_plan_api_v1_admin_users__user_id__plan_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlanChange"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserPlan"];
                 };
             };
             /** @description Validation Error */
@@ -2418,6 +2553,39 @@ export interface operations {
             };
         };
     };
+    delete_me_api_v1_me_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeleteAccount"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     my_limits_api_v1_me_limits_get: {
         parameters: {
             query?: never;
@@ -2434,6 +2602,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Limits"];
+                };
+            };
+        };
+    };
+    my_usage_api_v1_me_usage_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Usage"];
                 };
             };
         };
