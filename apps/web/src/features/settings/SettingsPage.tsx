@@ -4,7 +4,7 @@ import { useId, useState, type ReactNode } from "react";
 
 import { fetchMe } from "@/api/me";
 import { useAuthState } from "@/auth/state";
-import { Dialog, buttonSecondary, inputClass } from "@/components/dialog/Dialog";
+import { Dialog, buttonPrimary, buttonSecondary, inputClass } from "@/components/dialog/Dialog";
 import { ListRowSkeleton, Loading } from "@/components/feedback/Skeleton";
 import { FieldError } from "@/components/status/FieldError";
 import { DESTRUCTIVE } from "@/components/status/tone";
@@ -21,10 +21,10 @@ function initials(name: string | null | undefined): string {
   return (parts.slice(0, 2).map((p) => p[0]).join("") || "?").toUpperCase();
 }
 
-function Section({ title, icon: Icon, children }: { title: string; icon: LucideIcon; children: ReactNode }) {
+function Section({ title, icon: Icon, children, className = "" }: { title: string; icon: LucideIcon; children: ReactNode; className?: string }) {
   const id = useId();
   return (
-    <section aria-labelledby={id} className="flex flex-col gap-4 rounded-lg border border-border bg-surface p-4 sm:p-5">
+    <section aria-labelledby={id} className={`flex flex-col gap-4 rounded-lg border border-border bg-surface p-4 sm:p-5 ${className}`}>
       <h2 id={id} className="flex items-center gap-2 font-display text-lg font-bold">
         <Icon aria-hidden className="size-5" />
         {title}
@@ -93,7 +93,7 @@ function DeleteAccount({ email, onDeleted }: { email: string; onDeleted: () => v
               type="button"
               disabled={!matches || remove.isPending}
               onClick={() => { remove.mutate(); }}
-              className={`${buttonSecondary} ${DESTRUCTIVE} disabled:opacity-50`}
+              className={buttonPrimary}
             >
               Delete everything
             </button>
@@ -129,13 +129,17 @@ export function SettingsPage() {
   const email = me.data?.user.email ?? "";
 
   return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-4 px-4 pt-4 pb-28 sm:pt-6 md:px-8 lg:pb-10">
+    // Full width like every page (design principle 6b); two columns of cards from desktop up.
+    <div className="flex flex-col gap-4 px-4 pt-4 pb-28 sm:pt-6 md:px-8 lg:pb-10">
       <header>
         <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Settings</h1>
         <p className="mt-1 hidden text-text-secondary sm:block">Your account, plan and appearance.</p>
       </header>
 
-      <Section title="Profile" icon={User}>
+      {/* Phones: one column in reading order. Desktop: Plan and usage on the right, the rest
+          stacked on the left, so no row leaves a gap. */}
+      <div className="grid items-start gap-4 lg:grid-cols-2">
+      <Section title="Profile" icon={User} className="lg:col-start-1">
         {me.isPending ? (
           <Loading label="Loading your profile"><ListRowSkeleton /></Loading>
         ) : (
@@ -152,7 +156,7 @@ export function SettingsPage() {
         <p className="text-xs text-text-secondary">Your name and email come from your sign-in account.</p>
       </Section>
 
-      <Section title="Plan and usage" icon={BarChart3}>
+      <Section title="Plan and usage" icon={BarChart3} className="lg:col-start-2 lg:row-span-3 lg:row-start-1">
         {usage.isPending ? (
           <Loading label="Loading your usage"><ListRowSkeleton /><ListRowSkeleton /></Loading>
         ) : usage.isError ? (
@@ -174,13 +178,13 @@ export function SettingsPage() {
         )}
       </Section>
 
-      <Section title="Appearance" icon={Palette}>
+      <Section title="Appearance" icon={Palette} className="lg:col-start-1">
         <div className="self-start">
           <ThemeToggle />
         </div>
       </Section>
 
-      <Section title="Account" icon={LogOut}>
+      <Section title="Account" icon={LogOut} className="lg:col-start-1">
         <div className="flex flex-wrap gap-2">
           <button type="button" onClick={() => { auth.signOut(); }} className={buttonSecondary}>
             <LogOut aria-hidden className="size-4" />
@@ -197,6 +201,7 @@ export function SettingsPage() {
           )}
         </div>
       </Section>
+      </div>
     </div>
   );
 }
