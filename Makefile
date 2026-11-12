@@ -4,7 +4,7 @@ API := cd apps/api &&
 WEB := cd apps/web &&
 
 .DEFAULT_GOAL := help
-.PHONY: help check-env dev dev-full e2e down logs ps migrate test test-api test-web test-eval lint fmt api-client tokens eval eval-corpus eval-golden eval-verify install hooks
+.PHONY: help check-env dev dev-full e2e down logs ps migrate plan test test-api test-web test-eval lint fmt api-client tokens eval eval-corpus eval-golden eval-verify install hooks
 
 help: ## Show available commands
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[1m%-12s\033[0m %s\n", $$1, $$2}'
@@ -34,6 +34,10 @@ ps: check-env ## Show service status
 
 migrate: check-env ## Apply database migrations (idempotent)
 	$(COMPOSE) run --rm migrate
+
+plan: check-env ## Move a user to a plan: make plan EMAIL=you@example.org PLAN=internal
+	@test -n "$(EMAIL)" -a -n "$(PLAN)" || (echo "Usage: make plan EMAIL=<email> PLAN=<free|pro|internal>" && exit 2)
+	$(COMPOSE) run --rm --build migrate python -m app.scripts.set_plan "$(EMAIL)" "$(PLAN)"
 
 install: ## Install backend + frontend dependencies on the host
 	$(API) uv sync
