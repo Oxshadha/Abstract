@@ -8,6 +8,9 @@ import { status } from "@/features/papers/fixtures";
 import { seriousViolations } from "@/test/axe";
 
 import { createConversation, listConversations, listMessages, type Message } from "./api";
+import { useCitations } from "@/features/viewer/citation-context";
+import { CitationProvider } from "@/features/viewer/citations";
+
 import { ChatPanel } from "./ChatPanel";
 import { withMarkers } from "./markers";
 import { completedSentences } from "./useChat";
@@ -175,6 +178,61 @@ describe("AC9, AC10: Ask Abstract panel", () => {
     await screen.findByRole("button", { name: "[1] p. 2 (2.1 Attention)" });
     expect(await seriousViolations(container)).toEqual([]);
     expect(within(container).getByRole("button", { name: "Send" })).toBeDisabled();
+  });
+});
+
+describe("Spec 009 AC9: tables and figures in answers", () => {
+  it("labels a table citation like the paper does", async () => {
+    vi.mocked(getStatus).mockResolvedValue(READY);
+    vi.mocked(listConversations).mockResolvedValue([CONVERSATION]);
+    vi.mocked(listMessages).mockResolvedValue([
+      saved[0] as Message,
+      {
+        ...(saved[1] as Message),
+        content: "The big model reaches 28.4 BLEU [S1].",
+        citations: [
+          {
+            marker: 1, page_start: 8, page_end: 8, section: "Table 2", quote: "",
+            element: { id: "t2", kind: "table", label: "Table 2", box: { x: 0.1, y: 0.2, width: 0.7, height: 0.2 } },
+          },
+        ],
+      },
+    ]);
+    renderPanel();
+    expect(await screen.findByRole("button", { name: "[1] Table 2, p. 8" })).toBeInTheDocument();
+  });
+});
+
+describe("Spec 009 AC10: ask about a region", () => {
+  it("sends the region drawn in the viewer with the next question, then clears it", async () => {
+    function AskButton() {
+      const viewer = useCitations();
+      return (
+        <button type="button" onClick={() => { viewer?.askRegion({ page: 4, x: 0.1, y: 0.2, width: 0.5, height: 0.3 }); }}>
+          draw
+        </button>
+      );
+    }
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <CitationProvider>
+          <AskButton />
+          <ChatPanel paperId="p1" />
+        </CitationProvider>
+      </QueryClientProvider>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "draw" }));
+    expect(await screen.findByRole("button", { name: "Region, p. 4" })).toBeInTheDocument();
+    const input = await screen.findByLabelText("Ask about this paper");
+    fireEvent.change(input, { target: { value: "What does this show?" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    await vi.waitFor(() => { expect(fetchMock).toHaveBeenCalled(); });
+    const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(JSON.parse(init.body as string)).toEqual({
+      content: "What does this show?",
+      region: { page: 4, x: 0.1, y: 0.2, width: 0.5, height: 0.3 },
+    });
+    expect(screen.queryByRole("button", { name: "Remove Region, p. 4" })).toBeNull(); // cleared
   });
 });
 

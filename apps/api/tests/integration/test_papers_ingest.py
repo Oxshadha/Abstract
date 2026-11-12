@@ -147,7 +147,10 @@ async def test_AC10_pages_without_text_go_to_ocr_without_blocking_chat(
     )
     assert paper.text_status == "ready"  # chat over the digital page is available now
     assert paper.status == "processing"  # OCR still to come
-    task, kwargs = worker.enqueued[-1]
+    # Ingest also queues enrichment (spec 009); pick the OCR task.
+    task, kwargs = next(
+        t for t in reversed(worker.enqueued) if t[0] == "app.worker.tasks.ocr_pages"
+    )
     assert task == "app.worker.tasks.ocr_pages"
     ocr = await worker.row("SELECT kind, status FROM jobs WHERE id = :j", j=kwargs["job_id"])
     assert (ocr.kind, ocr.status) == ("ocr", "queued")

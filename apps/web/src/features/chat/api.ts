@@ -5,6 +5,7 @@ import { createSseParser } from "@/features/papers/progress";
 import { HttpError } from "@/lib/queryClient";
 
 export type Conversation = components["schemas"]["ConversationOut"];
+export type Region = components["schemas"]["Region"];
 export type Message = components["schemas"]["MessageOut"];
 export type Citation = components["schemas"]["CitationOut"];
 export const MAX_MESSAGE_CHARS = 4000; // AC16, same as the server
@@ -76,6 +77,7 @@ export async function sendMessage(
   idempotencyKey: string,
   onEvent: (event: ChatEvent) => void,
   signal: AbortSignal,
+  region?: Region | null,
 ): Promise<void> {
   const send = async (token: string | null) =>
     globalThis.fetch(`${apiBaseUrl}/api/v1/conversations/${encodeURIComponent(conversationId)}/messages`, {
@@ -86,7 +88,7 @@ export async function sendMessage(
         "Idempotency-Key": idempotencyKey,
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify({ content }),
+      body: JSON.stringify(region ? { content, region } : { content }),
       signal,
     });
   let response = await send(await currentToken());

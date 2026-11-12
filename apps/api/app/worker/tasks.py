@@ -10,6 +10,7 @@ from celery.exceptions import SoftTimeLimitExceeded
 
 from app.modules.llm import reindex as reindex_module
 from app.modules.papers import deletion
+from app.modules.papers import enrich as enrich_module
 from app.modules.papers import ingest as ingest_module
 from app.modules.papers import ocr as ocr_module
 from app.modules.papers import scan as scan_module
@@ -33,6 +34,7 @@ async def _run(
     name: str,
     scan: bool = False,
     summary: bool = False,
+    enrich: bool = False,
 ) -> Outcome:
     async with worker_deps() as deps:
 
@@ -48,6 +50,9 @@ async def _run(
         async def summary_give_up(reason: str) -> None:
             await summary_failures.give_up(deps, org_id, job_id, reason)
 
+        async def enrich_give_up(reason: str) -> None:
+            await enrich_module.give_up(deps, org_id, job_id, reason)
+
         return await run_job(
             deps.sessionmaker,
             org_id,
@@ -55,7 +60,15 @@ async def _run(
             work,
             retries=retries,
             max_retries=MAX_RETRIES,
-            give_up=scan_give_up if scan else summary_give_up if summary else None,
+            give_up=(
+                scan_give_up
+                if scan
+                else summary_give_up
+                if summary
+                else enrich_give_up
+                if enrich
+                else None
+            ),
             tracer=deps.tracer,
             trace_name=name,
         )
@@ -70,6 +83,7 @@ def _job_task(
     name: str,
     scan: bool = False,
     summary: bool = False,
+    enrich: bool = False,
 ) -> str:
     outcome = asyncio.run(
         _run(
@@ -80,6 +94,7 @@ def _job_task(
             name=name,
             scan=scan,
             summary=summary,
+            enrich=enrich,
         )
     )
     if outcome.kind == "retry":
@@ -110,6 +125,14 @@ def generate_summary(self: Any, job_id: str, org_id: str) -> str:
 def ocr_pages(self: Any, job_id: str, org_id: str) -> str:
     """OCR for pages without a text layer, on the enrichment queue (spec 004 AC10)."""
     return _job_task(self, ocr_module.run_ocr, job_id, org_id, name="ocr-pages")
+
+
+@celery_app.task(bind=True, name="app.worker.tasks.enrich_paper", max_retries=MAX_RETRIES)  # type: ignore[untyped-decorator]
+def enrich_paper(self: Any, job_id: str, org_id: str) -> str:
+    """Tables and figures on the enrichment queue (spec 009 AC1, AC12, AC13)."""
+    return _job_task(
+        self, enrich_module.run_enrich, job_id, org_id, name="enrich-paper", enrich=True
+    )
 
 
 @celery_app.task(bind=True, name="app.worker.tasks.scan_paper", max_retries=MAX_RETRIES)  # type: ignore[untyped-decorator]

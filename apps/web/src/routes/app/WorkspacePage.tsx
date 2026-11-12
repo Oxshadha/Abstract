@@ -12,6 +12,7 @@ import { markOpened } from "@/features/library/api";
 import { StarButton } from "@/features/library/PaperActions";
 import { CitationProvider } from "@/features/viewer/citations";
 import { useCitations } from "@/features/viewer/citation-context";
+import { FiguresPanel } from "@/features/viewer/FiguresPanel";
 import { PdfViewer } from "@/features/viewer/PdfViewer";
 import { useIsDesktop, useWorkspaceLayout } from "@/features/workspace/layout";
 import { PillBar } from "@/components/shell/PillBar";
@@ -45,8 +46,42 @@ function OpenFromUrl({ paperId }: { paperId: string }) {
   return null;
 }
 
+/** Paper panel: the pages, or the paper's tables and figures (spec 009 AC5, D85). */
 function PaperPanel({ paperId }: { paperId: string }) {
-  return <PdfViewer paperId={paperId} />;
+  const [view, setView] = useState<"pages" | "figures">("pages");
+  const citations = useCitations();
+  return (
+    <div className="flex h-full min-h-96 flex-col gap-2">
+      <div role="group" aria-label="Paper view" className="flex w-fit rounded-pill border border-border p-1">
+        {(["pages", "figures"] as const).map((v) => (
+          <button
+            key={v}
+            type="button"
+            aria-pressed={view === v}
+            onClick={() => { setView(v); }}
+            className={`min-h-9 rounded-pill px-3 text-sm ${view === v ? "bg-primary text-primary-text" : "text-text-secondary hover:text-text"}`}
+          >
+            {v === "pages" ? "Pages" : "Figures & tables"}
+          </button>
+        ))}
+      </div>
+      {/* Both stay mounted: switching back keeps the viewer's place. */}
+      {/* Phones and tablets: the viewer gets the screen height under the bars, so it scrolls
+          itself and can jump to a citation or table (the page would otherwise grow instead). */}
+      <div hidden={view !== "pages"} className="min-h-0 flex-1 max-lg:h-[calc(100dvh-17rem)] max-lg:flex-none">
+        <PdfViewer paperId={paperId} />
+      </div>
+      {view === "figures" && (
+        <FiguresPanel
+          paperId={paperId}
+          onShow={(page, box, label) => {
+            setView("pages");
+            citations?.openBox(page, box, label);
+          }}
+        />
+      )}
+    </div>
+  );
 }
 
 function Panel({
@@ -139,15 +174,22 @@ export default function WorkspacePage() {
     void markOpened(paperId).catch(() => undefined);
   }, [paperId]);
   // A citation click shows the Paper panel (desktop) or the Paper tab (phones), spec 008 AC4.
+  // "Ask about this region" brings up the chat: the side panel on desktop, the Chat tab on phones.
+  const openChat = useCallback(() => {
+    if (desktop) setChat(true);
+    else setMobile("chat");
+  }, [desktop, setChat]);
   const openPaper = useCallback(() => {
     if (desktop) showPaper();
     else setMobile("paper");
   }, [desktop, showPaper]);
 
   return (
-    <CitationProvider onOpen={openPaper}>
+    <CitationProvider onOpen={openPaper} onAskRegion={openChat}>
     <OpenFromUrl paperId={paperId} />
-    <div className="flex h-full flex-col">
+    {/* Desktop: the Workspace fills the screen under the top bar and each panel scrolls on its
+        own, like an editor (D79); phones scroll the page. */}
+    <div className="flex h-full flex-col lg:h-[calc(100dvh-4.4rem)]">
       {/* One line on every screen: back, title (with type and authors beneath), star; the
           panel toggles follow on desktop (owner review: phones wrapped into three lines). */}
       <header className="flex min-w-0 items-center gap-2 px-2 pt-3 sm:gap-3 sm:px-4 sm:pt-4">

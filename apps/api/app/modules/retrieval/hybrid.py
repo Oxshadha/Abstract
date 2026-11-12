@@ -90,8 +90,11 @@ async def retrieve(
                 for r in (
                     await session.execute(
                         text(
-                            "SELECT id, ordinal, page_start, page_end, section_path, text"
-                            " FROM chunks WHERE id = ANY(:ids)"
+                            "SELECT c.id, c.ordinal, c.page_start, c.page_end, c.section_path,"
+                            " c.text, c.kind, e.id AS element_id, e.kind AS element_kind,"
+                            " e.label AS element_label, e.bbox AS element_box,"
+                            " e.image_key AS element_image FROM chunks c LEFT JOIN"
+                            " paper_elements e ON e.id = c.element_id WHERE c.id = ANY(:ids)"
                         ),
                         {"ids": best},
                     )

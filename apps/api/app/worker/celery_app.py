@@ -27,6 +27,7 @@ TASKS: dict[str, tuple[str, int, int]] = {
     "app.worker.tasks.scan_paper": ("scan", 300, 330),
     "app.worker.tasks.delete_paper": ("deletion", 120, 150),
     "app.worker.tasks.reindex_embeddings": ("enrichment", 900, 960),
+    "app.worker.tasks.enrich_paper": ("enrichment", 600, 660),  # spec 009 AC13
     "app.worker.tasks.delete_account": ("deletion", 600, 660),
     "app.worker.tasks.ping": ("fast", 5, 10),
 }

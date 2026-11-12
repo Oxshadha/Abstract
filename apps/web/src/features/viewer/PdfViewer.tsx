@@ -2,15 +2,16 @@ import "react-pdf/dist/Page/TextLayer.css";
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import workerUrl from "pdfjs-dist/legacy/build/pdf.worker.min.mjs?url"; // legacy: see vite.config.ts
-import { ChevronLeft, ChevronRight, Download, Minus, Plus, RotateCcw } from "lucide-react";
+import { ChevronLeft, ChevronRight, Download, Minus, Plus, RotateCcw, SquareDashedMousePointer } from "lucide-react";
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Document, Page, pdfjs } from "react-pdf";
 
 import { Select } from "@/components/menu/Select";
 
-import { useCitations } from "./citation-context";
+import { useCitations, type PageBox } from "./citation-context";
 import { getFileUrl, getPageSizes, viewerKeys, type PageSize } from "./api";
 import { locate, markItem, type Located, type TextPiece } from "./locate";
+import { RegionLayer } from "./RegionLayer";
 import { visibleWindow } from "./virtual";
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl; // AC7: pdf.js parses in its worker
@@ -35,6 +36,9 @@ export function PdfViewer({ paperId }: { paperId: string }) {
   const [found, setFound] = useState<{ id: number; located: Located | null } | null>(null);
   const [announcement, setAnnouncement] = useState("");
   const frame = useRef<number | null>(null);
+  // Ask about this region (spec 009 AC10): drawing mode and the box being drawn.
+  const [selecting, setSelecting] = useState(false);
+  const [selection, setSelection] = useState<{ page: number; box: PageBox } | null>(null);
 
   // AC8: one layout update per animation frame for scroll and resize.
   const measure = useCallback(() => {
@@ -69,9 +73,11 @@ export function PdfViewer({ paperId }: { paperId: string }) {
   const [first, last] = pages.length ? visibleWindow(offsets, heights, scroll.top, scroll.height) : [0, -1];
   const current = Math.min(pages.length, Math.max(1, offsets.findIndex((o, i) => o + (heights[i] ?? 0) > scroll.top + scroll.height / 3) + 1));
 
-  const goTo = (page: number) => {
+  const goTo = (page: number, within = 0) => {
     const el = scroller.current as (Partial<HTMLDivElement> & { scrollTop: number }) | null;
-    const top = offsets[page - 1];
+    const pageTop = offsets[page - 1];
+    // `within` (0 to 1) scrolls to a spot inside the page, e.g. a table's top edge.
+    const top = pageTop === undefined ? undefined : Math.max(0, pageTop + within * (heights[page - 1] ?? 0) - 24);
     if (!el || top === undefined) return;
     if (el.scrollTo) el.scrollTo({ top, behavior: "auto" });
     else el.scrollTop = top; // browsers without element.scrollTo (tests)
@@ -80,11 +86,38 @@ export function PdfViewer({ paperId }: { paperId: string }) {
   // AC4: a citation request scrolls to its page; the page highlights it when its text arrives.
   const target = citations?.target ?? null;
   const highlight = target ? { page: target.page, id: target.id, located: found?.id === target.id ? found.located : null } : null;
+  // Scroll for a new target, and again while the layout settles right after it (the viewer may
+  // have been hidden behind Figures & tables and is only now measured): never later, so a reader
+  // who scrolled away is not pulled back when they resize a panel.
+  const targetAt = useRef(0);
   useEffect(() => {
-    if (target && pages.length > 0) goTo(target.page);
-    // goTo depends on layout; scroll only for a new citation
+    targetAt.current = Date.now();
+  }, [target?.id]);
+  // Keep the reader's place when the panel width (and so the page scale) changes, e.g. when
+  // the chat opens or the divider moves: re-anchor to the same spot of the same page.
+  const anchor = useRef<{ page: number; within: number; scale: number } | null>(null);
+  useEffect(() => {
+    const index = Math.max(0, current - 1);
+    const height = heights[index] ?? 0;
+    if (height > 0 && anchor.current?.scale === scale) {
+      anchor.current = { page: current, within: Math.min(1, Math.max(0, (scroll.top - (offsets[index] ?? 0)) / height)), scale };
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [target?.id, pages.length]);
+  }, [scroll.top]);
+  useEffect(() => {
+    const previous = anchor.current;
+    anchor.current = previous ? { ...previous, scale } : { page: current, within: 0, scale };
+    if (!previous || previous.scale === scale || pages.length === 0) return;
+    if (target && Date.now() - targetAt.current <= 1500) return; // a citation is settling
+    goTo(previous.page, previous.within + 24 / Math.max(1, heights[previous.page - 1] ?? 1));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scale]);
+  useEffect(() => {
+    if (!target || pages.length === 0 || Date.now() - targetAt.current > 1500) return;
+    goTo(target.page, target.box?.y ?? 0);
+    // goTo depends on layout; scroll for a new citation and while its layout settles
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [target?.id, pages.length, scale]);
 
   // react-pdf reports a page's text once per load, so keep it: a citation for a page that is
   // already on screen is located from this cache.
@@ -92,6 +125,7 @@ export function PdfViewer({ paperId }: { paperId: string }) {
   useEffect(() => { texts.current.clear(); }, [paperId]);
   const resolve = () => {
     if (!target || found?.id === target.id) return;
+    if (target.box) return; // a table, figure or region: outlined from its box, no text to find
     const items = texts.current.get(target.page);
     if (!items) return; // located when the page's text arrives
     const located = locate(items, target.quote);
@@ -167,6 +201,16 @@ export function PdfViewer({ paperId }: { paperId: string }) {
         <button type="button" aria-label="Next page" disabled={current >= pages.length} onClick={() => { goTo(current + 1); }} className="inline-flex size-11 items-center justify-center rounded-md hover:bg-muted disabled:opacity-40">
           <ChevronRight aria-hidden className="size-5" />
         </button>
+        <button
+          type="button"
+          aria-pressed={selecting}
+          aria-label="Select region"
+          title="Select a region to ask about"
+          onClick={() => { setSelecting(!selecting); setSelection(null); }}
+          className={`inline-flex size-11 items-center justify-center rounded-md ${selecting ? "bg-primary text-primary-text" : "hover:bg-muted"}`}
+        >
+          <SquareDashedMousePointer aria-hidden className="size-5" />
+        </button>
         <span className="ml-auto flex items-center gap-1">
           <button type="button" aria-label="Zoom out" onClick={() => { setZoom(ZOOMS.filter((z) => z < scale - 0.01).at(-1) ?? ZOOMS[0] ?? 0.5); }} className="inline-flex size-11 items-center justify-center rounded-md hover:bg-muted">
             <Minus aria-hidden className="size-4" />
@@ -183,8 +227,10 @@ export function PdfViewer({ paperId }: { paperId: string }) {
           </button>
         </span>
       </div>
-      <p className="sr-only" aria-live="polite">{announcement}</p>
-      {highlight && found?.id === highlight.id && !highlight.located && (
+      <p className="sr-only" aria-live="polite">
+        {target?.box ? `Showing ${target.label ?? "the selection"} on page ${String(target.page)}.` : announcement}
+      </p>
+      {highlight && !target?.box && found?.id === highlight.id && !highlight.located && (
         <p className="mt-2 text-sm text-text-secondary">{announcement}</p>
       )}
       <div
@@ -203,6 +249,9 @@ export function PdfViewer({ paperId }: { paperId: string }) {
         {/* react-pdf suspends by default; a suspend reaching the app's outer boundary would hide
             the whole Workspace and reset its effects, cancelling a streaming chat answer. */}
         <Suspense fallback={null}>
+        {/* The full height exists before the PDF loads (react-pdf renders nothing until then),
+            so a citation can scroll to its page straight away (008 AC6, 009 AC6). */}
+        <div style={{ height: pages.length > 0 ? total : undefined, position: "relative" }}>
         {file.data && pages.length > 0 && (
           <Document
             suspense={false}
@@ -212,7 +261,7 @@ export function PdfViewer({ paperId }: { paperId: string }) {
             onLoadError={() => { setFailed("The PDF could not be loaded."); }}
             loading=""
           >
-            <div style={{ height: total, position: "relative" }}>
+            
               {pages.map((p, i) => (
                 <div
                   key={p.page}
@@ -233,11 +282,41 @@ export function PdfViewer({ paperId }: { paperId: string }) {
                       customTextRenderer={({ str, itemIndex }) => markItem(str, itemIndex, highlight?.page === p.page ? highlight.located : null)}
                     />
                   )}
+                  {selecting && i >= first && i <= last && (
+                    <RegionLayer
+                      page={p.page}
+                      box={selection?.page === p.page ? selection.box : null}
+                      onChange={(box) => { setSelection(box ? { page: p.page, box } : null); }}
+                      onAsk={() => {
+                        if (!selection) return;
+                        citations?.askRegion({ page: selection.page, ...selection.box });
+                        setSelecting(false);
+                        setSelection(null);
+                      }}
+                      onCancel={() => { setSelection(null); setSelecting(false); }}
+                    />
+                  )}
+                  {target?.box && target.page === p.page && (
+                    // Spec 009 AC6: the chosen table, figure or region, in the citation colour.
+                    <div
+                      aria-hidden
+                      data-outline="true"
+                      className="pointer-events-none absolute rounded-sm"
+                      style={{
+                        left: `${String(target.box.x * 100)}%`,
+                        top: `${String(target.box.y * 100)}%`,
+                        width: `${String(target.box.width * 100)}%`,
+                        height: `${String(target.box.height * 100)}%`,
+                        outline: "2px solid var(--color-highlight)",
+                        backgroundColor: "color-mix(in srgb, var(--color-highlight) 18%, transparent)",
+                      }}
+                    />
+                  )}
                 </div>
               ))}
-            </div>
           </Document>
         )}
+        </div>
         </Suspense>
       </div>
     </div>

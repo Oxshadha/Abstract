@@ -354,6 +354,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/papers/{paper_id}/elements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tables and figures found in the paper, with enrichment progress */
+        get: operations["get_elements_api_v1_papers__paper_id__elements_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/papers/{paper_id}/enrichment/retry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Find tables and figures again after a failure */
+        post: operations["retry_enrichment_api_v1_papers__paper_id__enrichment_retry_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/papers/{paper_id}/events": {
         parameters: {
             query?: never;
@@ -363,6 +397,40 @@ export interface paths {
         };
         /** Processing progress as Server-Sent Events (status events, heartbeats) */
         get: operations["paper_events_api_v1_papers__paper_id__events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/papers/{paper_id}/figures/{figure_id}/describe": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** An AI-generated description of a figure (cached per figure) */
+        post: operations["describe_figure_api_v1_papers__paper_id__figures__figure_id__describe_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/papers/{paper_id}/figures/{figure_id}/image": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A 5-minute link to a figure's image (JSON, like the PDF link) */
+        get: operations["get_figure_image_api_v1_papers__paper_id__figures__figure_id__image_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -631,8 +699,28 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * CitationElement
+         * @description The table or figure a citation points at (spec 009 AC9): the chip opens its box.
+         */
+        CitationElement: {
+            box: components["schemas"]["ElementBox"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "table" | "figure";
+            /** Label */
+            label: string;
+        };
         /** CitationOut */
         CitationOut: {
+            element?: components["schemas"]["CitationElement"] | null;
             /** Marker */
             marker: number;
             /** Page End */
@@ -641,6 +729,7 @@ export interface components {
             page_start: number | null;
             /** Quote */
             quote: string;
+            region?: components["schemas"]["Region"] | null;
             /** Section */
             section: string | null;
         };
@@ -715,6 +804,13 @@ export interface components {
             created: boolean;
             summary: components["schemas"]["SummaryBrief"];
         };
+        /** DescriptionOut */
+        DescriptionOut: {
+            /** Cached */
+            cached: boolean;
+            /** Description */
+            description: string;
+        };
         /** DevToken */
         DevToken: {
             /** Token */
@@ -729,6 +825,32 @@ export interface components {
         EditResult: {
             /** Version */
             version: number;
+        };
+        /** ElementBox */
+        ElementBox: {
+            /** Height */
+            height: number;
+            /** Width */
+            width: number;
+            /** X */
+            x: number;
+            /** Y */
+            y: number;
+        };
+        /** ElementsOut */
+        ElementsOut: {
+            /** Figures */
+            figures: components["schemas"]["FigureOut"][];
+            /** Pages Done */
+            pages_done: number;
+            /** Pages Parsed Limit */
+            pages_parsed_limit: number;
+            /** Pages Total */
+            pages_total: number | null;
+            /** Status */
+            status: string | null;
+            /** Tables */
+            tables: components["schemas"]["TableOut"][];
         };
         /** EvidenceOut */
         EvidenceOut: {
@@ -773,6 +895,25 @@ export interface components {
              * @enum {string}
              */
             verification: "verified" | "provisional";
+        };
+        /** FigureOut */
+        FigureOut: {
+            box: components["schemas"]["ElementBox"];
+            /** Caption */
+            caption: string | null;
+            /** Description */
+            description: string | null;
+            /** Has Image */
+            has_image: boolean;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Label */
+            label: string;
+            /** Page */
+            page: number;
         };
         /** FileUrl */
         FileUrl: {
@@ -890,6 +1031,7 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            region?: components["schemas"]["Region"] | null;
             /** Retrieval Mode */
             retrieval_mode: ("hybrid" | "keyword" | "cache") | null;
             /**
@@ -1096,6 +1238,23 @@ export interface components {
             /** Received */
             received: boolean;
         };
+        /**
+         * Region
+         * @description A box on one page as fractions (0 to 1, origin top left), drawn in the viewer (AC10).
+         *     Only coordinates come from the browser; the server renders the crop (AC11).
+         */
+        Region: {
+            /** Height */
+            height: number;
+            /** Page */
+            page: number;
+            /** Width */
+            width: number;
+            /** X */
+            x: number;
+            /** Y */
+            y: number;
+        };
         /** RegistryEntryOut */
         RegistryEntryOut: {
             /** Deadline Seconds */
@@ -1180,6 +1339,7 @@ export interface components {
         SendMessage: {
             /** Content */
             content: string;
+            region?: components["schemas"]["Region"] | null;
         };
         /** StepOut */
         StepOut: {
@@ -1275,6 +1435,25 @@ export interface components {
             version: number;
             /** Year */
             year: number | null;
+        };
+        /** TableOut */
+        TableOut: {
+            box: components["schemas"]["ElementBox"];
+            /** Caption */
+            caption: string | null;
+            /** Cells */
+            cells: string[][];
+            /** Header Rows */
+            header_rows: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Label */
+            label: string;
+            /** Page */
+            page: number;
         };
         /** TemplateField */
         TemplateField: {
@@ -2343,6 +2522,75 @@ export interface operations {
             };
         };
     };
+    get_elements_api_v1_papers__paper_id__elements_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ElementsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retry_enrichment_api_v1_papers__paper_id__enrichment_retry_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Already running */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     paper_events_api_v1_papers__paper_id__events_get: {
         parameters: {
             query?: never;
@@ -2363,6 +2611,77 @@ export interface operations {
                 };
                 content: {
                     "text/event-stream": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    describe_figure_api_v1_papers__paper_id__figures__figure_id__describe_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paper_id: string;
+                figure_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DescriptionOut"];
+                };
+            };
+            /** @description The figure has no image */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_figure_image_api_v1_papers__paper_id__figures__figure_id__image_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paper_id: string;
+                figure_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileUrl"];
                 };
             };
             /** @description Validation Error */

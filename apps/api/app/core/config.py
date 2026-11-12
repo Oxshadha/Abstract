@@ -53,6 +53,9 @@ class Settings(BaseSettings):
         default_factory=lambda: {"auth": 30, "read": 300, "write": 60, "upload": 20, "search": 120}
     )
 
+    # Tables and figures in the background (spec 009, D85); off skips the layout parse.
+    enrichment_enabled: bool = True
+
     # Upload limits (spec 004, D57). Plan-specific limits move to entitlements in spec 012.
     upload_max_bytes: int = 50 * 1024 * 1024
     upload_url_ttl_seconds: int = 600

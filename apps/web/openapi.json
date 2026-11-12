@@ -1,8 +1,51 @@
 {
   "components": {
     "schemas": {
+      "CitationElement": {
+        "description": "The table or figure a citation points at (spec 009 AC9): the chip opens its box.",
+        "properties": {
+          "box": {
+            "$ref": "#/components/schemas/ElementBox"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "table",
+              "figure"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "label",
+          "box"
+        ],
+        "title": "CitationElement",
+        "type": "object"
+      },
       "CitationOut": {
         "properties": {
+          "element": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CitationElement"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "marker": {
             "title": "Marker",
             "type": "integer"
@@ -32,6 +75,16 @@
           "quote": {
             "title": "Quote",
             "type": "string"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Region"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "section": {
             "anyOf": [
@@ -212,6 +265,24 @@
         "title": "CreatedSummary",
         "type": "object"
       },
+      "DescriptionOut": {
+        "properties": {
+          "cached": {
+            "title": "Cached",
+            "type": "boolean"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          }
+        },
+        "required": [
+          "description",
+          "cached"
+        ],
+        "title": "DescriptionOut",
+        "type": "object"
+      },
       "DevToken": {
         "properties": {
           "token": {
@@ -241,6 +312,92 @@
           "version"
         ],
         "title": "EditResult",
+        "type": "object"
+      },
+      "ElementBox": {
+        "properties": {
+          "height": {
+            "title": "Height",
+            "type": "number"
+          },
+          "width": {
+            "title": "Width",
+            "type": "number"
+          },
+          "x": {
+            "title": "X",
+            "type": "number"
+          },
+          "y": {
+            "title": "Y",
+            "type": "number"
+          }
+        },
+        "required": [
+          "x",
+          "y",
+          "width",
+          "height"
+        ],
+        "title": "ElementBox",
+        "type": "object"
+      },
+      "ElementsOut": {
+        "properties": {
+          "figures": {
+            "items": {
+              "$ref": "#/components/schemas/FigureOut"
+            },
+            "title": "Figures",
+            "type": "array"
+          },
+          "pages_done": {
+            "title": "Pages Done",
+            "type": "integer"
+          },
+          "pages_parsed_limit": {
+            "title": "Pages Parsed Limit",
+            "type": "integer"
+          },
+          "pages_total": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pages Total"
+          },
+          "status": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Status"
+          },
+          "tables": {
+            "items": {
+              "$ref": "#/components/schemas/TableOut"
+            },
+            "title": "Tables",
+            "type": "array"
+          }
+        },
+        "required": [
+          "status",
+          "pages_total",
+          "pages_done",
+          "pages_parsed_limit",
+          "tables",
+          "figures"
+        ],
+        "title": "ElementsOut",
         "type": "object"
       },
       "EvidenceOut": {
@@ -357,6 +514,63 @@
           "evidence"
         ],
         "title": "FieldOut",
+        "type": "object"
+      },
+      "FigureOut": {
+        "properties": {
+          "box": {
+            "$ref": "#/components/schemas/ElementBox"
+          },
+          "caption": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Caption"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "has_image": {
+            "title": "Has Image",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "page",
+          "box",
+          "caption",
+          "description",
+          "has_image"
+        ],
+        "title": "FigureOut",
         "type": "object"
       },
       "FileUrl": {
@@ -607,6 +821,16 @@
             "format": "uuid",
             "title": "Id",
             "type": "string"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Region"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "retrieval_mode": {
             "anyOf": [
@@ -1206,6 +1430,51 @@
         "title": "Received",
         "type": "object"
       },
+      "Region": {
+        "additionalProperties": false,
+        "description": "A box on one page as fractions (0 to 1, origin top left), drawn in the viewer (AC10).\nOnly coordinates come from the browser; the server renders the crop (AC11).",
+        "properties": {
+          "height": {
+            "maximum": 1.0,
+            "minimum": 0.02,
+            "title": "Height",
+            "type": "number"
+          },
+          "page": {
+            "maximum": 10000.0,
+            "minimum": 1.0,
+            "title": "Page",
+            "type": "integer"
+          },
+          "width": {
+            "maximum": 1.0,
+            "minimum": 0.02,
+            "title": "Width",
+            "type": "number"
+          },
+          "x": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "X",
+            "type": "number"
+          },
+          "y": {
+            "maximum": 1.0,
+            "minimum": 0.0,
+            "title": "Y",
+            "type": "number"
+          }
+        },
+        "required": [
+          "page",
+          "x",
+          "y",
+          "width",
+          "height"
+        ],
+        "title": "Region",
+        "type": "object"
+      },
       "RegistryEntryOut": {
         "additionalProperties": false,
         "properties": {
@@ -1387,6 +1656,16 @@
             "minLength": 1,
             "title": "Content",
             "type": "string"
+          },
+          "region": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Region"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -1630,6 +1909,62 @@
           "updated_at"
         ],
         "title": "SummaryOut",
+        "type": "object"
+      },
+      "TableOut": {
+        "properties": {
+          "box": {
+            "$ref": "#/components/schemas/ElementBox"
+          },
+          "caption": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Caption"
+          },
+          "cells": {
+            "items": {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            "title": "Cells",
+            "type": "array"
+          },
+          "header_rows": {
+            "title": "Header Rows",
+            "type": "integer"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          },
+          "page": {
+            "title": "Page",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "label",
+          "page",
+          "box",
+          "caption",
+          "cells",
+          "header_rows"
+        ],
+        "title": "TableOut",
         "type": "object"
       },
       "TemplateField": {
@@ -3233,6 +3568,93 @@
         ]
       }
     },
+    "/api/v1/papers/{paper_id}/elements": {
+      "get": {
+        "operationId": "get_elements_api_v1_papers__paper_id__elements_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ElementsOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Tables and figures found in the paper, with enrichment progress",
+        "tags": [
+          "papers"
+        ]
+      }
+    },
+    "/api/v1/papers/{paper_id}/enrichment/retry": {
+      "post": {
+        "operationId": "retry_enrichment_api_v1_papers__paper_id__enrichment_retry_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "description": "Already running"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Find tables and figures again after a failure",
+        "tags": [
+          "papers"
+        ]
+      }
+    },
     "/api/v1/papers/{paper_id}/events": {
       "get": {
         "operationId": "paper_events_api_v1_papers__paper_id__events_get",
@@ -3284,6 +3706,115 @@
           }
         },
         "summary": "Processing progress as Server-Sent Events (status events, heartbeats)",
+        "tags": [
+          "papers"
+        ]
+      }
+    },
+    "/api/v1/papers/{paper_id}/figures/{figure_id}/describe": {
+      "post": {
+        "operationId": "describe_figure_api_v1_papers__paper_id__figures__figure_id__describe_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "figure_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Figure Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DescriptionOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "description": "The figure has no image"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "An AI-generated description of a figure (cached per figure)",
+        "tags": [
+          "papers"
+        ]
+      }
+    },
+    "/api/v1/papers/{paper_id}/figures/{figure_id}/image": {
+      "get": {
+        "operationId": "get_figure_image_api_v1_papers__paper_id__figures__figure_id__image_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "figure_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Figure Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileUrl"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "A 5-minute link to a figure's image (JSON, like the PDF link)",
         "tags": [
           "papers"
         ]
