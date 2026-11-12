@@ -22,7 +22,7 @@ This is lightweight spec-driven development. Each feature gets a one-to-two page
 | 013 | [Library, collections, star, search](013-library-search.md) (D82 to D84) | W3 | Implemented | [practices §3 Spec 013](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 014 | Notes & references tab (Semantic Scholar) | W4 | Not started | [practices §3 Spec 014](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 015 | [Reading aids](015-reading-aids.md) (D88) | W4 | Implemented | [practices §3 Spec 015](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
-| 016 | Landing page (prerendered) | W4 | Not started | [practices §3 Spec 016](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
+| 016 | [Landing page (prerendered)](016-landing.md) | W4 | Draft | [practices §3 Spec 016](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 017 | Deploy: EC2 + Vercel + Neon + S3, secrets, backups | W4 | Not started | [practices §3 Spec 017](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 
 **Owner requirements for chat (D74)** are additional binding inputs to spec 007: no queue in the chat path, streamed progress steps, guardrails with an injection test set, and answer/retrieval caching.
