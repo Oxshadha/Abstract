@@ -11,6 +11,7 @@ from app.modules.papers.enrich import ELEMENT_ORDINAL_BASE, give_up, run_enrich
 from app.modules.papers.ingest import ENRICH_TASK
 from app.modules.papers.runner import run_job
 from app.ports.layout import Box, FigureElement, ParsedLayout, TableElement
+from tests.fakes.auth import bearer
 from tests.fakes.pdfs import make_rich_pdf
 from tests.integration.papers_fixtures import PapersApi, Worker
 from tests.integration.papers_helpers import finalize, new_user, start_upload
@@ -39,7 +40,7 @@ class FakeLayout:
         return out
 
 
-async def _ingested(api: PapersApi, worker: Worker) -> tuple[dict[str, str], str]:
+async def _ingested(api: PapersApi, worker: Worker) -> tuple[dict[str, str], str, str]:
     pdf = make_rich_pdf(
         [
             {"lines": ["Attention Study", *BODY]},
@@ -53,7 +54,7 @@ async def _ingested(api: PapersApi, worker: Worker) -> tuple[dict[str, str], str
     assert response.status_code == 202, response.text
     job = api.enqueued[-1][1]
     assert (await worker.run(job["org_id"], job["job_id"])).kind == "done"
-    return job, response.json()["paper"]["id"]
+    return job, response.json()["paper"]["id"], user
 
 
 async def _enrich(worker: Worker, layout: Any, org: str) -> tuple[str, str]:
@@ -75,7 +76,7 @@ async def _enrich(worker: Worker, layout: Any, org: str) -> tuple[str, str]:
 async def test_AC1_AC1b_AC3_tables_and_figures_from_triaged_pages_join_the_index(
     api: PapersApi, worker: Worker
 ) -> None:
-    job, paper = await _ingested(api, worker)
+    job, paper, _user = await _ingested(api, worker)
     layout = FakeLayout()
     kind, _ = await _enrich(worker, layout, job["org_id"])
     assert kind == "done"
@@ -118,7 +119,7 @@ async def test_AC1_AC1b_AC3_tables_and_figures_from_triaged_pages_join_the_index
 async def test_AC13_rerun_replaces_elements_and_text_rechunking_keeps_them(
     api: PapersApi, worker: Worker
 ) -> None:
-    job, paper = await _ingested(api, worker)
+    job, paper, _user = await _ingested(api, worker)
     await _enrich(worker, FakeLayout(), job["org_id"])
     worker.enqueued.append(worker.enqueued[-1])  # a redelivered task
     await _enrich(worker, FakeLayout(), job["org_id"])
@@ -141,7 +142,7 @@ async def test_AC13_rerun_replaces_elements_and_text_rechunking_keeps_them(
 
 
 async def test_AC2_a_failed_parse_leaves_the_paper_usable(api: PapersApi, worker: Worker) -> None:
-    job, paper = await _ingested(api, worker)
+    job, paper, _user = await _ingested(api, worker)
 
     class Broken:
         def parse(self, data: bytes, pages: list[int], *, ocr_pages: list[int]) -> ParsedLayout:
@@ -177,7 +178,7 @@ async def test_AC1b_a_paper_without_tables_or_figures_skips_the_parser(
 async def test_AC8_summary_numbers_are_checked_against_tables(
     api: PapersApi, worker: Worker
 ) -> None:
-    job, paper = await _ingested(api, worker)
+    job, paper, _user = await _ingested(api, worker)
     async with worker.admin.begin() as conn:
         org = (
             await conn.execute(text("SELECT org_id FROM papers WHERE id = :p"), {"p": paper})
@@ -211,3 +212,43 @@ async def test_AC8_summary_numbers_are_checked_against_tables(
     assert checks[0]["status"] == "matched"
     assert checks[0]["label"] == "Table 1"
     assert checks[1] == {"value": "31.7", "status": "not_found"}  # flagged, text unchanged
+
+
+async def test_AC5_AC6_AC7_elements_api_is_owner_only_with_images_and_cached_descriptions(
+    api: PapersApi, worker: Worker
+) -> None:
+    job, paper, user = await _ingested(api, worker)
+    await _enrich(worker, FakeLayout(), job["org_id"])
+    owner = bearer(user)
+    body = (await api.client.get(f"/api/v1/papers/{paper}/elements", headers=owner)).json()
+    assert body["status"] == "done"
+    assert [t["label"] for t in body["tables"]] == ["Table 1"]
+    assert body["tables"][0]["cells"] == TABLE
+    (figure,) = body["figures"]
+    assert figure["has_image"] is True
+    assert figure["box"] == {"x": 0.1, "y": 0.5, "width": 0.4, "height": 0.25}
+    intruder = bearer(new_user())
+    for path in ("elements", f"figures/{figure['id']}/image"):
+        response = await api.client.get(f"/api/v1/papers/{paper}/{path}", headers=intruder)
+        assert response.status_code == 404, path
+    image = await api.client.get(
+        f"/api/v1/papers/{paper}/figures/{figure['id']}/image", headers=owner
+    )
+    assert image.status_code == 302
+    assert "figures/1.png" in image.headers["location"]
+    url = f"/api/v1/papers/{paper}/figures/{figure['id']}/describe"
+    first = (await api.client.post(url, headers=owner)).json()
+    second = (await api.client.post(url, headers=owner)).json()
+    assert first["cached"] is False
+    assert second == {"description": first["description"], "cached": True}  # one model call
+
+
+async def test_AC2_retry_only_after_a_failure_or_finish(api: PapersApi, worker: Worker) -> None:
+    job, paper, user = await _ingested(api, worker)
+    owner = bearer(user)
+    pending = await api.client.post(f"/api/v1/papers/{paper}/enrichment/retry", headers=owner)
+    assert pending.status_code == 409  # queued after ingest: not started twice
+    await _enrich(worker, FakeLayout(), job["org_id"])
+    retried = await api.client.post(f"/api/v1/papers/{paper}/enrichment/retry", headers=owner)
+    assert retried.status_code == 202
+    assert api.enqueued[-1][0] == ENRICH_TASK
