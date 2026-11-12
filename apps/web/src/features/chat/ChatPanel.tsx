@@ -1,8 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowUp, BookOpen, ChevronDown, FileText, Loader2, Plus, RotateCcw, Sparkles, Square, SquareDashedMousePointer, User, X } from "lucide-react";
+import { ArrowUp, BookOpen, ChevronDown, FileText, Loader2, MessageSquareQuote, Plus, RotateCcw, Sparkles, Square, SquareDashedMousePointer, User, X } from "lucide-react";
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 
 import { StatusPill } from "@/components/status/StatusPill";
+import { toast } from "@/components/status/toast";
 import { getStatus, paperKeys } from "@/features/papers/api";
 import { Markdown } from "@/features/summaries/Markdown";
 
@@ -10,11 +11,14 @@ import {
   MAX_MESSAGE_CHARS,
   chatKeys,
   createConversation,
+  getSuggestions,
   listConversations,
   listMessages,
   type Citation,
+  type Attachment,
   type Conversation,
   type Message,
+  type Quote,
   type Region,
 } from "./api";
 import { useCitations } from "@/features/viewer/citation-context";
@@ -27,6 +31,10 @@ const EXAMPLES = [
   "How does the proposed method work?",
   "What are the main results?",
 ];
+const EXPLAIN = {
+  plain: "Explain this passage in plain words.",
+  expert: "Explain this passage for a researcher in the field.",
+} as const;
 
 function citationLabel(c: Citation): string {
   const pages =
@@ -100,6 +108,39 @@ function RegionChip({ region, onRemove }: { region: Region; onRemove?: () => voi
   );
 }
 
+/** Text selected in the paper (spec 015 AC5): opens it highlighted; removable while composing. */
+function QuoteChip({ quote, trimmed, onRemove }: { quote: Quote; trimmed?: boolean; onRemove?: () => void }) {
+  const viewer = useCitations();
+  const page = `p. ${String(quote.page)}`;
+  return (
+    <span className="flex w-full min-w-0 items-start rounded-md border border-border bg-surface text-sm">
+      <button
+        type="button"
+        aria-label={`Quote from ${page}: ${quote.text.slice(0, 80)}`}
+        onClick={() => { viewer?.open(quote.page, quote.text); }}
+        className="flex min-h-9 min-w-0 flex-1 items-start gap-1.5 px-2 py-1.5 text-left hover:bg-muted"
+      >
+        <MessageSquareQuote aria-hidden className="mt-0.5 size-4 shrink-0" />
+        <span className="min-w-0 flex-1">
+          <span className="line-clamp-2 font-reading">{quote.text}</span>
+          <span className="text-xs text-text-secondary">{trimmed ? `${page}, trimmed to 1,000 characters` : page}</span>
+        </span>
+      </button>
+      {onRemove && (
+        <button type="button" aria-label="Remove quote" onClick={onRemove} className="inline-flex size-9 shrink-0 items-center justify-center hover:bg-muted">
+          <X aria-hidden className="size-3.5" />
+        </button>
+      )}
+    </span>
+  );
+}
+
+function Attached({ region, quote }: { region?: Region | null; quote?: Quote | null }) {
+  if (region) return <span className="mb-1.5 block"><RegionChip region={region} /></span>;
+  if (quote) return <span className="mb-1.5 block"><QuoteChip quote={quote} /></span>;
+  return null;
+}
+
 function Bubble({ role, children }: { role: Message["role"]; children: ReactNode }) {
   if (role === "user") {
     return (
@@ -133,7 +174,10 @@ function AssistantMessage({ message }: { message: Message }) {
 function Pending({ draft, onRetry }: { draft: Draft; onRetry: () => void }) {
   return (
     <>
-      <Bubble role="user">{draft.question}</Bubble>
+      <Bubble role="user">
+        <Attached region={draft.attachment.region} quote={draft.attachment.quote} />
+        {draft.question}
+      </Bubble>
       <Bubble role="assistant">
         {draft.status === "failed" ? (
           <div className="flex flex-col items-start gap-2">
@@ -241,7 +285,10 @@ export function ChatPanel({ paperId, onClose }: { paperId: string; onClose?: () 
   const { draft, send, stop, busy, suggestions, retry } = useChat(conversationId);
   const [input, setInput] = useState("");
   const end = useRef<HTMLDivElement>(null);
-  const pendingQuestion = useRef<string | null>(null);
+  const pendingQuestion = useRef<{ text: string; attachment: Attachment } | null>(null);
+  // Spec 015 AC1: questions written for this paper, the generic ones until they arrive.
+  const suggested = useQuery({ queryKey: ["papers", paperId, "suggestions"], queryFn: () => getSuggestions(paperId), enabled: available, staleTime: Infinity, retry: false });
+  const starters = suggested.data ?? (suggested.isError ? EXAMPLES : []);
 
   const create = useMutation({
     mutationFn: () => createConversation(paperId),
@@ -256,30 +303,59 @@ export function ChatPanel({ paperId, onClose }: { paperId: string; onClose?: () 
     el?.scrollIntoView?.({ block: "end" }); // absent in some test browsers
   }, [messages.data, draft?.text, draft?.activity]);
 
+  /** The region or Ask quote waiting in the composer, taken off it as the question is sent. */
+  const takeAttachment = (): Attachment => {
+    const quote = viewerApi?.quote;
+    const attachment: Attachment = viewerApi?.region
+      ? { region: viewerApi.region }
+      : quote?.mode === "ask"
+        ? { quote: { page: quote.page, text: quote.text }, mode: "ask" }
+        : {};
+    viewerApi?.clearRegion();
+    if (quote?.mode === "ask") viewerApi?.clearQuote();
+    return attachment;
+  };
+  const submit = async (text: string, attached: Attachment) => {
+    if (!conversationId) {
+      // Queue first: the hook re-binds to the new conversation on the next render, then sends.
+      pendingQuestion.current = { text, attachment: attached };
+      try {
+        const conversation = await create.mutateAsync();
+        setChosen(conversation.id);
+      } catch {
+        // Never lose the question: put it back and say what happened.
+        pendingQuestion.current = null;
+        if (!attached.quote || attached.mode !== "explain") setInput((current) => current || text);
+        toast("Could not start a conversation. Your question is still here, try again.");
+      }
+      return;
+    }
+    await send(text, undefined, attached);
+  };
   const ask = async (question: string) => {
     const text = question.trim().slice(0, MAX_MESSAGE_CHARS);
     if (!text || busy) return;
     setInput("");
-    if (!conversationId) {
-      // Queue first: the hook re-binds to the new conversation on the next render, then sends.
-      pendingQuestion.current = text;
-      const conversation = await create.mutateAsync();
-      setChosen(conversation.id);
-      return;
-    }
-    const region = viewerApi?.region ?? null;
-    viewerApi?.clearRegion();
-    await send(text, undefined, region);
+    await submit(text, takeAttachment());
   };
   useEffect(() => {
     if (conversationId && pendingQuestion.current) {
-      const text = pendingQuestion.current;
+      const { text, attachment } = pendingQuestion.current;
       pendingQuestion.current = null;
-      const region = viewerApi?.region ?? null;
-      viewerApi?.clearRegion();
-      void send(text, undefined, region);
+      void send(text, undefined, attachment);
     }
-  }, [conversationId, send, viewerApi]);
+  }, [conversationId, send]);
+  // Spec 015 AC4: Explain asks at once, at the level chosen in the toolbar.
+  const explain = viewerApi?.quote?.mode === "explain" ? viewerApi.quote : null;
+  useEffect(() => {
+    if (!explain || !available || busy || create.isPending) return;
+    viewerApi?.clearQuote();
+    // The request comes from the Paper panel through context (the chat may only just have
+    // opened for it), so sending it is this effect's job, once per request id.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    void submit(EXPLAIN[explain.level], { quote: { page: explain.page, text: explain.text }, mode: "explain", level: explain.level });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [explain?.id, available, busy]);
 
   const onKey = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter" && !event.shiftKey) {
@@ -319,7 +395,7 @@ export function ChatPanel({ paperId, onClose }: { paperId: string; onClose?: () 
         ) : empty ? (
           <div className="flex flex-col items-start gap-2">
             <p className="text-sm text-text-secondary">Ask anything about this paper. Answers come only from the paper, with sources.</p>
-            {EXAMPLES.map((q) => (
+            {starters.map((q) => (
               <button key={q} type="button" onClick={() => void ask(q)} className="min-h-9 rounded-md border border-border px-3 text-left text-sm hover:bg-muted">
                 {q}
               </button>
@@ -329,7 +405,7 @@ export function ChatPanel({ paperId, onClose }: { paperId: string; onClose?: () 
           items.map((m) =>
             m.role === "user" ? (
               <Bubble key={m.id} role="user">
-                {m.region && <span className="mb-1.5 block"><RegionChip region={m.region} /></span>}
+                <Attached region={m.region} quote={m.quote} />
                 {m.content}
               </Bubble>
             ) : (
@@ -364,6 +440,11 @@ export function ChatPanel({ paperId, onClose }: { paperId: string; onClose?: () 
             <RegionChip region={viewerApi.region} onRemove={viewerApi.clearRegion} />
           </span>
         )}
+        {viewerApi?.quote?.mode === "ask" && (
+          <span className="basis-full pb-1">
+            <QuoteChip quote={viewerApi.quote} trimmed={viewerApi.quote.trimmed} onRemove={viewerApi.clearQuote} />
+          </span>
+        )}
         <label htmlFor={inputId} className="sr-only">Ask about this paper</label>
         <textarea
           id={inputId}
@@ -371,7 +452,7 @@ export function ChatPanel({ paperId, onClose }: { paperId: string; onClose?: () 
           disabled={!available}
           maxLength={MAX_MESSAGE_CHARS}
           rows={Math.min(6, Math.max(1, input.split("\n").length))}
-          placeholder={available ? "Ask about this paper" : "Waiting for the paper to be indexed"}
+          placeholder={!available ? "Waiting for the paper to be indexed" : viewerApi?.quote?.mode === "ask" ? "Ask about this passage" : "Ask about this paper"}
           onChange={(e) => {
             setInput(e.target.value);
           }}

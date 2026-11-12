@@ -11,8 +11,11 @@ import { makePdf } from "./pdf";
 async function signIn(page: Page) {
   await page.goto("/app");
   const demo = page.getByRole("button", { name: /continue as demo user/i });
-  if (await demo.isVisible().catch(() => false)) await demo.click();
-  await expect(page.getByRole("heading", { level: 1, name: "Home" })).toBeVisible({ timeout: 15_000 }); // first compile of a cold dev server
+  const home = page.getByRole("heading", { level: 1, name: "Home" });
+  // The dev sign-in dialog can appear after the first paint: wait for whichever comes first.
+  await expect(demo.or(home)).toBeVisible({ timeout: 15_000 }); // first compile of a cold dev server
+  if (await demo.isVisible()) await demo.click();
+  await expect(home).toBeVisible({ timeout: 15_000 });
 }
 
 test("upload a paper and open it once chat is available", async ({ page }, testInfo) => {
@@ -55,6 +58,18 @@ test("upload a paper and open it once chat is available", async ({ page }, testI
   if (testInfo.project.use.isMobile) await page.getByRole("button", { name: "Chat" }).click();
   await expect(page.getByRole("button", { name: /^\[1\] p\. 1/ }).first()).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("citation-highlight.png"), fullPage: true });
+
+  // Spec 015 AC3, AC4: select words in the paper, Explain them, get a cited answer. Desktop only:
+  // touch selection handles cannot be driven in phone emulation.
+  if (!testInfo.project.use.isMobile) {
+    const answers = page.getByRole("button", { name: /^\[1\] p\. 1/ });
+    const before = await answers.count();
+    await page.locator(".textLayer span", { hasText: "Self attention relates" }).first().dblclick();
+    await expect(page.getByRole("toolbar", { name: "Selected text" })).toBeVisible();
+    await page.getByRole("button", { name: "Explain", exact: true }).click();
+    await expect(answers).toHaveCount(before + 1, { timeout: 45_000 });
+    await page.screenshot({ path: testInfo.outputPath("explain-answer.png"), fullPage: true });
+  }
 
   await page.getByRole("link", { name: "Library" }).first().click();
   // By id: the summary may tidy the displayed title (it is model output).

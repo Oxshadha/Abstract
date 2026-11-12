@@ -901,6 +901,16 @@
             "title": "Id",
             "type": "string"
           },
+          "quote": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Quote"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "region": {
             "anyOf": [
               {
@@ -1493,6 +1503,30 @@
         "title": "PreviewRequest",
         "type": "object"
       },
+      "Quote": {
+        "additionalProperties": false,
+        "description": "Text the reader selected in the PDF (spec 015 AC4, AC5); data, never instructions.",
+        "properties": {
+          "page": {
+            "maximum": 10000.0,
+            "minimum": 1.0,
+            "title": "Page",
+            "type": "integer"
+          },
+          "text": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "required": [
+          "page",
+          "text"
+        ],
+        "title": "Quote",
+        "type": "object"
+      },
       "Ready": {
         "properties": {
           "checks": {
@@ -1755,6 +1789,34 @@
             "title": "Content",
             "type": "string"
           },
+          "level": {
+            "default": "plain",
+            "enum": [
+              "plain",
+              "expert"
+            ],
+            "title": "Level",
+            "type": "string"
+          },
+          "mode": {
+            "default": "ask",
+            "enum": [
+              "ask",
+              "explain"
+            ],
+            "title": "Mode",
+            "type": "string"
+          },
+          "quote": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Quote"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "region": {
             "anyOf": [
               {
@@ -1814,6 +1876,22 @@
           "state"
         ],
         "title": "StepOut",
+        "type": "object"
+      },
+      "SuggestionList": {
+        "properties": {
+          "questions": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Questions",
+            "type": "array"
+          }
+        },
+        "required": [
+          "questions"
+        ],
+        "title": "SuggestionList",
         "type": "object"
       },
       "SummaryBrief": {
@@ -4274,6 +4352,49 @@
         ]
       }
     },
+    "/api/v1/papers/{paper_id}/suggestions": {
+      "get": {
+        "operationId": "paper_suggestions_api_v1_papers__paper_id__suggestions_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuggestionList"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Starting questions written for this paper (generated once, then stored)",
+        "tags": [
+          "chat"
+        ]
+      }
+    },
     "/api/v1/papers/{paper_id}/summaries": {
       "get": {
         "operationId": "list_summaries_api_v1_papers__paper_id__summaries_get",
@@ -4587,6 +4708,62 @@
           }
         },
         "summary": "Summary progress as Server-Sent Events (a snapshot whenever fields change)",
+        "tags": [
+          "summaries"
+        ]
+      }
+    },
+    "/api/v1/summaries/{summary_id}/export": {
+      "get": {
+        "operationId": "export_summary_api_v1_summaries__summary_id__export_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "summary_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Summary Id",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "required": false,
+            "schema": {
+              "default": "md",
+              "enum": [
+                "md",
+                "pdf",
+                "bib"
+              ],
+              "title": "Format",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/pdf": {},
+              "application/x-bibtex": {},
+              "text/markdown": {}
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Download the summary as Markdown or a branded PDF, or the paper's BibTeX entry",
         "tags": [
           "summaries"
         ]

@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { chatKeys, sendMessage, type Citation, type Message, type Region } from "./api";
+import { chatKeys, sendMessage, type Attachment, type Citation, type Message } from "./api";
 
 export interface Draft {
   question: string;
@@ -11,7 +11,7 @@ export interface Draft {
   status: "streaming" | "failed";
   error?: string;
   idempotencyKey: string;
-  region?: Region | null; // Ask about this region (spec 009 AC10)
+  attachment: Attachment; // a region (spec 009 AC10) or a quote (spec 015 AC4, AC5)
 }
 
 /** Completed sentences only, for the live region (AC15): never every token. */
@@ -51,13 +51,13 @@ export function useChat(conversationId: string | null) {
   }, []);
 
   const send = useCallback(
-    async (question: string, idempotencyKey: string = crypto.randomUUID(), region: Region | null = null) => {
+    async (question: string, idempotencyKey: string = crypto.randomUUID(), attachment: Attachment = {}) => {
       if (!conversationId) return;
       const target = conversationId;
       const abort = new AbortController();
       controller.current = abort;
       setSuggestions([]);
-      setDraft({ question, text: "", activity: null, citations: [], status: "streaming", idempotencyKey, region });
+      setDraft({ question, text: "", activity: null, citations: [], status: "streaming", idempotencyKey, attachment });
       const mine = () => active.current === target && controller.current === abort; // AC14
       try {
         await sendMessage(
@@ -78,7 +78,7 @@ export function useChat(conversationId: string | null) {
             }
           },
           abort.signal,
-          region,
+          attachment,
         );
         if (!mine()) return;
         await queryClient.invalidateQueries({ queryKey: chatKeys.messages(target) });
@@ -109,7 +109,7 @@ export function useChat(conversationId: string | null) {
   }, []);
 
   const busy = draft?.status === "streaming";
-  return { draft, send, stop, busy, suggestions, retry: (d: Draft) => send(d.question, d.idempotencyKey, d.region ?? null) };
+  return { draft, send, stop, busy, suggestions, retry: (d: Draft) => send(d.question, d.idempotencyKey, d.attachment) };
 }
 
 export type { Message };

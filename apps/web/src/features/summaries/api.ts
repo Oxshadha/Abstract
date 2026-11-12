@@ -1,5 +1,6 @@
 import { api } from "@/api/client";
 import type { components } from "@/api/schema";
+import { filenameFrom } from "@/lib/download";
 import { HttpError } from "@/lib/queryClient";
 
 export type Template = components["schemas"]["TemplateOut"];
@@ -81,4 +82,16 @@ export async function retrySummary(summaryId: string): Promise<void> {
     params: { path: { summary_id: summaryId } },
   });
   if (!response.ok) throw await problem(response, "Could not retry the summary.");
+}
+
+export type ExportFormat = "md" | "pdf" | "bib";
+
+/** Spec 015 AC6: a file made by the server (Markdown, branded PDF, BibTeX). */
+export async function exportSummary(summaryId: string, format: ExportFormat): Promise<{ blob: Blob; filename: string }> {
+  const { data, response } = await api.GET("/api/v1/summaries/{summary_id}/export", {
+    params: { path: { summary_id: summaryId }, query: { format } },
+    parseAs: "blob",
+  });
+  if (!data) throw await problem(response, "Could not export the summary.");
+  return { blob: data, filename: filenameFrom(response.headers.get("Content-Disposition"), `summary.${format}`) };
 }

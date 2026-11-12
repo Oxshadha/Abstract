@@ -22,6 +22,20 @@ export interface AskRegion extends PageBox {
   page: number;
 }
 
+/** Explain level (spec 015 AC4): plain words for a newcomer, or precise for a researcher. */
+export type ExplainLevel = "plain" | "expert";
+export const MAX_QUOTE_CHARS = 1000; // same as the server
+
+/** Text selected in the PDF to explain or ask about (spec 015 AC4, AC5). */
+export interface AskQuote {
+  page: number;
+  text: string;
+  trimmed: boolean; // longer than MAX_QUOTE_CHARS and cut (shown with a note)
+  mode: "ask" | "explain";
+  level: ExplainLevel;
+  id: number;
+}
+
 export interface CitationApi {
   target: CitationTarget | null;
   open: (page: number, quote: string) => void;
@@ -32,6 +46,10 @@ export interface CitationApi {
   region: AskRegion | null;
   askRegion: (region: AskRegion) => void;
   clearRegion: () => void;
+  /** Selected text waiting in the chat: Explain sends at once, Ask waits for the question. */
+  quote: AskQuote | null;
+  askQuote: (quote: Omit<AskQuote, "id" | "trimmed">) => void;
+  clearQuote: () => void;
 }
 
 export const CitationContext = createContext<CitationApi | null>(null);

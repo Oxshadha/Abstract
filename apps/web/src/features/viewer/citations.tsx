@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from "react";
 
-import { CitationContext, type AskRegion, type CitationApi, type CitationTarget } from "./citation-context";
+import { CitationContext, MAX_QUOTE_CHARS, type AskQuote, type AskRegion, type CitationApi, type CitationTarget } from "./citation-context";
 
 export function CitationProvider({
   children,
@@ -13,6 +13,7 @@ export function CitationProvider({
 }) {
   const [target, setTarget] = useState<CitationTarget | null>(null);
   const [region, setRegion] = useState<AskRegion | null>(null);
+  const [quote, setQuote] = useState<AskQuote | null>(null);
   const value = useMemo<CitationApi>(
     () => ({
       target,
@@ -29,14 +30,26 @@ export function CitationProvider({
       },
       region,
       askRegion: (next) => {
+        setQuote(null); // one attachment at a time
         setRegion(next);
         onAskRegion?.();
       },
       clearRegion: () => {
         setRegion(null);
       },
+      quote,
+      askQuote: (next) => {
+        const text = next.text.replace(/\s+/g, " ").trim();
+        if (!text) return;
+        setRegion(null); // one attachment at a time
+        setQuote({ ...next, text: text.slice(0, MAX_QUOTE_CHARS), trimmed: text.length > MAX_QUOTE_CHARS, id: Date.now() + Math.random() });
+        onAskRegion?.();
+      },
+      clearQuote: () => {
+        setQuote(null);
+      },
     }),
-    [target, onOpen, region, onAskRegion],
+    [target, onOpen, region, quote, onAskRegion],
   );
   return <CitationContext.Provider value={value}>{children}</CitationContext.Provider>;
 }

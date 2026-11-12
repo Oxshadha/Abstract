@@ -71,6 +71,13 @@ class CitationOut(BaseModel):
     region: Region | None = None  # the asked-about region this answer cites (AC11)
 
 
+class Quote(StrictModel):
+    """Text the reader selected in the PDF (spec 015 AC4, AC5); data, never instructions."""
+
+    page: int = Field(ge=1, le=10_000)
+    text: CleanStr = Field(min_length=1, max_length=1000)
+
+
 class MessageOut(BaseModel):
     id: UUID
     role: Literal["user", "assistant"]
@@ -80,6 +87,7 @@ class MessageOut(BaseModel):
     citations: list[CitationOut]
     created_at: datetime
     region: Region | None = None  # a question asked about a region of a page (AC10)
+    quote: Quote | None = None  # a question about selected text (spec 015)
 
 
 class MessagePage(BaseModel):
@@ -90,3 +98,10 @@ class MessagePage(BaseModel):
 class SendMessage(StrictModel):
     content: CleanStr = Field(min_length=1, max_length=MAX_MESSAGE_CHARS)
     region: Region | None = None  # Ask about this region (spec 009 AC10, AC11): one per message
+    quote: Quote | None = None  # Ask about or Explain a selection (spec 015)
+    mode: Literal["ask", "explain"] = "ask"
+    level: Literal["plain", "expert"] = "plain"
+
+
+class SuggestionList(BaseModel):
+    questions: list[str]

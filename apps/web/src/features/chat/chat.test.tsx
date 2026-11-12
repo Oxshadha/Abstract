@@ -1,13 +1,14 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { ReactNode } from "react";
 
 import { configureAuth } from "@/auth/session";
 import { getStatus } from "@/features/papers/api";
 import { status } from "@/features/papers/fixtures";
 import { seriousViolations } from "@/test/axe";
 
-import { createConversation, listConversations, listMessages, type Message } from "./api";
+import { createConversation, getSuggestions, listConversations, listMessages, type Message } from "./api";
 import { useCitations } from "@/features/viewer/citation-context";
 import { CitationProvider } from "@/features/viewer/citations";
 
@@ -18,7 +19,7 @@ import { completedSentences } from "./useChat";
 vi.mock("@/features/papers/api", async (orig) => ({ ...(await orig<typeof import("@/features/papers/api")>()), getStatus: vi.fn() }));
 vi.mock("./api", async (orig) => ({
   ...(await orig<typeof import("./api")>()),
-  listConversations: vi.fn(), createConversation: vi.fn(), listMessages: vi.fn(),
+  listConversations: vi.fn(), createConversation: vi.fn(), listMessages: vi.fn(), getSuggestions: vi.fn(),
 }));
 
 const READY = status({ status: "ready", text_status: "ready", chat_available: true });
@@ -65,6 +66,7 @@ beforeEach(() => {
   vi.mocked(listConversations).mockResolvedValue([CONVERSATION]);
   vi.mocked(createConversation).mockResolvedValue(CONVERSATION);
   vi.mocked(listMessages).mockResolvedValue([]);
+  vi.mocked(getSuggestions).mockResolvedValue(["Which datasets are used for training?", "What are the main results?"]);
   fetchMock = vi.fn<(...args: unknown[]) => Promise<Response>>(() => Promise.resolve(sse(ANSWER)));
   vi.stubGlobal("fetch", fetchMock);
   vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => setTimeout(() => { cb(0); }, 0));
@@ -117,6 +119,17 @@ describe("AC9, AC10: Ask Abstract panel", () => {
     expect(screen.getByText(/Self attention relates positions \[1\]/)).toBeInTheDocument();
     fireEvent.click(chip);
     expect(screen.getByText("Self attention relates positions of a sequence.")).toBeInTheDocument();
+  });
+
+  it("keeps the question when the conversation cannot be started", async () => {
+    vi.mocked(listConversations).mockResolvedValue([]);
+    vi.mocked(createConversation).mockRejectedValue(new Error("Internal error"));
+    renderPanel();
+    const input = await screen.findByLabelText("Ask about this paper");
+    fireEvent.change(input, { target: { value: "What is new here?" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    await vi.waitFor(() => { expect(input).toHaveValue("What is new here?"); });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("Shift+Enter adds a new line instead of sending; long text is capped", async () => {
@@ -245,5 +258,86 @@ describe("AC15 and helpers", () => {
   it("turns passage markers into numbered references", () => {
     expect(withMarkers("A claim [S1][S2]. Another [S3].")).toBe("A claim [1] [2]. Another [3].");
     expect(withMarkers("Grouped claim [S1, S2].")).toBe("Grouped claim [1, 2].");
+  });
+});
+
+function withViewer(child: ReactNode) {
+  return render(
+    <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+      <CitationProvider>
+        {child}
+        <ChatPanel paperId="p1" />
+      </CitationProvider>
+    </QueryClientProvider>,
+  );
+}
+
+function sentBody(): unknown {
+  const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+  return JSON.parse(init.body as string);
+}
+
+describe("Spec 015 AC1: suggested questions", () => {
+  it("shows the questions written for this paper in the empty chat", async () => {
+    renderPanel();
+    expect(await screen.findByRole("button", { name: "Which datasets are used for training?" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "How does the proposed method work?" })).toBeNull();
+  });
+
+  it("falls back to the generic questions when they cannot be loaded", async () => {
+    vi.mocked(getSuggestions).mockRejectedValue(new Error("down"));
+    renderPanel();
+    expect(await screen.findByRole("button", { name: "How does the proposed method work?" })).toBeInTheDocument();
+  });
+});
+
+describe("Spec 015 AC4, AC5: Explain and Ask on selected text", () => {
+  function Select({ mode, level = "plain", text = "Multi-head attention attends jointly." }: { mode: "ask" | "explain"; level?: "plain" | "expert"; text?: string }) {
+    const viewer = useCitations();
+    return (
+      <button type="button" onClick={() => { viewer?.askQuote({ page: 3, text, mode, level }); }}>
+        select
+      </button>
+    );
+  }
+
+  it("AC4: Explain asks at once at the chosen level with the passage as a quote", async () => {
+    withViewer(<Select mode="explain" level="expert" />);
+    await screen.findByLabelText("Ask about this paper");
+    fireEvent.click(screen.getByRole("button", { name: "select" }));
+    await vi.waitFor(() => { expect(fetchMock).toHaveBeenCalled(); });
+    expect(sentBody()).toEqual({
+      content: "Explain this passage for a researcher in the field.",
+      quote: { page: 3, text: "Multi-head attention attends jointly." },
+      mode: "explain",
+      level: "expert",
+    });
+  });
+
+  it("AC5: Ask attaches the quote to the next question, then clears it", async () => {
+    withViewer(<Select mode="ask" />);
+    const input = await screen.findByLabelText("Ask about this paper");
+    fireEvent.click(screen.getByRole("button", { name: "select" }));
+    expect(await screen.findByRole("button", { name: "Remove quote" })).toBeInTheDocument();
+    expect(input).toHaveAttribute("placeholder", "Ask about this passage");
+    expect(fetchMock).not.toHaveBeenCalled(); // waits for the user's own question
+    fireEvent.change(input, { target: { value: "Why jointly?" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    await vi.waitFor(() => { expect(fetchMock).toHaveBeenCalled(); });
+    expect(sentBody()).toEqual({ content: "Why jointly?", quote: { page: 3, text: "Multi-head attention attends jointly." }, mode: "ask", level: "plain" });
+    expect(screen.queryByRole("button", { name: "Remove quote" })).toBeNull();
+  });
+
+  it("AC4: a long selection is trimmed to 1,000 characters with a note", async () => {
+    withViewer(<Select mode="ask" text={"word ".repeat(400)} />);
+    await screen.findByLabelText("Ask about this paper");
+    fireEvent.click(screen.getByRole("button", { name: "select" }));
+    expect(await screen.findByText("p. 3, trimmed to 1,000 characters")).toBeInTheDocument();
+  });
+
+  it("shows the quote on saved questions", async () => {
+    vi.mocked(listMessages).mockResolvedValue([{ ...(saved[0] as Message), quote: { page: 5, text: "Positional encodings use sines." } }, saved[1] as Message]);
+    renderPanel();
+    expect(await screen.findByText("Positional encodings use sines.")).toBeInTheDocument();
   });
 });

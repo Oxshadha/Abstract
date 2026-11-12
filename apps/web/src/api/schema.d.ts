@@ -541,6 +541,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/papers/{paper_id}/suggestions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Starting questions written for this paper (generated once, then stored) */
+        get: operations["paper_suggestions_api_v1_papers__paper_id__suggestions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/papers/{paper_id}/summaries": {
         parameters: {
             query?: never;
@@ -619,6 +636,23 @@ export interface paths {
         };
         /** Summary progress as Server-Sent Events (a snapshot whenever fields change) */
         get: operations["summary_events_api_v1_summaries__summary_id__events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/summaries/{summary_id}/export": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Download the summary as Markdown or a branded PDF, or the paper's BibTeX entry */
+        get: operations["export_summary_api_v1_summaries__summary_id__export_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1119,6 +1153,7 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            quote?: components["schemas"]["Quote"] | null;
             region?: components["schemas"]["Region"] | null;
             /** Retrieval Mode */
             retrieval_mode: ("hybrid" | "keyword" | "cache") | null;
@@ -1318,6 +1353,16 @@ export interface components {
             paper_id: string;
             template: components["schemas"]["TemplateIn"];
         };
+        /**
+         * Quote
+         * @description Text the reader selected in the PDF (spec 015 AC4, AC5); data, never instructions.
+         */
+        Quote: {
+            /** Page */
+            page: number;
+            /** Text */
+            text: string;
+        };
         /** Ready */
         Ready: {
             /** Checks */
@@ -1436,6 +1481,19 @@ export interface components {
         SendMessage: {
             /** Content */
             content: string;
+            /**
+             * Level
+             * @default plain
+             * @enum {string}
+             */
+            level: "plain" | "expert";
+            /**
+             * Mode
+             * @default ask
+             * @enum {string}
+             */
+            mode: "ask" | "explain";
+            quote?: components["schemas"]["Quote"] | null;
             region?: components["schemas"]["Region"] | null;
         };
         /** StepOut */
@@ -1452,6 +1510,11 @@ export interface components {
              * @enum {string}
              */
             state: "done" | "active" | "pending" | "failed";
+        };
+        /** SuggestionList */
+        SuggestionList: {
+            /** Questions */
+            questions: string[];
         };
         /** SummaryBrief */
         SummaryBrief: {
@@ -3021,6 +3084,37 @@ export interface operations {
             };
         };
     };
+    paper_suggestions_api_v1_papers__paper_id__suggestions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SuggestionList"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_summaries_api_v1_papers__paper_id__summaries_get: {
         parameters: {
             query?: never;
@@ -3217,6 +3311,41 @@ export interface operations {
                 };
                 content: {
                     "text/event-stream": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    export_summary_api_v1_summaries__summary_id__export_get: {
+        parameters: {
+            query?: {
+                format?: "md" | "pdf" | "bib";
+            };
+            header?: never;
+            path: {
+                summary_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": unknown;
+                    "application/x-bibtex": unknown;
+                    "text/markdown": unknown;
                 };
             };
             /** @description Validation Error */

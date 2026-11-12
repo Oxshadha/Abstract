@@ -128,7 +128,7 @@ async def messages(
     rows = (
         await session.execute(
             text(
-                "SELECT id, role, content, status, retrieval_mode, created_at, seq, region"
+                "SELECT id, role, content, status, retrieval_mode, created_at, seq, region, quote"
                 " FROM messages"
                 " WHERE conversation_id = :c AND (CAST(:cur AS bigint) IS NULL OR seq < :cur)"
                 " ORDER BY seq DESC LIMIT :n"
@@ -175,6 +175,7 @@ async def messages(
                 citations=citations.get(r.id, []),
                 created_at=r.created_at,
                 region=r.region,
+                quote=r.quote,
             )
             for r in page
         ],
