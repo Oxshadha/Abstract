@@ -8,6 +8,15 @@ export type Conversation = components["schemas"]["ConversationOut"];
 export type Region = components["schemas"]["Region"];
 export type Message = components["schemas"]["MessageOut"];
 export type Citation = components["schemas"]["CitationOut"];
+export type Quote = components["schemas"]["Quote"];
+
+/** What a question is about besides its text: a region (009 AC10) or a quote (015 AC4, AC5). */
+export interface Attachment {
+  region?: Region | null;
+  quote?: Quote | null;
+  mode?: "ask" | "explain";
+  level?: "plain" | "expert";
+}
 export const MAX_MESSAGE_CHARS = 4000; // AC16, same as the server
 
 export const chatKeys = {
@@ -77,8 +86,10 @@ export async function sendMessage(
   idempotencyKey: string,
   onEvent: (event: ChatEvent) => void,
   signal: AbortSignal,
-  region?: Region | null,
+  attachment: Attachment = {},
 ): Promise<void> {
+  const { region, quote, mode, level } = attachment;
+  const body = { content, ...(region ? { region } : {}), ...(quote ? { quote, mode: mode ?? "ask", level: level ?? "plain" } : {}) };
   const send = async (token: string | null) =>
     globalThis.fetch(`${apiBaseUrl}/api/v1/conversations/${encodeURIComponent(conversationId)}/messages`, {
       method: "POST",
@@ -88,7 +99,7 @@ export async function sendMessage(
         "Idempotency-Key": idempotencyKey,
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify(region ? { content, region } : { content }),
+      body: JSON.stringify(body),
       signal,
     });
   let response = await send(await currentToken());
@@ -104,4 +115,13 @@ export async function sendMessage(
       onEvent({ event: item.event, data } as ChatEvent);
     }
   }
+}
+
+/** Spec 015 AC1: questions written for this paper (the generic ones if that failed). */
+export async function getSuggestions(paperId: string): Promise<string[]> {
+  const { data, response } = await api.GET("/api/v1/papers/{paper_id}/suggestions", {
+    params: { path: { paper_id: paperId } },
+  });
+  if (!data) throw await problem(response, "Could not load suggested questions.");
+  return data.questions;
 }
