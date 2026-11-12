@@ -94,3 +94,63 @@ def make_scanned_pdf(lines: list[str]) -> bytes:
     out = io.BytesIO()
     image.save(out, "PDF", resolution=200)
     return out.getvalue()
+
+
+def _table_ops(top: int, rows: int, cols: int) -> list[str]:
+    """Ruled grid: horizontal and vertical lines like a typical results table."""
+    left, width, height = 72, 400, 18
+    ops = ["0.5 w"]
+    for r in range(rows + 1):
+        y = top - r * height
+        ops.append(f"{left} {y} m {left + width} {y} l S")
+    for c in range(cols + 1):
+        x = left + c * width // cols
+        ops.append(f"{x} {top} m {x} {top - rows * height} l S")
+    return ops
+
+
+def make_rich_pdf(pages: list[dict[str, object]]) -> bytes:
+    """Pages with optional text lines, a ruled table and an embedded picture, for enrichment
+    tests. Each entry: {"lines": [...], "table": [[cells...], ...] | None, "image": bool}."""
+    from PIL import Image
+
+    pdf = Pdf.new()
+    font = pdf.make_indirect(
+        Dictionary(Type=Name.Font, Subtype=Name.Type1, BaseFont=Name.Helvetica)
+    )
+    for spec in pages:
+        lines = [str(x) for x in spec.get("lines", [])]  # type: ignore[attr-defined]
+        ops = _content(lines).decode("latin-1").split("\n") if lines else []
+        resources = Dictionary(Font=Dictionary(F1=font))
+        table = spec.get("table")
+        if isinstance(table, list) and table:
+            top = 600
+            ops += _table_ops(top, len(table), len(table[0]))
+            ops += ["BT", "/F1 9 Tf"]
+            for r, row in enumerate(table):
+                for c, cell in enumerate(row):
+                    x = 76 + c * 400 // len(row)
+                    y = top - r * 18 - 13
+                    ops.append(f"1 0 0 1 {x} {y} Tm ({_escape(str(cell))}) Tj")
+            ops.append("ET")
+        if spec.get("image"):
+            picture = Image.new("RGB", (240, 160), (40, 90, 160))
+            raw = picture.tobytes()
+            xobj = pdf.make_stream(raw)
+            xobj.Type, xobj.Subtype = Name.XObject, Name.Image
+            xobj.Width, xobj.Height, xobj.BitsPerComponent = 240, 160, 8
+            xobj.ColorSpace = Name.DeviceRGB
+            resources.XObject = Dictionary(Im1=xobj)
+            ops += ["q 240 0 0 160 72 200 cm /Im1 Do Q"]
+        page = pikepdf.Page(
+            Dictionary(
+                Type=Name.Page,
+                MediaBox=Array([0, 0, 612, 792]),
+                Resources=resources,
+                Contents=pdf.make_stream("\n".join(ops).encode("latin-1")),
+            )
+        )
+        pdf.pages.append(page)
+    out = io.BytesIO()
+    pdf.save(out)
+    return out.getvalue()
