@@ -4,7 +4,7 @@
 |---|---|
 | **Status** | Implemented (2026-11-13). Approved (owner, 2026-11-13): centred hero with the product image, then steps and feature cards; a real screenshot; "Free during preview"; "See how it works" scrolls to the steps (D93) |
 | **Week** | W4 |
-| **Decisions** | D27, D39, D42, D86, D89, D93 |
+| **Decisions** | D27, D39, D42, D86, D89, D93, D94 |
 | **Engineering practices (D67)** | Spec 016 item in `docs/engineering-practices.md` §3, included below as AC6 |
 | **Feature flag** | none (public page) |
 | **Mockup** | `UI/AI Research Made Clear-1.png`, `UI/Abstract AI Research Companion Landing Page-2.png` |
@@ -84,6 +84,7 @@ A visitor understands what Abstract does in a few seconds, sees the real product
 - **Build output:** `pnpm build` writes the prerendered page to `dist/index.html` and the app shell to `dist/app.html`. Spec 017's hosting must serve `app.html` for `/app/*`, `/sign-in/*` and `/sign-up/*`.
 - **`SITE_URL`:** set it at build time for the canonical link, `og:url`, `og:image` and `sitemap.xml`; without it they are left out, with a warning.
 - **Screenshots:** made by `scripts/landing-shots.mjs` (the running app) and `scripts/landing-images.py` (WebP and the 1200 x 630 Open Graph image).
+- **Demo video (D94):** How it works also plays a recorded demo (see D94). The footer carries only the mark and the copyright.
 - **Spec 001's placeholder:** the placeholder home page (001 AC9, "shows the API status") is replaced by this page; the generated API client is still tested by `health.test.ts`.
 
 ## Open questions (owner)
