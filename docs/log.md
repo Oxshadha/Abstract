@@ -15,6 +15,16 @@ Entry format:
 
 ---
 
+## 2026-11-12: Spec 015 reading aids implemented
+**Done:** Paper-specific suggested questions (cheap model, stored, generic fallback); up to three follow-ups from the same answer call (held back while streaming, sent in `done`); select text in the PDF for a floating Explain (Plain or Expert, remembered on the device) and Ask (quote chip) toolbar, answered in the chat with citations; Export in the Summary panel: branded PDF made by the server (ReportLab 5.1.0, Nunito Sans embedded only in the PDF), Markdown and BibTeX (DOI or arXiv id found in the paper).
+**Fixed on the way:** react-pdf rebuilt the text layer on every re-render and dropped selections (one renderer per page now); Safari selected the rest of the page when a drag left a line (pdf.js's endOfContent fix ported); a click on text cleared a citation highlight and the selection; a failed conversation start lost the question; the suggestions route held a transaction (and the user's row lock) across its model call.
+**Verified:** live with Gemini on the Attention paper (paper-specific questions in 3 s, plain and expert explanations with citations and follow-ups, branded PDF rendered and checked); Playwright happy path including Explain in Chromium, WebKit and Firefox, desktop and phone, run one project at a time. Five projects in parallel on the shared demo user hit statement timeouts (risk R10).
+**As built, owner to note:** suggested questions are written on the first chat open rather than by the indexing job; identifiers are read at export time, so no `papers.identifiers` column.
+**Decisions:** D89 (spec order), D90 (plan-based limits, Internal plan for stakeholders)   **Assumptions:** R10 added   **Specs:** 015 Implemented
+**Artifacts:** migration 0012, `chat/suggestions.py`, `chat/followups.py`, `summaries/export.py`, `app/assets/fonts/`, `viewer/selection.ts`, `viewer/SelectionToolbar.tsx`, `lib/download.ts`
+**Next:** small `fix/identity` PR (R10); spec 012 entitlements foundation (D90), then 011 admin.
+**Blockers / waiting on owner:** merge #15 (009 and 010) and the 015 PR.
+
 ## 2026-11-12: Spec 010 template builder implemented
 **Done:** Custom templates end to end: Templates page, form builder (fields with label, instruction, output style, required; drag or up/down to reorder; duplicate and remove), versions with stable keys and stale-save protection, limits from a new entitlements service (10 fields, 10 templates, D87), soft delete that keeps summaries working, Try on a paper, JSON import and export, Update summary when a template changes.
 **Verified:** live builder on desktop and iPhone with a real preview; Playwright in Chromium, WebKit and Firefox.
