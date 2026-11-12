@@ -178,6 +178,28 @@ describe("AC9, AC10: Ask Abstract panel", () => {
   });
 });
 
+describe("Spec 009 AC9: tables and figures in answers", () => {
+  it("labels a table citation like the paper does", async () => {
+    vi.mocked(getStatus).mockResolvedValue(READY);
+    vi.mocked(listConversations).mockResolvedValue([CONVERSATION]);
+    vi.mocked(listMessages).mockResolvedValue([
+      saved[0] as Message,
+      {
+        ...(saved[1] as Message),
+        content: "The big model reaches 28.4 BLEU [S1].",
+        citations: [
+          {
+            marker: 1, page_start: 8, page_end: 8, section: "Table 2", quote: "",
+            element: { id: "t2", kind: "table", label: "Table 2", box: { x: 0.1, y: 0.2, width: 0.7, height: 0.2 } },
+          },
+        ],
+      },
+    ]);
+    renderPanel();
+    expect(await screen.findByRole("button", { name: "[1] Table 2, p. 8" })).toBeInTheDocument();
+  });
+});
+
 describe("AC15 and helpers", () => {
   it("announces completed sentences only", () => {
     expect(completedSentences("First sentence. Second is still stream")).toBe("First sentence.");

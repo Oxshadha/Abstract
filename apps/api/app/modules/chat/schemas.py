@@ -25,12 +25,29 @@ class ConversationUpdate(StrictModel):
     title: CleanStr = Field(min_length=1, max_length=120)
 
 
+class ElementBox(BaseModel):
+    x: float
+    y: float
+    width: float
+    height: float
+
+
+class CitationElement(BaseModel):
+    """The table or figure a citation points at (spec 009 AC9): the chip opens its box."""
+
+    id: UUID
+    kind: Literal["table", "figure"]
+    label: str
+    box: ElementBox
+
+
 class CitationOut(BaseModel):
     marker: int
     page_start: int | None
     page_end: int | None
     section: str | None
     quote: str
+    element: CitationElement | None = None
 
 
 class MessageOut(BaseModel):

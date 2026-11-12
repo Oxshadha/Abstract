@@ -699,8 +699,28 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * CitationElement
+         * @description The table or figure a citation points at (spec 009 AC9): the chip opens its box.
+         */
+        CitationElement: {
+            box: components["schemas"]["ElementBox"];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Kind
+             * @enum {string}
+             */
+            kind: "table" | "figure";
+            /** Label */
+            label: string;
+        };
         /** CitationOut */
         CitationOut: {
+            element?: components["schemas"]["CitationElement"] | null;
             /** Marker */
             marker: number;
             /** Page End */

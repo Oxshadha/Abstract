@@ -1,8 +1,51 @@
 {
   "components": {
     "schemas": {
+      "CitationElement": {
+        "description": "The table or figure a citation points at (spec 009 AC9): the chip opens its box.",
+        "properties": {
+          "box": {
+            "$ref": "#/components/schemas/ElementBox"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "table",
+              "figure"
+            ],
+            "title": "Kind",
+            "type": "string"
+          },
+          "label": {
+            "title": "Label",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "label",
+          "box"
+        ],
+        "title": "CitationElement",
+        "type": "object"
+      },
       "CitationOut": {
         "properties": {
+          "element": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CitationElement"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "marker": {
             "title": "Marker",
             "type": "integer"

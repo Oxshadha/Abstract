@@ -116,12 +116,26 @@ async def _replay(maker: Any, identity: RequestContext, message_id: UUID) -> lis
             )
         ).one()
         citations = [
-            dict(r._mapping)
+            {
+                "marker": r.marker,
+                "page_start": r.page_start,
+                "page_end": r.page_end,
+                "section": r.section,
+                "quote": r.quote,
+                "element": (
+                    element.model_dump(mode="json")
+                    if (element := conversations.citation_element(r))
+                    else None
+                ),
+            }
             for r in (
                 await session.execute(
                     text(
-                        "SELECT marker, page_start, page_end, section, quote FROM"
-                        " message_citations WHERE message_id = :m ORDER BY marker"
+                        "SELECT mc.marker, mc.page_start, mc.page_end, mc.section, mc.quote,"
+                        " e.id AS element_id, e.kind AS element_kind, e.label AS element_label,"
+                        " e.bbox AS element_box FROM message_citations mc LEFT JOIN chunks c ON"
+                        " c.id = mc.chunk_id LEFT JOIN paper_elements e ON e.id = c.element_id"
+                        " WHERE mc.message_id = :m ORDER BY mc.marker"
                     ),
                     {"m": message_id},
                 )
@@ -204,6 +218,7 @@ async def send_message(
         tracer=llm.gateway.tracer,
         answer_model=(await llm.registry.get("answer")).primary.model,
         reranker=await _reranker(llm, state.settings),
+        storage=state.storage,
     )
 
     async def events() -> AsyncIterator[str]:

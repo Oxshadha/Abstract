@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.errors import ProblemError
 from app.modules.chat.schemas import (
+    CitationElement,
     CitationOut,
     ConversationList,
     ConversationOut,
@@ -141,8 +142,12 @@ async def messages(
         for c in (
             await session.execute(
                 text(
-                    "SELECT message_id, marker, page_start, page_end, section, quote"
-                    " FROM message_citations WHERE message_id = ANY(:ids) ORDER BY marker"
+                    "SELECT mc.message_id, mc.marker, mc.page_start, mc.page_end, mc.section,"
+                    " mc.quote, e.id AS element_id, e.kind AS element_kind, e.label AS"
+                    " element_label, e.bbox AS element_box FROM message_citations mc"
+                    " LEFT JOIN chunks c ON c.id = mc.chunk_id"
+                    " LEFT JOIN paper_elements e ON e.id = c.element_id"
+                    " WHERE mc.message_id = ANY(:ids) ORDER BY mc.marker"
                 ),
                 {"ids": ids},
             )
@@ -154,6 +159,7 @@ async def messages(
                     page_end=c.page_end,
                     section=c.section,
                     quote=c.quote,
+                    element=citation_element(c),
                 )
             )
     return MessagePage(
@@ -170,4 +176,13 @@ async def messages(
             for r in page
         ],
         next_cursor=str(page[-1].seq) if len(rows) > limit else None,
+    )
+
+
+def citation_element(row: Any) -> CitationElement | None:
+    """The table or figure behind a saved citation (spec 009 AC9), joined through its chunk."""
+    if getattr(row, "element_id", None) is None:
+        return None
+    return CitationElement(
+        id=row.element_id, kind=row.element_kind, label=row.element_label, box=row.element_box
     )

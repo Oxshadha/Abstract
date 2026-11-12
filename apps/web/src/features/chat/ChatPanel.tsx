@@ -30,6 +30,8 @@ const EXAMPLES = [
 function citationLabel(c: Citation): string {
   const pages =
     c.page_start == null ? "" : c.page_end != null && c.page_end !== c.page_start ? `p. ${String(c.page_start)}-${String(c.page_end)}` : `p. ${String(c.page_start)}`;
+  // A table or figure reads like the paper names it (spec 009 AC9): "[2] Table 2, p. 8".
+  if (c.element) return `[${String(c.marker)}] ${c.element.label}, ${pages}`;
   const section = c.section && !/front matter/i.test(c.section) ? ` (${c.section.slice(0, 28)})` : "";
   return `[${String(c.marker)}] ${pages}${section}`;
 }
@@ -50,7 +52,11 @@ function Citations({ items }: { items: Citation[] }) {
             onClick={() => {
               setOpen(open === c.marker ? null : c.marker);
               // Spec 008 AC4: open the cited page with the sentence highlighted.
-              if (c.page_start != null && open !== c.marker) viewer?.open(c.page_start, c.quote);
+              if (c.page_start != null && open !== c.marker) {
+                // A table or figure is outlined in the paper; a passage highlights its sentence.
+                if (c.element) viewer?.openBox(c.page_start, c.element.box, c.element.label);
+                else viewer?.open(c.page_start, c.quote);
+              }
             }}
             className="inline-flex min-h-9 items-center gap-1.5 rounded-md border border-border px-2 text-sm hover:bg-muted"
           >
