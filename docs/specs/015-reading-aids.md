@@ -1,0 +1,59 @@
+# 015 — Reading aids: suggested questions, Explain and Ask, export
+
+| | |
+|---|---|
+| **Status** | Draft |
+| **Week** | W4 |
+| **Decisions** | D28, D53, D74, D81, D86 |
+| **Engineering practices (D67)** | none listed for spec 015 |
+| **Feature flag** | none (core) |
+| **Mockup** | `UI/Abstract Research Workspace UI.png` (Ask Abstract panel); the selection toolbar and export menu follow `docs/design-principles.md` |
+
+## Goal
+Help a reader get into a paper faster: good first questions for this paper, a quick "explain this" on any passage they don't understand, and a clean way to take the summary away (Markdown, PDF, BibTeX).
+
+## Scope
+**In:** paper-specific suggested questions in the empty chat and follow-ups after answers · select text in the PDF to Explain it (plain or expert) or Ask about it · export the summary as Markdown and PDF, and the paper's citation as BibTeX.
+**Out:** notes and references (014) · exporting whole conversations (later) · glossary (stretch, D28).
+
+## Acceptance criteria
+
+### Suggested questions
+- [ ] **AC1** — When a paper's text is indexed, a cheap model (registry task `suggest_questions`, D53) writes four questions specific to this paper from its title, abstract and section headings; they are stored on the paper and shown as chips in the empty chat (replacing the generic three). Generation failure falls back to the generic questions silently.
+- [ ] **AC2** — After each answer, up to three follow-up questions grounded in the answer's passages appear as chips (from the same answer call, no extra request); choosing one asks it.
+
+### Explain and Ask on a selection
+- [ ] **AC3** — Selecting text in the PDF (mouse, touch, or keyboard selection) shows a small floating toolbar next to it with "Explain" and "Ask", and closes on Escape, scroll or a click elsewhere.
+- [ ] **AC4** — "Explain" asks for an explanation of the selected passage at the chosen level ("Plain" for a newcomer or "Expert" for a researcher in the field; the choice is remembered on this device), grounded in the paper with citations like any answer. The passage is sent as wrapped data, at most 1,000 characters.
+- [ ] **AC5** — "Ask" opens the chat with the selection attached as a quote chip, so the user types their own question about it.
+
+### Export
+- [ ] **AC6** — The Summary panel has Export: Markdown (a `.md` file with the paper's title, authors, year, every field and its source pages), PDF, and BibTeX (an entry built from the paper's title, authors and year, with a DOI or arXiv id when one is found in the paper's text).
+- [ ] **AC7** — Exported files contain only the user's own summary and the paper's metadata; filenames are safe; BibTeX special characters are escaped.
+
+## API contract
+| Method | Path | Request | Response | Errors |
+|---|---|---|---|---|
+| GET | `/papers/{id}/suggestions` | none | `200 {questions: string[]}` | 404 |
+| POST | `/conversations/{id}/messages` | existing body plus optional `quote: {page, text}` and `mode: "ask" \| "explain"` with `level: "plain" \| "expert"` | SSE as in spec 007; `done` carries `suggestions` | 422 |
+| GET | `/summaries/{id}/export` | `?format=md\|bib` | `200` file download | 404 |
+
+## Data model changes (migration 0012)
+`papers.suggested_questions jsonb`, `papers.identifiers jsonb` (DOI, arXiv id found in the text), `messages.quote jsonb`. Registry seed for `suggest_questions` (the cheap summary model).
+
+## Authorization & entitlements
+Owner only, through existing actions (`paper.read`, `chat.create`, `summary.read`). Explain answers count toward the spend caps like any answer.
+
+## Edge cases & failure modes
+Selection across two pages (the first page is used) · selection in a scanned page without a text layer (toolbar offers Ask only) · very long selection (trimmed to 1,000 characters with a note) · a paper without an abstract (questions from headings) · summary still generating (export disabled with the reason) · missing authors or year (BibTeX uses what exists, key from the title).
+
+## Latency / cost budget
+Suggested questions: one cheap call per paper, under $0.001, in the background. Follow-ups: no extra call. Explain: one answer call. Export: no model call.
+
+## Test plan
+Integration: suggestions generated and stored, fallback on failure, follow-ups in `done`, explain and quote requests (wrapping, length), export Markdown and BibTeX content and escaping. Web: suggestion chips, selection toolbar (mouse and keyboard), level toggle remembered, quote chip, export menu and files, axe. Playwright: select a sentence, Explain it, see a cited answer.
+
+## Open questions (owner)
+- **Q1:** Where Explain answers appear.
+- **Q2:** How the summary becomes a PDF.
+- **Q3:** Follow-up questions after every answer or not.
