@@ -1,7 +1,7 @@
 import { api } from "@/api/client";
 import type { components } from "@/api/schema";
 import { filenameFrom } from "@/lib/download";
-import { HttpError } from "@/lib/queryClient";
+import { problem } from "@/lib/problem";
 
 export type Template = components["schemas"]["TemplateOut"];
 export type Summary = components["schemas"]["SummaryOut"];
@@ -16,16 +16,6 @@ export const summaryKeys = {
 
 /** A 412 means the summary changed elsewhere (another tab); the UI offers reload or keep. */
 export class StaleVersionError extends Error {}
-
-async function problem(response: Response, fallback: string): Promise<HttpError> {
-  try {
-    const body = (await response.clone().json()) as { detail?: unknown };
-    if (typeof body.detail === "string" && body.detail) return new HttpError(response.status, body.detail);
-  } catch {
-    // not JSON
-  }
-  return new HttpError(response.status, fallback);
-}
 
 export async function listTemplates(): Promise<Template[]> {
   const { data, response } = await api.GET("/api/v1/templates");

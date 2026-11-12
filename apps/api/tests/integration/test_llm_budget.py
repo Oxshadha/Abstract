@@ -74,7 +74,7 @@ async def guard(database: dict[str, str], redis_url: str) -> AsyncIterator[Spend
     yield SpendGuard(
         async_sessionmaker(engine),
         redis,
-        make_settings(llm_daily_cap_usd=5.0, llm_user_daily_cap_usd=0.5),
+        make_settings(llm_daily_cap_usd=5.0),
     )
     await redis.aclose()
     await engine.dispose()
@@ -210,3 +210,64 @@ class _Costly(Scripted):
         usage = super()._usage(model)
         usage.cost_usd = 0.40
         return usage
+
+
+async def user_on(admin: AsyncEngine, plan: str) -> UUID:
+    async with admin.begin() as conn:
+        user: UUID = (
+            await conn.execute(
+                text("INSERT INTO users (clerk_user_id, plan_id) VALUES (:s, :p) RETURNING id"),
+                {"s": f"user_{uuid4().hex}", "p": plan},
+            )
+        ).scalar_one()
+    return user
+
+
+async def test_012_AC2_AC3_monthly_cap_from_the_plan_says_when_it_resets(
+    guard: SpendGuard, admin: AsyncEngine
+) -> None:
+    user = await user_on(admin, "free")
+    async with admin.begin() as conn:  # $5.10 earlier this month: over Free's $5 a month
+        org = (await conn.execute(text("SELECT id FROM orgs LIMIT 1"))).scalar_one()
+        await conn.execute(
+            text(
+                "INSERT INTO llm_usage (org_id, user_id, task, provider, model, outcome,"
+                " cost_usd, created_at) VALUES (:o, :u, 'budget-test', 'vertex', 'm', 'ok', 5.1,"
+                " greatest(date_trunc('month', now()), now() - interval '2 days'))"
+            ),
+            {"o": org, "u": user},
+        )
+    with pytest.raises(BudgetExceededError) as info:
+        await choose(guard, entry("stop"), user)
+    assert info.value.status == 429
+    assert info.value.slug in ("ai-monthly-limit", "ai-daily-limit")  # the 1st: both apply
+    assert info.value.extra["resets_at"].endswith("+00:00")
+
+
+async def test_012_AC4_internal_is_never_stopped_by_a_user_cap(
+    guard: SpendGuard, admin: AsyncEngine
+) -> None:
+    user = await user_on(admin, "internal")
+    await spend(admin, user, 0.90)  # over Free's $0.50 a day, under the platform cap
+    assert await choose(guard, entry("stop"), user) == "big-model"
+    assert (await guard.totals(user))[1] == pytest.approx(0.90)  # still counted
+
+
+async def test_012_AC5_platform_cap_applies_to_internal_and_warns_once_at_80_percent(
+    guard: SpendGuard, admin: AsyncEngine, redis_url: str
+) -> None:
+    from structlog.testing import capture_logs
+
+    user = await user_on(admin, "internal")
+    await spend(admin, None, 4.10)  # 82% of the $5 test cap
+    with capture_logs() as logs:
+        await choose(guard, entry("stop"), user)
+        await choose(guard, entry("stop"), user)
+    assert [e["event"] for e in logs].count("llm_global_cap_warning") == 1
+    await spend(admin, None, 1.0)  # written directly: drop the cached totals so they rebuild
+    redis = Redis.from_url(redis_url)
+    await redis.flushdb()
+    await redis.aclose()
+    with pytest.raises(BudgetExceededError) as info:
+        await choose(guard, entry("stop"), user)
+    assert info.value.status == 402

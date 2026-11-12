@@ -15,6 +15,13 @@ Entry format:
 
 ---
 
+## 2026-11-12: Spec 012 plans, limits and the Settings page implemented
+**Done:** Plans in the database (Free, Pro, Internal with the D91 numbers; null means no limit) and every limit read from the user's plan: template sizes, daily and monthly AI caps, papers a month, questions a day, rate limits (Redis token bucket with RateLimit headers), and concurrent processing (extra uploads wait, held, and start when a slot frees). Internal is counted but never stopped by a per-user limit; the platform cap ($20 a day) still applies and warns once at 80%. Admin API and `make plan` to move a user between plans (audited). Settings page: profile, plan and usage meters (AI as a percentage), theme, sign out, delete account. Limit messages show the reset in the reader's local time.
+**Tests:** API 377 passed (migrations 0013 to 0015); web 188 passed; one shared problem helper replaced five copies.
+**Decisions:** D91   **Specs:** 012 Implemented (as-built notes in the spec)
+**Next:** owner merges #17 (workspace fixes), #18 (identity) and the 012 PR; put stakeholders on Internal with `make plan EMAIL=... PLAN=internal`; next spec per D89: 011 admin.
+**Blockers / waiting on owner:** merges.
+
 ## 2026-11-12: Workspace feedback fixes (owner review)
 **Done:** Figures & tables shows a progress bar with the page being read and the time left (measured pace, or start-up plus 6 s a page before the first batch; "almost done" when the estimate runs out); a one-time tip says how to Explain or Ask about selected text and where the region tool is; on touch screens the selection toolbar sits below the handles, clear of the iOS menu. Found and fixed: enrichment jobs were never marked succeeded (stayed "running").
 **Verified:** desktop and iPhone screenshots; Playwright in Chromium, WebKit and iPhone.

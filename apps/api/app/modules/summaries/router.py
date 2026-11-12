@@ -72,7 +72,7 @@ async def create_template(
     request: Request,
     ctx: Annotated[Context, Depends(require("template.create"))],
 ) -> TemplateOut:
-    limits = limits_for(request.app.state.settings, ctx.identity.user_id)
+    limits = await limits_for(ctx.session, ctx.identity.user_id)
     return await templates.create(
         ctx.session, ctx.identity.org_id, ctx.identity.user_id, body, limits
     )
@@ -94,7 +94,7 @@ async def update_template(
     request: Request,
     ctx: Annotated[Context, Depends(require("template.update"))],
 ) -> TemplateOut:
-    limits = limits_for(request.app.state.settings, ctx.identity.user_id)
+    limits = await limits_for(ctx.session, ctx.identity.user_id)
     return await templates.update(
         ctx.session, ctx.identity.org_id, ctx.identity.user_id, template_id, body, limits
     )
@@ -129,13 +129,13 @@ async def preview_template(
     identity: Annotated[RequestContext, Depends(require_identity("summary.create"))],
 ) -> StreamingResponse:
     state = request.app.state
-    limits = limits_for(state.settings, identity.user_id)
-    fields = [
-        templates.TemplateField.model_validate(f)
-        for f in templates.build_fields(body.template.fields, limits)
-    ]
     async with state.sessionmaker() as session, session.begin():
         await set_tenant(session, identity.org_id)
+        limits = await limits_for(session, identity.user_id)
+        fields = [
+            templates.TemplateField.model_validate(f)
+            for f in templates.build_fields(body.template.fields, limits)
+        ]
         filename, key = await preview.paper_for_preview(session, identity.user_id, body.paper_id)
     set_llm_context(org_id=identity.org_id, user_id=identity.user_id, paper_id=body.paper_id)
     events = preview.preview_events(

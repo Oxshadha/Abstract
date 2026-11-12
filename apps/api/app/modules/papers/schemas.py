@@ -96,6 +96,7 @@ class PaperStatus(BaseModel):
     text_status: Literal["pending", "ready", "failed"]
     chat_available: bool
     error_message: str | None
+    waiting: bool = False  # spec 012 AC9: held until one of the user's other papers finishes
     steps: list[StepOut]
 
 

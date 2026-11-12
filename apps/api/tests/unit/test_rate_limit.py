@@ -1,9 +1,11 @@
 """Spec 002 AC15: baseline rate limiting."""
 
+import pytest
 from fastapi.dependencies.models import Dependant
 from fastapi.routing import APIRoute
 from fastapi.testclient import TestClient
 
+from app.core import ratelimit
 from app.core.ratelimit import RATE_LIMIT_MARKER, MemoryCounterStore
 from app.factory import create_app
 from tests.conftest import make_settings
@@ -56,11 +58,22 @@ def test_AC15_limit_returns_429_problem_with_retry_after() -> None:
     assert blocked.status_code == 429
     assert blocked.headers["content-type"] == "application/problem+json"
     assert 1 <= int(blocked.headers["retry-after"]) <= 60
+    # 012 AC7: the standard headers and a message with the wait.
+    assert blocked.headers["ratelimit-limit"] == "2"
+    assert blocked.headers["ratelimit-remaining"] == "0"
+    assert blocked.headers["ratelimit-reset"] == blocked.headers["retry-after"]
+    assert f"Try again in {blocked.headers['retry-after']}" in blocked.json()["detail"]
 
 
-def test_AC15_authenticated_routes_are_limited_under_the_user_key() -> None:
+def test_AC15_authenticated_routes_are_limited_under_the_user_key(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    async def one_a_minute(request: object, subject: str) -> dict[str, int]:
+        return {"read": 1, "write": 60}  # the user's plan (spec 012 AC6)
+
+    monkeypatch.setattr(ratelimit, "_plan_rates", one_a_minute)
     store = MemoryCounterStore()
-    client = _client({"auth": 100, "read": 1, "write": 60}, store)
+    client = _client({"auth": 100, "read": 300, "write": 60}, store)
     token = client.post("/api/v1/dev/token").json()["token"]
     # /me also needs the database; the limiter runs first, so a second call must be 429
     # regardless of the DB outcome for the first call.
@@ -70,7 +83,7 @@ def test_AC15_authenticated_routes_are_limited_under_the_user_key() -> None:
 
 
 class BrokenStore:
-    async def hit(self, key: str, ttl_seconds: int) -> int:
+    async def take(self, key: str, capacity: int, per_second: float) -> object:
         raise ConnectionError("redis down")
 
 

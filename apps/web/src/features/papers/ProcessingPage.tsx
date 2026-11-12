@@ -3,7 +3,7 @@ import { Link, useParams } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect } from "react";
 
 const PdfPreview = lazy(() => import("@/features/viewer/PdfPreview"));
-import { Check, ChevronLeft, Circle, ExternalLink, FileText, Layers, Loader2, X } from "lucide-react";
+import { Check, ChevronLeft, Circle, ExternalLink, FileText, Hourglass, Layers, Loader2, X } from "lucide-react";
 
 import { Loading, SummaryCardSkeleton } from "@/components/feedback/Skeleton";
 import { StatusPill } from "@/components/status/StatusPill";
@@ -97,10 +97,13 @@ function Steps({ status }: { status: PaperStatus }) {
   );
 }
 
+const WAITING = "Waiting for your other papers to finish. It starts automatically.";
+
 /** Live label for assistive technology: one sentence that changes as processing advances. */
 function announcement(status: PaperStatus): string {
   if (status.status === "failed") return "Processing failed.";
   if (isFinished(status)) return "Your paper is ready.";
+  if (status.waiting) return WAITING;
   const active = status.steps.find((s) => s.state === "active");
   const ready = status.chat_available ? " Chat is available." : "";
   return active ? `${STEPS[active.key].label}.${ready}` : `Processing.${ready}`;
@@ -215,6 +218,13 @@ function Processing({ paperId }: { paperId: string }) {
               <p className="sr-only" aria-live="polite">
                 {announcement(data)}
               </p>
+              {data.waiting && (
+                // Spec 012 AC9: beyond the plan's concurrent papers this one waits its turn.
+                <p role="status" className="mb-4 flex items-center gap-2 rounded-md bg-muted p-3 text-sm">
+                  <Hourglass aria-hidden className="size-4 shrink-0" />
+                  {WAITING}
+                </p>
+              )}
               <Steps status={data} />
               {failed && data.error_message && (
                 <div className="mt-6 flex flex-col items-start gap-2">

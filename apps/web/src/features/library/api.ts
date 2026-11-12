@@ -1,7 +1,7 @@
 import { api } from "@/api/client";
 import type { components } from "@/api/schema";
 import type { Paper, PaperPage } from "@/features/papers/api";
-import { HttpError } from "@/lib/queryClient";
+import { problem } from "@/lib/problem";
 
 export type Collection = components["schemas"]["CollectionOut"];
 export type SearchResults = components["schemas"]["SearchResults"];
@@ -25,16 +25,6 @@ export const libraryKeys = {
   paperCollections: (paperId: string) => ["collections", "paper", paperId] as const,
   search: (q: string, collection: string | null) => ["search", q, collection] as const,
 };
-
-async function problem(response: Response, fallback: string): Promise<HttpError> {
-  try {
-    const body = (await response.clone().json()) as { detail?: unknown };
-    if (typeof body.detail === "string" && body.detail) return new HttpError(response.status, body.detail);
-  } catch {
-    // not JSON
-  }
-  return new HttpError(response.status, fallback);
-}
 
 export async function listLibrary(params: LibraryParams, cursor: string | null, signal?: AbortSignal, limit = PAGE_SIZE): Promise<PaperPage> {
   const { data, response } = await api.GET("/api/v1/papers", {

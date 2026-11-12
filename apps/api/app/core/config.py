@@ -53,10 +53,6 @@ class Settings(BaseSettings):
         default_factory=lambda: {"auth": 30, "read": 300, "write": 60, "upload": 20, "search": 120}
     )
 
-    # Custom template limits until plans exist (spec 010, D87); read through entitlements.
-    template_max_fields: int = 10
-    template_max_custom: int = 10
-
     # Tables and figures in the background (spec 009, D85); off skips the layout parse.
     enrichment_enabled: bool = True
 
@@ -81,9 +77,9 @@ class Settings(BaseSettings):
     )
     app_release: str | None = None  # e.g. the git SHA; tags traces with the deployed version
 
-    # LLM spend control (spec 005 AC8; owner-approved defaults until plans exist in spec 012).
-    llm_daily_cap_usd: float = Field(default=5.0, ge=0)
-    llm_user_daily_cap_usd: float = Field(default=0.5, ge=0)
+    # Platform-wide daily AI cap, the safety net above every plan (spec 012 AC5, D91: $20 during
+    # the demo period). Per-user caps come from the user's plan.
+    llm_daily_cap_usd: float = Field(default=20.0, ge=0)
     llm_max_concurrency_per_provider: int = Field(default=8, ge=1, le=256)
 
     # Progress event stream (spec 004 AC12).

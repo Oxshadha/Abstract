@@ -196,7 +196,7 @@ async def paper_status(session: AsyncSession, owner_id: UUID, paper_id: UUID) ->
     jobs = (
         await session.execute(
             text(
-                "SELECT DISTINCT ON (kind) kind, status, step, event_seq FROM jobs"
+                "SELECT DISTINCT ON (kind) kind, status, step, event_seq, held FROM jobs"
                 " WHERE paper_id = :id ORDER BY kind, created_at DESC"
             ),
             {"id": paper_id},
@@ -222,5 +222,6 @@ async def paper_status(session: AsyncSession, owner_id: UUID, paper_id: UUID) ->
         text_status=paper.text_status,
         chat_available=paper.text_status == "ready",
         error_message=paper.error_message,
+        waiting=bool(by_kind["ingest"].held) if "ingest" in by_kind else False,
         steps=_steps(paper, by_kind.get("ingest"), by_kind.get("ocr")) + _summary_steps(summary),
     )

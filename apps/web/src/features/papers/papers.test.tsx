@@ -153,6 +153,15 @@ describe("AC2: drop zone", () => {
   });
 });
 
+describe("Spec 012 AC9: a paper waiting for a free slot", () => {
+  it("says it waits for the user's other papers and starts on its own", async () => {
+    vi.mocked(getPaper).mockResolvedValue(paper({ status: "processing" }));
+    vi.mocked(getStatus).mockResolvedValue(status({ waiting: true }));
+    await renderAt("/app/papers/p1/processing");
+    expect((await screen.findAllByText("Waiting for your other papers to finish. It starts automatically.")).length).toBeGreaterThan(0);
+  });
+});
+
 describe("AC12: processing page", () => {
   it("shows the mockup steps and enables the workspace once chat is available", async () => {
     vi.mocked(getPaper).mockResolvedValue(paper({ status: "processing" }));

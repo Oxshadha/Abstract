@@ -9,6 +9,7 @@ The owner's standing rules for every screen, collected from design reviews. Foll
 4. **Headers stay on one line.** Back, title (truncated, with type or authors beneath in small text), then actions. Never let a header wrap into stacked rows.
 5. **The window never scrolls; areas do.** The app fills the window: the sidebar stays fixed (only its Collections list scrolls, without a visible scrollbar), page headers and toolbars stay put, and only the list, document or panel content scrolls. In the Workspace each panel scrolls on its own; the Summary heading and template switcher stay fixed.
 6. **Fixed tools, scrolling content.** On phones the main tool of a screen (the upload box on Home, the composer in chat) stays put; only the list or content area scrolls, and it scrolls under the floating bars rather than stopping above them.
+6b. **Desktop uses the width.** Pages fill the space beside the sidebar with the same side padding as Library and Templates; never a narrow column centred between empty margins. Short content goes into a grid of cards (two columns from desktop up) instead. Reading text keeps a comfortable line length inside its own card or panel, not by shrinking the page.
 
 ## Navigation
 7. **Brand is always visible.** The "abstract." logo is at the top left on every screen size.
