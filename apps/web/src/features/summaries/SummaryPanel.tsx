@@ -339,11 +339,13 @@ export function SummaryPanel({ paperId }: { paperId: string }) {
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between gap-2">
+    // The heading and template switcher stay put; only the summary scrolls (design principle 5).
+    <div className="flex h-full min-h-0 flex-col gap-4">
+      <div className="flex shrink-0 items-center justify-between gap-2">
         <h2 className="font-display text-lg font-bold whitespace-nowrap">Summary</h2>
         <TemplateSwitcher current={templateId} onChoose={choose} />
       </div>
+      <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-1 max-lg:pb-28">
       {outdated && templateId && (
         // Spec 010 AC5: the template changed since this summary; updating is the user's choice.
         <div role="status" className="flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted p-3 text-sm">
@@ -381,6 +383,7 @@ export function SummaryPanel({ paperId }: { paperId: string }) {
           </button>
         </div>
       )}
+      </div>
     </div>
   );
 }

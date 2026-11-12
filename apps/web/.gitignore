@@ -1,0 +1,3 @@
+
+# pdf.js fonts and character maps, copied from pdfjs-dist at build (vite.config.ts)
+public/pdfjs/

@@ -22,6 +22,8 @@ export function AppShell() {
   const inWorkspace = /^\/app\/papers\/[^/]+$/.test(pathname);
   // Home scrolls its own list under the pill bar on phones, so the page reserves no space for it.
   const ownsScroll = inWorkspace || pathname === "/app/home";
+  // Pages that keep their header and tools fixed and scroll only their list or panels.
+  const fixedPage = inWorkspace || pathname === "/app/library";
   const collection = useOpenCollection();
   const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.userAgent);
   const shortcut = isMac ? "Cmd+K" : "Ctrl+K";
@@ -39,14 +41,14 @@ export function AppShell() {
   }, []);
 
   return (
-    <div className="flex min-h-dvh bg-bg text-text">
-      <aside className="hidden w-64 shrink-0 border-r border-border md:block">
+    <div className="flex h-dvh overflow-hidden bg-bg text-text">
+      <aside className="hidden h-dvh w-64 shrink-0 flex-col border-r border-border md:flex">
         <Sidebar />
       </aside>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <OfflineBanner />
-        <header className="flex items-center gap-2 border-b border-border px-4 py-3">
+        <header className="flex shrink-0 items-center gap-2 border-b border-border px-4 py-3">
           {/* Phones: the brand where the menu button was; navigation is the pill bar (D86). */}
           <Link to="/app/home" aria-label="abstract. home" className="inline-flex min-h-11 items-center md:hidden">
             <LogoMark className="size-7" />
@@ -84,7 +86,8 @@ export function AppShell() {
           </div>
         </header>
         <SearchDialog open={searchOpen} onClose={() => { setSearchOpen(false); }} collection={collection ?? null} />
-        <main id="main" className={`min-w-0 flex-1 ${ownsScroll ? "" : "pb-24 md:pb-0"}`}>
+        {/* The page fits the window; only this area (or a panel inside it) scrolls (design principle 5). */}
+        <main id="main" className={`min-h-0 min-w-0 flex-1 ${fixedPage ? "overflow-hidden" : ownsScroll ? "overflow-hidden md:overflow-y-auto" : "overflow-y-auto pb-24 md:pb-0"}`}>
           <ErrorBoundary name="this page">
             <Outlet />
           </ErrorBoundary>

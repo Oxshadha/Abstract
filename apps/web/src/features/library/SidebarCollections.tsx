@@ -18,7 +18,7 @@ export function SidebarCollections({ onNavigate }: { onNavigate?: () => void }) 
   const [dialog, setDialog] = useState<{ mode: "create" } | { mode: "rename" | "delete"; collection: Collection } | null>(null);
 
   return (
-    <section aria-labelledby="collections-heading" className="flex min-h-0 flex-col gap-1 border-t border-border pt-4">
+    <section aria-labelledby="collections-heading" className="flex min-h-0 flex-1 flex-col gap-1 border-t border-border pt-4">
       <div className="flex items-center px-3">
         <h2 id="collections-heading" className="text-xs font-medium tracking-wide text-text-secondary uppercase">
           Collections
@@ -36,7 +36,7 @@ export function SidebarCollections({ onNavigate }: { onNavigate?: () => void }) 
       {collections.isSuccess && collections.data.length === 0 && (
         <p className="px-3 text-sm text-text-secondary">Group related papers into collections.</p>
       )}
-      <ul className="flex min-h-0 flex-col gap-0.5 overflow-auto">
+      <ul className="scrollbar-none flex min-h-0 flex-col gap-0.5 overflow-auto">
         {(collections.data ?? []).map((c) => {
           const active = openCollection === c.id;
           return (

@@ -9,6 +9,7 @@ import { Document, Page, pdfjs } from "react-pdf";
 import { Select } from "@/components/menu/Select";
 
 import { useCitations, type PageBox } from "./citation-context";
+import { PDF_ASSETS } from "./pdf-assets";
 import { getFileUrl, getPageSizes, viewerKeys, type PageSize } from "./api";
 import { locate, markItem, type Located, type TextPiece } from "./locate";
 import { RegionLayer } from "./RegionLayer";
@@ -144,7 +145,7 @@ export function PdfViewer({ paperId }: { paperId: string }) {
     resolve();
   };
 
-  const options = useMemo(() => ({ disableAutoFetch: true, isEvalSupported: false }), []);
+  const options = useMemo(() => ({ disableAutoFetch: true, isEvalSupported: false, ...PDF_ASSETS }), []);
 
   if (failed || file.isError || sizes.isError) {
     return (
@@ -177,7 +178,9 @@ export function PdfViewer({ paperId }: { paperId: string }) {
 
   return (
     <div className="flex h-full min-h-96 flex-col">
-      <div role="toolbar" aria-label="Paper viewer" className="flex flex-wrap items-center gap-1 border-b border-border pb-2">
+      {/* One line at any panel width (container queries): zoom steps hide when the panel is
+          narrow, the zoom menu stays. */}
+      <div role="toolbar" aria-label="Paper viewer" className="@container flex flex-nowrap items-center gap-0.5 border-b border-border pb-2">
         <button type="button" aria-label="Previous page" disabled={current <= 1} onClick={() => { goTo(current - 1); }} className="inline-flex size-11 items-center justify-center rounded-md hover:bg-muted disabled:opacity-40">
           <ChevronLeft aria-hidden className="size-5" />
         </button>
@@ -211,8 +214,8 @@ export function PdfViewer({ paperId }: { paperId: string }) {
         >
           <SquareDashedMousePointer aria-hidden className="size-5" />
         </button>
-        <span className="ml-auto flex items-center gap-1">
-          <button type="button" aria-label="Zoom out" onClick={() => { setZoom(ZOOMS.filter((z) => z < scale - 0.01).at(-1) ?? ZOOMS[0] ?? 0.5); }} className="inline-flex size-11 items-center justify-center rounded-md hover:bg-muted">
+        <span className="ml-auto flex shrink-0 items-center gap-0.5">
+          <button type="button" aria-label="Zoom out" onClick={() => { setZoom(ZOOMS.filter((z) => z < scale - 0.01).at(-1) ?? ZOOMS[0] ?? 0.5); }} className="hidden size-11 items-center justify-center rounded-md hover:bg-muted @md:inline-flex">
             <Minus aria-hidden className="size-4" />
           </button>
           <Select
@@ -221,8 +224,9 @@ export function PdfViewer({ paperId }: { paperId: string }) {
             options={[{ value: "fit", label: "Fit width" }, ...ZOOMS.map((z) => ({ value: String(z), label: `${String(Math.round(z * 100))}%` }))]}
             onChange={(v) => { setZoom(v === "fit" ? "fit" : Number(v)); }}
             width="w-36"
+            compact
           />
-          <button type="button" aria-label="Zoom in" onClick={() => { setZoom(ZOOMS.find((z) => z > scale + 0.01) ?? ZOOMS.at(-1) ?? 2); }} className="inline-flex size-11 items-center justify-center rounded-md hover:bg-muted">
+          <button type="button" aria-label="Zoom in" onClick={() => { setZoom(ZOOMS.find((z) => z > scale + 0.01) ?? ZOOMS.at(-1) ?? 2); }} className="hidden size-11 items-center justify-center rounded-md hover:bg-muted @md:inline-flex">
             <Plus aria-hidden className="size-4" />
           </button>
         </span>
@@ -244,7 +248,7 @@ export function PdfViewer({ paperId }: { paperId: string }) {
           if (e.key === "PageUp") { e.preventDefault(); goTo(current - 1); }
         }}
         onClick={() => { if (highlight?.located) { citations?.clear(); } }}
-        className="relative mt-2 min-h-0 flex-1 overflow-auto rounded-md bg-muted"
+        className="relative mt-2 min-h-0 flex-1 overflow-auto rounded-md bg-muted max-lg:pb-24"
       >
         {/* react-pdf suspends by default; a suspend reaching the app's outer boundary would hide
             the whole Workspace and reset its effects, cancelling a streaming chat answer. */}

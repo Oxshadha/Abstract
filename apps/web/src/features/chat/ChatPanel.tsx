@@ -353,14 +353,14 @@ export function ChatPanel({ paperId, onClose }: { paperId: string; onClose?: () 
       <p className="sr-only" aria-live="polite">{draft ? completedSentences(draft.text) : ""}</p>
 
       <form
-        className="mt-3 flex items-end gap-2 rounded-lg border border-border p-2"
+        className="mt-3 flex flex-wrap items-end gap-2 rounded-lg border border-border p-2"
         onSubmit={(e) => {
           e.preventDefault();
           void ask(input);
         }}
       >
         {viewerApi?.region && (
-          <span className="self-start pb-1">
+          <span className="basis-full pb-1">
             <RegionChip region={viewerApi.region} onRemove={viewerApi.clearRegion} />
           </span>
         )}

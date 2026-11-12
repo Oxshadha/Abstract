@@ -24,7 +24,7 @@ export function HomeView() {
   const items = recent.data?.items ?? [];
 
   return (
-    <div className="flex h-[calc(100dvh-4.4rem)] flex-col gap-4 px-4 pt-4 sm:gap-6 sm:pt-6 md:h-auto md:gap-8 md:px-8 md:pb-10">
+    <div className="flex h-full flex-col gap-4 px-4 pt-4 sm:gap-6 sm:pt-6 md:h-auto md:gap-8 md:px-8 md:pb-10">
       {/* The upload box below already says what to do; a subtitle only repeated it (owner review). */}
       <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Home</h1>
       <DropZone />
