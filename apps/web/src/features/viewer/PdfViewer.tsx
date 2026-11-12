@@ -13,6 +13,8 @@ import { PDF_ASSETS } from "./pdf-assets";
 import { getFileUrl, getPageSizes, viewerKeys, type PageSize } from "./api";
 import { locate, markItem, type Located, type TextPiece } from "./locate";
 import { RegionLayer } from "./RegionLayer";
+import { useExplainLevel, useTextSelection } from "./selection";
+import { SelectionToolbar } from "./SelectionToolbar";
 import { visibleWindow } from "./virtual";
 
 pdfjs.GlobalWorkerOptions.workerSrc = workerUrl; // AC7: pdf.js parses in its worker
@@ -40,6 +42,16 @@ export function PdfViewer({ paperId }: { paperId: string }) {
   // Ask about this region (spec 009 AC10): drawing mode and the box being drawn.
   const [selecting, setSelecting] = useState(false);
   const [selection, setSelection] = useState<{ page: number; box: PageBox } | null>(null);
+  // Explain or Ask about selected text (spec 015 AC3 to AC5).
+  const toolbar = useRef<HTMLDivElement>(null);
+  const text = useTextSelection(scroller, toolbar);
+  const [level, setLevel] = useExplainLevel();
+  const sendQuote = (mode: "ask" | "explain") => {
+    if (!text.selected) return;
+    citations?.askQuote({ page: text.selected.page, text: text.selected.text, mode, level });
+    document.getSelection()?.removeAllRanges();
+    text.close();
+  };
 
   // AC8: one layout update per animation frame for scroll and resize.
   const measure = useCallback(() => {
@@ -145,6 +157,24 @@ export function PdfViewer({ paperId }: { paperId: string }) {
     resolve();
   };
 
+  // One text renderer per page, kept while that page's highlight is unchanged: react-pdf rebuilds
+  // a text layer whenever its renderer changes, which would drop the reader's text selection on
+  // every re-render (spec 015 AC3).
+  const highlightPage = highlight?.page ?? null;
+  const highlightLocated = highlight?.located ?? null;
+  const renderers = useMemo(() => {
+    const cache = new Map<number, (item: { str: string; itemIndex: number }) => string>();
+    return (page: number) => {
+      let renderer = cache.get(page);
+      if (!renderer) {
+        const located = highlightPage === page ? highlightLocated : null;
+        renderer = ({ str, itemIndex }) => markItem(str, itemIndex, located);
+        cache.set(page, renderer);
+      }
+      return renderer;
+    };
+  }, [highlightPage, highlightLocated]);
+
   const options = useMemo(() => ({ disableAutoFetch: true, isEvalSupported: false, ...PDF_ASSETS }), []);
 
   if (failed || file.isError || sizes.isError) {
@@ -237,6 +267,16 @@ export function PdfViewer({ paperId }: { paperId: string }) {
       {highlight && !target?.box && found?.id === highlight.id && !highlight.located && (
         <p className="mt-2 text-sm text-text-secondary">{announcement}</p>
       )}
+      {text.selected && !selecting && citations && (
+        <SelectionToolbar
+          selection={text.selected}
+          toolbarRef={toolbar}
+          level={level}
+          onLevel={setLevel}
+          onExplain={() => { sendQuote("explain"); }}
+          onAsk={() => { sendQuote("ask"); }}
+        />
+      )}
       <div
         ref={scroller}
         onScroll={measure}
@@ -247,7 +287,9 @@ export function PdfViewer({ paperId }: { paperId: string }) {
           if (e.key === "PageDown") { e.preventDefault(); goTo(current + 1); }
           if (e.key === "PageUp") { e.preventDefault(); goTo(current - 1); }
         }}
-        onClick={() => { if (highlight?.located) { citations?.clear(); } }}
+        // A click off the text clears the cited sentence; a click on text keeps it, since clearing
+        // re-renders the text layer and would drop a selection being made (spec 015 AC3).
+        onClick={(e) => { if (highlight?.located && !(e.target as Element).closest(".textLayer span")) { citations?.clear(); } }}
         className="relative mt-2 min-h-0 flex-1 overflow-auto rounded-md bg-muted max-lg:pb-24"
       >
         {/* react-pdf suspends by default; a suspend reaching the app's outer boundary would hide
@@ -283,7 +325,7 @@ export function PdfViewer({ paperId }: { paperId: string }) {
                       loading=""
                       onRenderError={() => { setFailed("A page could not be shown."); }}
                       onGetTextSuccess={(content) => { onText(p.page, content.items.flatMap((x) => ("str" in x ? [{ str: x.str, hasEOL: x.hasEOL }] : []))); }}
-                      customTextRenderer={({ str, itemIndex }) => markItem(str, itemIndex, highlight?.page === p.page ? highlight.located : null)}
+                      customTextRenderer={renderers(p.page)}
                     />
                   )}
                   {selecting && i >= first && i <= last && (
