@@ -252,3 +252,26 @@ async def test_AC2_retry_only_after_a_failure_or_finish(api: PapersApi, worker: 
     retried = await api.client.post(f"/api/v1/papers/{paper}/enrichment/retry", headers=owner)
     assert retried.status_code == 202
     assert api.enqueued[-1][0] == ENRICH_TASK
+
+
+async def test_AC2_progress_includes_a_time_left_estimate(api: PapersApi, worker: Worker) -> None:
+    job, paper, user = await _ingested(api, worker)
+    _task, kwargs = worker.enqueued[-1]
+    async with worker.admin.begin() as conn:
+        await conn.execute(
+            text(
+                "UPDATE papers SET enrichment_status = 'running', enrichment_pages = 10,"
+                " enrichment_pages_done = 4 WHERE id = :p"
+            ),
+            {"p": paper},
+        )
+        await conn.execute(
+            text("UPDATE jobs SET started_at = now() - interval '40 seconds' WHERE id = :j"),
+            {"j": kwargs["job_id"]},
+        )
+    body = (await api.client.get(f"/api/v1/papers/{paper}/elements", headers=bearer(user))).json()
+    assert body["status"] == "running"
+    assert 55 <= body["seconds_left"] <= 65  # 10 s a page so far, 6 pages to go
+    await _enrich(worker, FakeLayout(), job["org_id"])
+    done = (await api.client.get(f"/api/v1/papers/{paper}/elements", headers=bearer(user))).json()
+    assert done["seconds_left"] is None

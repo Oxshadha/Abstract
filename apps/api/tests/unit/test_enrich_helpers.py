@@ -51,3 +51,12 @@ def test_AC1_crops_are_rendered_from_the_pdf_box() -> None:
     # 0.4 x 612 pt by 0.25 x 792 pt at scale 2
     assert abs(image.width - 490) <= 2
     assert abs(image.height - 396) <= 2
+
+
+def test_AC2_time_left_uses_the_pace_so_far_or_the_guess() -> None:
+    from app.modules.papers.elements import estimate_seconds_left
+
+    assert estimate_seconds_left(40.0, 4, 10) == 60  # 10 s a page, 6 to go
+    assert estimate_seconds_left(5.0, 0, 10, guess=6.0) == 55  # guess minus time already spent
+    assert estimate_seconds_left(90.0, 0, 10, guess=6.0) == 1  # slower than the guess: still going
+    assert estimate_seconds_left(30.0, 10, 10) == 0  # every page parsed
