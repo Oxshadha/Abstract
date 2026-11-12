@@ -124,6 +124,60 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/collections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's collections with paper counts, by name */
+        get: operations["list_collections_api_v1_collections_get"];
+        put?: never;
+        /** Create a collection */
+        post: operations["create_collection_api_v1_collections_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/collections/{collection_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a collection (its papers stay in the Library) */
+        delete: operations["delete_collection_api_v1_collections__collection_id__delete"];
+        options?: never;
+        head?: never;
+        /** Rename a collection */
+        patch: operations["rename_collection_api_v1_collections__collection_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/collections/{collection_id}/papers/{paper_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Add a paper to a collection (idempotent) */
+        put: operations["add_paper_api_v1_collections__collection_id__papers__paper_id__put"];
+        post?: never;
+        /** Remove a paper from a collection (the paper stays in the Library) */
+        delete: operations["remove_paper_api_v1_collections__collection_id__papers__paper_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/conversations/{conversation_id}": {
         parameters: {
             query?: never;
@@ -261,6 +315,24 @@ export interface paths {
         delete: operations["delete_paper_api_v1_papers__paper_id__delete"];
         options?: never;
         head?: never;
+        /** Rename or star a paper */
+        patch: operations["update_paper_api_v1_papers__paper_id__patch"];
+        trace?: never;
+    };
+    "/api/v1/papers/{paper_id}/collections": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The collections a paper is in (for the Add to collection menu) */
+        get: operations["paper_collections_api_v1_papers__paper_id__collections_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
         patch?: never;
         trace?: never;
     };
@@ -333,6 +405,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/papers/{paper_id}/opened": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record that the user opened the paper (sort by Recently opened) */
+        post: operations["paper_opened_api_v1_papers__paper_id__opened_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/papers/{paper_id}/pages": {
         parameters: {
             query?: never;
@@ -394,6 +483,23 @@ export interface paths {
         };
         /** Readiness: database, redis and object storage reachable */
         get: operations["readyz_api_v1_readyz_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Search the caller's papers by title, author and text (no model calls) */
+        get: operations["search_papers_api_v1_search_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -537,6 +643,28 @@ export interface components {
             quote: string;
             /** Section */
             section: string | null;
+        };
+        /** CollectionIn */
+        CollectionIn: {
+            /** Name */
+            name: string;
+        };
+        /** CollectionList */
+        CollectionList: {
+            /** Items */
+            items: components["schemas"]["CollectionOut"][];
+        };
+        /** CollectionOut */
+        CollectionOut: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Paper Count */
+            paper_count: number;
         };
         /** ConversationList */
         ConversationList: {
@@ -827,13 +955,31 @@ export interface components {
             /** Items */
             items: components["schemas"]["PageSize"][];
         };
+        /** PaperHit */
+        PaperHit: {
+            /** Authors */
+            authors: string[];
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Title */
+            title: string;
+            /** Year */
+            year: number | null;
+        };
         /** PaperOut */
         PaperOut: {
+            /** Authors */
+            authors: string[];
             /**
              * Created At
              * Format: date-time
              */
             created_at: string;
+            /** Doc Type */
+            doc_type: ("paper" | "report" | "article" | "other") | null;
             /** Error Message */
             error_message: string | null;
             /** Filename */
@@ -843,10 +989,14 @@ export interface components {
              * Format: uuid
              */
             id: string;
+            /** Last Opened At */
+            last_opened_at: string | null;
             /** Pages */
             pages: number | null;
             /** Size Bytes */
             size_bytes: number;
+            /** Starred */
+            starred: boolean;
             /**
              * Status
              * @enum {string}
@@ -859,6 +1009,8 @@ export interface components {
             text_status: "pending" | "ready" | "failed";
             /** Title */
             title: string | null;
+            /** Year */
+            year: number | null;
         };
         /** PaperPage */
         PaperPage: {
@@ -895,6 +1047,30 @@ export interface components {
              * @enum {string}
              */
             text_status: "pending" | "ready" | "failed";
+        };
+        /**
+         * PaperUpdate
+         * @description Rename or star a paper (spec 013 AC5, AC12). At least one field.
+         */
+        PaperUpdate: {
+            /** Starred */
+            starred?: boolean | null;
+            /** Title */
+            title?: string | null;
+        };
+        /** PassageHit */
+        PassageHit: {
+            /** Page */
+            page: number;
+            /**
+             * Paper Id
+             * Format: uuid
+             */
+            paper_id: string;
+            /** Paper Title */
+            paper_title: string;
+            /** Snippet */
+            snippet: string;
         };
         /** Pong */
         Pong: {
@@ -992,6 +1168,13 @@ export interface components {
              * Format: uuid
              */
             user_id: string;
+        };
+        /** SearchResults */
+        SearchResults: {
+            /** Papers */
+            papers: components["schemas"]["PaperHit"][];
+            /** Passages */
+            passages: components["schemas"]["PassageHit"][];
         };
         /** SendMessage */
         SendMessage: {
@@ -1459,6 +1642,197 @@ export interface operations {
             };
         };
     };
+    list_collections_api_v1_collections_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionList"];
+                };
+            };
+        };
+    };
+    create_collection_api_v1_collections_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionOut"];
+                };
+            };
+            /** @description A collection with this name exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_collection_api_v1_collections__collection_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rename_collection_api_v1_collections__collection_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CollectionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CollectionOut"];
+                };
+            };
+            /** @description A collection with this name exists */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    add_paper_api_v1_collections__collection_id__papers__paper_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection_id: string;
+                paper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    remove_paper_api_v1_collections__collection_id__papers__paper_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                collection_id: string;
+                paper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     delete_conversation_api_v1_conversations__conversation_id__delete: {
         parameters: {
             query?: never;
@@ -1666,6 +2040,10 @@ export interface operations {
             query?: {
                 limit?: number;
                 cursor?: string | null;
+                sort?: "added" | "opened" | "title";
+                type?: ("paper" | "report" | "article") | null;
+                starred?: boolean;
+                collection?: string | null;
             };
             header?: never;
             path?: never;
@@ -1818,6 +2196,72 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_paper_api_v1_papers__paper_id__patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PaperUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    paper_collections_api_v1_papers__paper_id__collections_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string[];
+                };
             };
             /** @description Validation Error */
             422: {
@@ -2006,6 +2450,35 @@ export interface operations {
             };
         };
     };
+    paper_opened_api_v1_papers__paper_id__opened_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_pages_api_v1_papers__paper_id__pages_get: {
         parameters: {
             query?: never;
@@ -2169,6 +2642,38 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    search_papers_api_v1_search_get: {
+        parameters: {
+            query: {
+                q: string;
+                collection?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SearchResults"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };

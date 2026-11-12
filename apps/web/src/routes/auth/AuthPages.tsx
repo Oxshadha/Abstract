@@ -14,7 +14,7 @@ const FEATURES = [
 /** Full-page sign-in/up fallback with the split-screen mockup layout (D45). */
 function AuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
   const { status } = useAuthState();
-  if (status === "signed-in") return <Navigate to="/app/library" />;
+  if (status === "signed-in") return <Navigate to="/app/home" />;
   return (
     <div className="grid min-h-dvh bg-bg text-text lg:grid-cols-2">
       <section className="hidden flex-col justify-center gap-8 p-12 lg:flex">

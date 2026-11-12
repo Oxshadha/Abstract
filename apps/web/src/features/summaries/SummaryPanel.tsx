@@ -36,7 +36,7 @@ import {
   type Summary,
   type SummaryField,
 } from "./api";
-import { useCitations } from "@/features/viewer/citations";
+import { useCitations } from "@/features/viewer/citation-context";
 
 import { Markdown } from "./Markdown";
 import { pageLabel } from "./pages";

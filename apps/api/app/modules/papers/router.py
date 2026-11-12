@@ -14,6 +14,7 @@ from app.core.errors import ProblemError
 from app.core.policy import require, require_identity
 from app.core.ratelimit import user_rate_limit
 from app.modules.identity.service import RequestContext
+from app.modules.library import collections
 from app.modules.papers import deletion, events, finalize, queries, service
 from app.modules.papers.schemas import (
     FileUrl,
@@ -23,7 +24,10 @@ from app.modules.papers.schemas import (
     PageSizes,
     PaperOut,
     PaperPage,
+    PaperSort,
     PaperStatus,
+    PaperType,
+    PaperUpdate,
     UploadRequest,
     UploadTicket,
 )
@@ -99,9 +103,24 @@ async def finalize_upload(
 async def list_papers(
     ctx: Annotated[Context, Depends(require("paper.read"))],
     limit: Annotated[int, Query(ge=1, le=queries.MAX_PAGE_SIZE)] = 20,
-    cursor: Annotated[str | None, Query(max_length=200)] = None,
+    cursor: Annotated[str | None, Query(max_length=300)] = None,
+    sort: PaperSort = "added",
+    type: PaperType | None = None,
+    starred: bool = False,
+    collection: UUID | None = None,
 ) -> PaperPage:
-    return await queries.list_papers(ctx.session, ctx.identity.user_id, limit=limit, cursor=cursor)
+    if collection is not None:  # 404 for someone else's collection, not an empty list
+        await collections.owned(ctx.session, ctx.identity.user_id, collection)
+    return await queries.list_papers(
+        ctx.session,
+        ctx.identity.user_id,
+        limit=limit,
+        cursor=cursor,
+        sort=sort,
+        doc_type=type,
+        starred=starred,
+        collection_id=collection,
+    )
 
 
 @router.get(
@@ -114,6 +133,35 @@ async def get_paper(
     paper_id: UUID, ctx: Annotated[Context, Depends(require("paper.read"))]
 ) -> PaperOut:
     return await queries.get_paper(ctx.session, ctx.identity.user_id, paper_id)
+
+
+@router.patch(
+    "/{paper_id}",
+    response_model=PaperOut,
+    summary="Rename or star a paper",
+    dependencies=[Depends(user_rate_limit("write"))],
+)
+async def update_paper(
+    paper_id: UUID, body: PaperUpdate, ctx: Annotated[Context, Depends(require("paper.update"))]
+) -> PaperOut:
+    if body.title is None and body.starred is None:
+        raise ProblemError(422, "nothing-to-update", "Send a title or a star value.")
+    return await queries.update_paper(
+        ctx.session, ctx.identity.user_id, paper_id, title=body.title, starred=body.starred
+    )
+
+
+@router.post(
+    "/{paper_id}/opened",
+    status_code=204,
+    summary="Record that the user opened the paper (sort by Recently opened)",
+    dependencies=[Depends(user_rate_limit("write"))],
+)
+async def paper_opened(
+    paper_id: UUID, ctx: Annotated[Context, Depends(require("paper.read"))]
+) -> Response:
+    await queries.mark_opened(ctx.session, ctx.identity.user_id, paper_id)
+    return Response(status_code=204)
 
 
 @router.get(

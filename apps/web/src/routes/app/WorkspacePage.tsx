@@ -1,16 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link, useParams } from "@tanstack/react-router";
+import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
 import { ArrowLeft, FileText, MessageSquare, Sparkles } from "lucide-react";
-import { useCallback, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 
 import { ErrorBoundary } from "@/components/feedback/ErrorBoundary";
 import { getPaper, paperKeys } from "@/features/papers/api";
 import { listSummaries, summaryKeys, type Summary } from "@/features/summaries/api";
 import { ChatPanel } from "@/features/chat/ChatPanel";
 import { SummaryPanel } from "@/features/summaries/SummaryPanel";
+import { markOpened } from "@/features/library/api";
+import { StarButton } from "@/features/library/PaperActions";
 import { CitationProvider } from "@/features/viewer/citations";
+import { useCitations } from "@/features/viewer/citation-context";
 import { PdfViewer } from "@/features/viewer/PdfViewer";
 import { useIsDesktop, useWorkspaceLayout } from "@/features/workspace/layout";
+import { PillBar } from "@/components/shell/PillBar";
 
 type PanelId = "paper" | "summary" | "chat";
 const MOBILE_TABS = [
@@ -24,6 +28,21 @@ function byline(summary: Summary | undefined): string {
   const first = summary.authors[0];
   const authors = first ? (summary.authors.length > 1 ? `${first.split(" ").pop() ?? first} et al.` : first) : "";
   return [authors, summary.year ? String(summary.year) : ""].filter(Boolean).join(" · ");
+}
+
+/** Arriving from a search passage: open the Paper panel at that page and highlight it, once. */
+function OpenFromUrl({ paperId }: { paperId: string }) {
+  const { page, quote } = useSearch({ from: "/app/papers/$paperId" });
+  const citations = useCitations();
+  const navigate = useNavigate();
+  useEffect(() => {
+    if (!page || !citations) return;
+    citations.open(page, quote ?? "");
+    // Drop the params so a reload or back navigation does not reopen it.
+    void navigate({ to: "/app/papers/$paperId", params: { paperId }, search: {}, replace: true });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, quote]);
+  return null;
 }
 
 function PaperPanel({ paperId }: { paperId: string }) {
@@ -115,6 +134,10 @@ export default function WorkspacePage() {
   });
   const both = layout.paper && layout.summary;
   const desktop = useIsDesktop();
+  // "Recently opened" sort (spec 013 AC3): once per visit, failures are harmless.
+  useEffect(() => {
+    void markOpened(paperId).catch(() => undefined);
+  }, [paperId]);
   // A citation click shows the Paper panel (desktop) or the Paper tab (phones), spec 008 AC4.
   const openPaper = useCallback(() => {
     if (desktop) showPaper();
@@ -123,18 +146,26 @@ export default function WorkspacePage() {
 
   return (
     <CitationProvider onOpen={openPaper}>
+    <OpenFromUrl paperId={paperId} />
     <div className="flex h-full flex-col">
-      <header className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 px-4 pt-4">
-        <Link to="/app/library" aria-label="Back to your library" className="inline-flex size-11 items-center justify-center rounded-md hover:bg-muted">
+      {/* One line on every screen: back, title (with type and authors beneath), star; the
+          panel toggles follow on desktop (owner review: phones wrapped into three lines). */}
+      <header className="flex min-w-0 items-center gap-2 px-2 pt-3 sm:gap-3 sm:px-4 sm:pt-4">
+        <Link to="/app/library" aria-label="Back to your library" className="inline-flex size-11 shrink-0 items-center justify-center rounded-md hover:bg-muted">
           <ArrowLeft aria-hidden className="size-5" />
         </Link>
-        <h1 className="min-w-0 truncate font-display text-xl font-bold md:text-2xl" title={paper.data?.title ?? undefined}>
-          {paper.data?.title ?? paper.data?.filename ?? " "}
-        </h1>
-        <span className="rounded-sm border border-border px-1.5 text-xs text-text-secondary">PDF</span>
-        <span className="text-sm text-text-secondary">{byline(headerSummary.data)}</span>
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate font-display text-lg font-bold sm:text-xl md:text-2xl" title={paper.data?.title ?? undefined}>
+            {paper.data?.title ?? paper.data?.filename ?? " "}
+          </h1>
+          <p className="flex min-w-0 items-center gap-2 text-sm text-text-secondary">
+            <span className="shrink-0 rounded-sm border border-border px-1.5 text-xs">PDF</span>
+            <span className="truncate">{byline(headerSummary.data)}</span>
+          </p>
+        </div>
+        {paper.data && <StarButton paper={paper.data} />}
         {desktop && (
-        <div role="toolbar" aria-label="Panels" className="ml-auto flex items-center gap-2">
+        <div role="toolbar" aria-label="Panels" className="flex shrink-0 items-center gap-2">
           <ToggleButton pressed={layout.paper} disabled={layout.paper && !layout.summary} onClick={() => { toggle("paper"); }}>
             <FileText aria-hidden className="size-4" />
             Paper
@@ -177,29 +208,24 @@ export default function WorkspacePage() {
       ) : (
       <>
       {/* Phones and tablets: one panel at a time (D60). */}
-      <div className="flex-1 p-4 pb-20">
+      <div className="flex-1 p-4 pb-24">
         {/* Hidden, not unmounted: a citation tapped mid-answer switches to Paper without
             cancelling the streaming answer, and the viewer keeps its place. */}
         <div hidden={mobile !== "paper"}><Panel label="Paper"><PaperPanel paperId={paperId} /></Panel></div>
         <div hidden={mobile !== "summary"}><Panel label="Summary"><SummaryPanel paperId={paperId} /></Panel></div>
         <div hidden={mobile !== "chat"}><Panel label="Ask Abstract"><ChatPanel paperId={paperId} /></Panel></div>
       </div>
-      <nav aria-label="Workspace panels" className="fixed inset-x-0 bottom-0 grid grid-cols-3 border-t border-border bg-surface">
-        {MOBILE_TABS.map(({ id, label, Icon }) => (
-          <button
-            key={id}
-            type="button"
-            aria-pressed={mobile === id}
-            onClick={() => {
-              setMobile(id);
-            }}
-            className={`flex min-h-14 flex-col items-center justify-center gap-0.5 text-xs ${mobile === id ? "font-medium text-text" : "text-text-secondary"}`}
-          >
-            <Icon aria-hidden className="size-5" />
-            {label}
-          </button>
-        ))}
-      </nav>
+      <PillBar
+        label="Workspace panels"
+        hideFrom="lg"
+        items={MOBILE_TABS.map(({ id, label, Icon }) => ({
+          key: id,
+          label,
+          icon: <Icon aria-hidden className="size-5" />,
+          active: mobile === id,
+          onSelect: () => { setMobile(id); },
+        }))}
+      />
       </>
       )}
     </div>

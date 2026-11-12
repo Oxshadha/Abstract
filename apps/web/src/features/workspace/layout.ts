@@ -71,21 +71,25 @@ export function useWorkspaceLayout() {
 
 const DESKTOP = "(min-width: 1024px)";
 
-/** Render only the layout for this screen size (no hidden duplicate panels or streams). */
-export function useIsDesktop(): boolean {
-  const query = () =>
-    typeof window.matchMedia === "function" ? window.matchMedia(DESKTOP).matches : true;
-  const [desktop, setDesktop] = useState(query);
+/** Whether a CSS media query matches, kept in sync as the window changes. */
+export function useMediaQuery(media: string): boolean {
+  const query = () => (typeof window.matchMedia === "function" ? window.matchMedia(media).matches : true);
+  const [matches, setMatches] = useState(query);
   useEffect(() => {
     if (typeof window.matchMedia !== "function") return;
-    const list = window.matchMedia(DESKTOP);
+    const list = window.matchMedia(media);
     const onChange = () => {
-      setDesktop(list.matches);
+      setMatches(list.matches);
     };
     list.addEventListener("change", onChange);
     return () => {
       list.removeEventListener("change", onChange);
     };
-  }, []);
-  return desktop;
+  }, [media]);
+  return matches;
+}
+
+/** Render only the layout for this screen size (no hidden duplicate panels or streams). */
+export function useIsDesktop(): boolean {
+  return useMediaQuery(DESKTOP);
 }

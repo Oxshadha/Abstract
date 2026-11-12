@@ -11,6 +11,11 @@ export function paper(overrides: Partial<Paper> = {}): Paper {
     text_status: "ready",
     error_message: null,
     created_at: new Date(Date.now() - 2 * 3600_000).toISOString(),
+    starred: false,
+    last_opened_at: null,
+    authors: ["Vaswani", "Shazeer"],
+    year: 2017,
+    doc_type: "paper",
     ...overrides,
   };
 }

@@ -236,10 +236,16 @@ async def _save_meta(session: AsyncSession, job: _Job, meta: dict[str, Any]) -> 
         ),
         {"t": title, "a": json.dumps(authors), "y": year, "d": doc_type, "s": job.summary_id},
     )
-    if title:  # the provisional title from 004 is refined by the summary
-        await session.execute(
-            text("UPDATE papers SET title = :t WHERE id = :p"), {"t": title, "p": job.paper_id}
-        )
+    # The provisional title from 004 is refined by the summary unless the user renamed the
+    # paper; authors, year and type are copied so the Library lists and searches one table (013).
+    await session.execute(
+        text(
+            "UPDATE papers SET title = CASE WHEN title_edited OR CAST(:t AS text) IS NULL"
+            " THEN title ELSE :t END, authors = CAST(:a AS jsonb),"
+            " year = COALESCE(:y, year), doc_type = COALESCE(:d, doc_type) WHERE id = :p"
+        ),
+        {"t": title, "a": json.dumps(authors), "y": year, "d": doc_type, "p": job.paper_id},
+    )
 
 
 async def verify_summary(deps: Deps, org_id: UUID, summary_id: UUID, paper_id: UUID) -> bool:

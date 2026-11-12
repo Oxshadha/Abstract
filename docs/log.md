@@ -15,6 +15,20 @@ Entry format:
 
 ---
 
+## 2026-11-12: Spec 013 Library, collections and search implemented
+**Done:** Home (upload plus the five papers opened most recently) and Library (every paper, All/Starred, sort, grid/list, infinite loading, Add Paper with drop-anywhere upload); star and rename; collections as sidebar folders with move and remove; Ctrl/Cmd+K search over titles, authors and passages with no model tokens (debounced, aborted, cached), passages open at their page highlighted. Menus and dropdowns now float above panels; Delete and Sign out are red. API with migration 0008, query budget and index tests.
+**Verified:** Playwright in Chromium, WebKit and Firefox, desktop and phone.
+**Found:** PR #10 (spec 008) merged into `feat/007-chat` after #9 had merged, so 008 never reached `main`; reopened as #11 against `main`.
+**Decisions:** D82, D83, D84   **Specs:** 013 Implemented
+**Next:** spec 009 (tables, figures, Figures tab, Ask about this region).
+**Blockers / waiting on owner:** merge #11 (008), then the 013 PR.
+
+## 2026-11-12: Owner review of the running app; spec 013 approved and next
+**Done:** Fixed a Safari and older-Chrome crash in the Paper panel (pdf.js legacy build); replaced native controls with one shared design-system dropdown; Playwright now runs Chromium, WebKit and Firefox (desktop and phones), all passing. Owner decided the Library is the home page, collections are sidebar folders and search is built next (D82); spec 013 drafted and approved (default sort Recently added; passage search with no model tokens; debounce, paging and caching). Removed the Mac-only shortcut badge. CI: the Tesseract install now retries after a runner DNS outage failed PR #9.
+**Decisions:** D82   **Specs:** 008 Implemented, 013 Approved
+**Next:** build spec 013 on `feat/013-library`.
+**Blockers / waiting on owner:** merge PR #9 then #10.
+
 ## 2026-11-11: Spec 008 PDF viewer and citations implemented
 **Done:** Spec 008 approved (D81: sentence located in the browser; Ask about this region moved to 009). Built: page sizes stored at ingestion with a backfill (AC3); short-lived range-capable file link (AC2); Paper panel viewer with toolbar, zoom and PageUp/PageDown (AC1); citation chips in chat and summary sources open the panel, scroll to the page and highlight the quoted sentence, announced to screen readers, with a calm note when it is not found (AC4, AC5); virtualised rendering, pdf.js worker, range loading, frame-throttled layout (AC6 to AC8); per-panel error with Try again and Download PDF (AC9); page 1 preview on the processing page (AC10).
 **Bugs caught:** a citation on a page already on screen never highlighted (react-pdf reports page text once); react-pdf's default Suspense reset the whole Workspace and cancelled streaming answers; the frame-throttled measure stopped after its first cleanup (clipped pages, frozen virtual window); tapping a citation on a phone mid-answer cancelled the answer (panels now stay mounted); two real WCAG 2.5.3 violations (search and account buttons) surfaced once jsdom gained a canvas.

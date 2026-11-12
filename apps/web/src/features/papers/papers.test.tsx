@@ -7,7 +7,9 @@ import { setAuthState } from "@/auth/state";
 import { createAppRouter } from "@/router";
 import { seriousViolations } from "@/test/axe";
 
-import { getPaper, getStatus, listPapers } from "./api";
+import { listCollections, listLibrary } from "@/features/library/api";
+
+import { getPaper, getStatus } from "./api";
 import { paper, status } from "./fixtures";
 import { uploadPaper } from "./upload";
 
@@ -20,9 +22,13 @@ vi.mock("@/api/me", () => ({
     }),
   ),
 }));
+vi.mock("@/features/library/api", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/features/library/api")>()),
+  listLibrary: vi.fn(),
+  listCollections: vi.fn(),
+}));
 vi.mock("./api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("./api")>()),
-  listPapers: vi.fn(),
   getPaper: vi.fn(),
   getStatus: vi.fn(),
 }));
@@ -49,12 +55,13 @@ const streamFetch = vi.fn<(url: string, init?: RequestInit) => Promise<Response>
 beforeEach(() => {
   vi.stubGlobal("fetch", streamFetch); // the progress stream stays open
   setAuthState({ status: "signed-in", provider: "dev" });
-  vi.mocked(listPapers).mockResolvedValue({ items: [], next_cursor: null });
+  vi.mocked(listLibrary).mockResolvedValue({ items: [], next_cursor: null });
+  vi.mocked(listCollections).mockResolvedValue([]);
 });
 
 describe("AC14: Library list", () => {
   it("lists papers with status pills, pages, size and time", async () => {
-    vi.mocked(listPapers).mockResolvedValue({
+    vi.mocked(listLibrary).mockResolvedValue({
       items: [
         paper(),
         paper({ id: "p2", title: "LLM Agents", status: "processing", text_status: "pending" }),
@@ -63,31 +70,31 @@ describe("AC14: Library list", () => {
       next_cursor: null,
     });
     await renderAt("/app/library");
-    const list = await screen.findByRole("list", { name: "Recent papers" });
+    const list = await screen.findByRole("list", { name: "Papers" });
     const rows = within(list).getAllByRole("listitem");
     expect(rows).toHaveLength(3);
-    expect(within(rows[0] as HTMLElement).getByText("Ready")).toBeInTheDocument();
-    expect(within(rows[0] as HTMLElement).getByText("15 pages · 2.1 MB")).toBeInTheDocument();
+    expect(within(rows[0] as HTMLElement).getAllByText("Ready")[0]).toBeInTheDocument();
+    expect(within(rows[0] as HTMLElement).getByText("Vaswani, Shazeer · 2017 · 15 pages")).toBeInTheDocument();
     expect(within(rows[0] as HTMLElement).getByText("2h ago")).toBeInTheDocument();
-    expect(within(rows[1] as HTMLElement).getByText("Processing")).toBeInTheDocument();
-    expect(within(rows[2] as HTMLElement).getByText("Failed")).toBeInTheDocument();
+    expect(within(rows[1] as HTMLElement).getAllByText("Processing")[0]).toBeInTheDocument();
+    expect(within(rows[2] as HTMLElement).getAllByText("Failed")[0]).toBeInTheDocument();
     expect(within(rows[2] as HTMLElement).getByText(/damaged/)).toBeInTheDocument();
   });
 
   it("pages with a cursor", async () => {
-    vi.mocked(listPapers)
+    vi.mocked(listLibrary)
       .mockResolvedValueOnce({ items: [paper()], next_cursor: "c1" })
       .mockResolvedValueOnce({ items: [paper({ id: "p9", title: "Older paper" })], next_cursor: null });
     await renderAt("/app/library");
     fireEvent.click(await screen.findByRole("button", { name: "Show more" }));
     expect(await screen.findByText("Older paper")).toBeInTheDocument();
-    expect(vi.mocked(listPapers).mock.calls.map((c) => c[0])).toEqual([null, "c1"]);
+    expect(vi.mocked(listLibrary).mock.calls.map((c) => c[1])).toEqual([null, "c1"]);
     expect(screen.queryByRole("button", { name: "Show more" })).not.toBeInTheDocument();
   });
 
   it("shows skeletons while loading and an empty state", async () => {
     let resolve: (v: { items: never[]; next_cursor: null }) => void = () => undefined;
-    vi.mocked(listPapers).mockReturnValue(new Promise((r) => (resolve = r)));
+    vi.mocked(listLibrary).mockReturnValue(new Promise((r) => (resolve = r)));
     await renderAt("/app/library");
     expect(await screen.findByRole("status", { name: "Loading your papers" })).toBeInTheDocument();
     await act(async () => {
@@ -100,7 +107,7 @@ describe("AC14: Library list", () => {
 
 describe("AC2: drop zone", () => {
   it("rejects a non-PDF before uploading", async () => {
-    await renderAt("/app/library");
+    await renderAt("/app/home");
     const input = document.querySelector<HTMLInputElement>('input[type="file"]');
     if (!input) throw new Error("no file input");
     fireEvent.change(input, { target: { files: [new File(["x"], "notes.txt", { type: "text/plain" })] } });
@@ -116,7 +123,7 @@ describe("AC2: drop zone", () => {
       onProgress(0.4);
       return Promise.resolve({ paper: paper({ status: "processing" }), job: null, duplicate: false });
     });
-    const { router } = await renderAt("/app/library");
+    const { router } = await renderAt("/app/home");
     const choose = await screen.findByRole("button", { name: "Choose PDF" });
     choose.focus();
     expect(choose).toHaveFocus();
@@ -135,7 +142,7 @@ describe("AC2: drop zone", () => {
       callbacks.onProgress(0.42);
       return new Promise(() => undefined);
     });
-    await renderAt("/app/library");
+    await renderAt("/app/home");
     const input = document.querySelector<HTMLInputElement>('input[type="file"]');
     if (!input) throw new Error("no file input");
     fireEvent.change(input, { target: { files: [new File(["%PDF-"], "a.pdf", { type: "application/pdf" })] } });
@@ -185,7 +192,7 @@ describe("AC12: processing page", () => {
 
 describe("AC15 (003): new screens have no serious accessibility violations", () => {
   it.each(["/app/library", "/app/papers/p1/processing"])("%s", async (path) => {
-    vi.mocked(listPapers).mockResolvedValue({ items: [paper(), paper({ id: "p2", status: "processing" })], next_cursor: null });
+    vi.mocked(listLibrary).mockResolvedValue({ items: [paper(), paper({ id: "p2", status: "processing" })], next_cursor: null });
     vi.mocked(getPaper).mockResolvedValue(paper({ status: "processing" }));
     vi.mocked(getStatus).mockResolvedValue(status());
     const { container } = await renderAt(path);

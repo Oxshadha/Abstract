@@ -1,5 +1,8 @@
 import { Check, ChevronDown } from "lucide-react";
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
+import { createPortal } from "react-dom";
+
+import { FLOATING_STYLE, useFloating } from "./useFloating";
 
 export interface SelectOption<T extends string> {
   value: T;
@@ -35,11 +38,15 @@ export function Select<T extends string>({
   const trigger = useRef<HTMLButtonElement>(null);
   const id = useId();
   const current = options.find((o) => o.value === value);
+  const dismiss = useCallback(() => { setOpen(false); }, []);
+  const panel = useRef<HTMLDivElement>(null);
+  useFloating(open, trigger, panel, align, dismiss);
 
   useEffect(() => {
     if (!open) return;
     const close = (event: MouseEvent) => {
-      if (!root.current?.contains(event.target as Node)) setOpen(false);
+      const target = event.target as Node;
+      if (!root.current?.contains(target) && !panel.current?.contains(target)) setOpen(false);
     };
     document.addEventListener("mousedown", close);
     list.current?.focus();
@@ -93,8 +100,8 @@ export function Select<T extends string>({
         <span className="truncate whitespace-nowrap">{current?.label ?? placeholder}</span>
         <ChevronDown aria-hidden className={`size-4 shrink-0 transition-transform motion-reduce:transition-none ${open ? "rotate-180" : ""}`} />
       </button>
-      {open && (
-        <div className={`absolute z-30 mt-1 ${width} rounded-lg border border-border bg-surface p-1 shadow-overlay ${align === "right" ? "right-0" : "left-0"}`}>
+      {open && createPortal(
+        <div ref={panel} style={FLOATING_STYLE} className={`z-50 flex flex-col ${width} rounded-lg border border-border bg-surface p-1 shadow-overlay`}>
           <ul
             ref={list}
             id={id}
@@ -103,7 +110,7 @@ export function Select<T extends string>({
             tabIndex={-1}
             aria-activedescendant={`${id}-${String(active)}`}
             onKeyDown={onListKey}
-            className="max-h-80 overflow-auto outline-none"
+            className="max-h-80 min-h-0 overflow-auto outline-none"
           >
             {options.map((option, i) => (
               <li
@@ -124,7 +131,8 @@ export function Select<T extends string>({
             ))}
           </ul>
           {footer}
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

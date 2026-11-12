@@ -42,3 +42,24 @@ export function StatusPill({ status, children }: { status: Status; children: Rea
     </span>
   );
 }
+
+const ICON_TONE: Record<Status, string> = {
+  success: "text-success",
+  warning: "text-warning",
+  error: "text-error",
+  info: "text-info",
+  processing: "text-text-secondary",
+  neutral: "text-text-secondary",
+};
+
+/** Icon-only status for tight rows on phones: the label stays for screen readers and tooltips. */
+export function StatusIcon({ status, label }: { status: Status; label: string }) {
+  const Icon = ICONS[status] ?? Info;
+  return (
+    <span role={status === "processing" ? "status" : undefined} title={label} className={`inline-flex shrink-0 items-center ${ICON_TONE[status]}`}>
+      <Icon aria-hidden className={`size-4 ${status === "processing" ? "animate-spin motion-reduce:animate-none" : ""}`} />
+      <span className="sr-only">{label}</span>
+    </span>
+  );
+}
+

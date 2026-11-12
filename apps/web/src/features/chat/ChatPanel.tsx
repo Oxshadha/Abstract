@@ -16,7 +16,7 @@ import {
   type Conversation,
   type Message,
 } from "./api";
-import { useCitations } from "@/features/viewer/citations";
+import { useCitations } from "@/features/viewer/citation-context";
 
 import { withMarkers } from "./markers";
 import { completedSentences, useChat, type Draft } from "./useChat";
