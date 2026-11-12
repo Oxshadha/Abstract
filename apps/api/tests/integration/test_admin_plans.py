@@ -70,3 +70,33 @@ async def test_AC10_operator_command_moves_a_user_by_email(
     assert await set_plan("nobody@example.org", "pro") == 1
     plan = await _sql(database, "SELECT plan_id FROM users WHERE email = :e", e=email)
     assert plan == [("internal",)]
+
+
+async def test_account_command_sets_up_a_clerk_user_with_role_and_plan(
+    database: dict[str, str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.scripts.account import setup
+
+    subject = f"user_{uuid4().hex}"
+    email = f"{uuid4().hex}@example.org"
+    monkeypatch.setenv("MIGRATIONS_DATABASE_URL", database["admin"])
+    # Before their first sign-in: the account, its workspace and membership are created.
+    assert await setup(subject, email, "Demo Admin", "admin", "internal") == 0
+    rows = await _sql(
+        database,
+        "SELECT u.platform_role, u.plan_id, u.display_name, m.role FROM users u"
+        " JOIN memberships m ON m.user_id = u.id AND m.org_id = u.personal_org_id"
+        " WHERE u.clerk_user_id = :s",
+        s=subject,
+    )
+    assert rows == [("admin", "internal", "Demo Admin", "owner")]
+    # Running it again updates the role and plan, never a second account.
+    assert await setup(subject, email, None, "user", "free") == 0
+    again = await _sql(
+        database,
+        "SELECT count(*), max(platform_role), max(plan_id) FROM users WHERE clerk_user_id = :s",
+        s=subject,
+    )
+    assert again == [(1, "user", "free")]
+    assert await setup(subject, email, None, "user", "gold") == 1
+    assert await setup("not-a-clerk-id", email, None, "user", "free") == 2
