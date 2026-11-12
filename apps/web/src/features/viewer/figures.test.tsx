@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { seriousViolations } from "@/test/axe";
 
 import { describeFigure, getElements, getFigureImage, retryEnrichment, type Elements } from "./api";
+import { timeLeft } from "./time-left";
 import { FiguresPanel } from "./FiguresPanel";
 
 vi.mock("./api", async (orig) => ({
@@ -60,9 +61,20 @@ beforeEach(() => {
 
 describe("Figures & tables (spec 009)", () => {
   it("AC2: shows page progress while the background parse runs", async () => {
-    vi.mocked(getElements).mockResolvedValue({ ...DONE, status: "running", pages_total: 11, pages_done: 3, tables: [], figures: [] });
+    vi.mocked(getElements).mockResolvedValue({ ...DONE, status: "running", pages_total: 11, pages_done: 3, seconds_left: 95, tables: [], figures: [] });
     renderPanel();
-    expect(await screen.findByText("Finding tables and figures (page 4 of 11)")).toBeInTheDocument();
+    const bar = await screen.findByRole("progressbar", { name: "Finding tables and figures" });
+    expect(bar).toHaveAttribute("aria-valuenow", "3");
+    expect(bar).toHaveAttribute("aria-valuemax", "11");
+    expect(screen.getByText("about 2 minutes left")).toBeInTheDocument();
+    expect(screen.getByText(/^Page 4 of 11\./)).toBeInTheDocument();
+  });
+
+  it("AC2: phrases the time left without ranges", () => {
+    expect(timeLeft(4)).toBe("a few seconds left");
+    expect(timeLeft(42)).toBe("about 40 seconds left");
+    expect(timeLeft(60)).toBe("about 1 minute left");
+    expect(timeLeft(61)).toBe("about 2 minutes left");
   });
 
   it("AC5: lists tables and figures in page order, tables as accessible HTML tables", async () => {
