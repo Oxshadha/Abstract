@@ -26,6 +26,14 @@ for (const theme of ["light", "dark"]) {
   if ((await ask.getAttribute("aria-pressed")) !== "true") await ask.click();
   await page.locator(".textLayer span").first().waitFor({ timeout: 60_000 });
   await page.getByRole("button", { name: /^\[1\]/ }).first().waitFor({ timeout: 90_000 });
+  // Start the paper at its title: arXiv's copy prints a permission notice above it, which is
+  // part of the PDF, not of Abstract, and only distracts in a product shot.
+  await page.evaluate(() => {
+    const scroller = document.querySelector('[aria-label="Paper pages"]');
+    const title = [...document.querySelectorAll(".textLayer span")].find((s) => s.textContent?.trim() === "Attention Is All You Need");
+    if (scroller && title) scroller.scrollTop += title.getBoundingClientRect().top - scroller.getBoundingClientRect().top - 16;
+  });
+  await page.waitForTimeout(1500);
   await page.mouse.move(0, 999);
   await page.waitForTimeout(1500);
   await page.screenshot({ path: `${out}/workspace-${theme}.png` });
