@@ -14,8 +14,8 @@ import { parseLibrarySearch } from "@/features/library/search-params";
 import {
   LibraryPage,
   NotFoundPage,
-  SettingsPage,
 } from "@/routes/app/pages";
+import { SettingsPage } from "@/features/settings/SettingsPage";
 import { HomePage } from "@/routes/HomePage";
 
 const rootRoute = createRootRoute({ component: Outlet, notFoundComponent: NotFoundPage });
