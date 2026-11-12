@@ -49,6 +49,14 @@ POLICY: dict[str, frozenset[str]] = {
     "admin.models.update": frozenset(),
     "admin.usage.read": frozenset(),
     "admin.users.plan": frozenset(),  # spec 012 AC10
+    # spec 011
+    "admin.users.read": frozenset(),
+    "admin.users.update": frozenset(),
+    "admin.flags.update": frozenset(),
+    "admin.jobs.read": frozenset(),
+    "admin.jobs.retry": frozenset(),
+    "admin.plans.update": frozenset(),
+    "admin.cap.update": frozenset(),
 }
 
 AUTHORIZE_MARKER = "__authorize_action__"

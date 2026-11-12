@@ -75,6 +75,7 @@ class SpendGuard:
         self._kill_cached: tuple[float, bool] = (float("-inf"), True)
         self._caps: dict[UUID | None, tuple[float, tuple[float | None, float | None]]] = {}
         self._warned = ""
+        self._cap_cached: tuple[float, float | None] = (float("-inf"), None)
 
     # ---------- kill switch ----------
 
@@ -94,6 +95,27 @@ class SpendGuard:
 
     def forget_kill_switch(self) -> None:
         self._kill_cached = (float("-inf"), True)
+
+    # ---------- platform cap (spec 011 AC13) ----------
+
+    async def platform_cap(self) -> float:
+        """The platform-wide daily cap: the admin setting, or the deployment setting while it is
+        unset. Re-read at most every KILL_SWITCH_TTL seconds."""
+        checked_at, cap = self._cap_cached
+        if time.monotonic() - checked_at < KILL_SWITCH_TTL and cap is not None:
+            return cap
+        async with self._maker() as session:
+            value = (
+                await session.execute(
+                    text("SELECT value FROM platform_settings WHERE key = 'llm_daily_cap_usd'")
+                )
+            ).scalar_one_or_none()
+        cap = float(value) if isinstance(value, int | float) else self._settings.llm_daily_cap_usd
+        self._cap_cached = (time.monotonic(), cap)
+        return cap
+
+    def forget_cap(self) -> None:
+        self._cap_cached = (float("-inf"), None)
 
     # ---------- totals ----------
 
@@ -180,7 +202,7 @@ class SpendGuard:
             )
         user_id = current_context().user_id
         global_usd, user_day, user_month = await self.totals(user_id)
-        cap = self._settings.llm_daily_cap_usd
+        cap = await self.platform_cap()
         await self._warn_once(global_usd, cap)
         day_cap, month_cap = await self.user_caps(user_id) if user_id else (None, None)
         over_global = global_usd >= cap

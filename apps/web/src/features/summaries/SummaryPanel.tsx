@@ -28,6 +28,7 @@ import { Menu } from "@/components/menu/Menu";
 import { Select } from "@/components/menu/Select";
 import { StatusPill } from "@/components/status/StatusPill";
 import { toast } from "@/components/status/toast";
+import { useFlag } from "@/features/flags/api";
 import { saveBlob } from "@/lib/download";
 
 import {
@@ -360,6 +361,7 @@ function ExportMenu({ summary }: { summary: Summary | undefined }) {
 }
 
 export function SummaryPanel({ paperId }: { paperId: string }) {
+  const readingAids = useFlag("reading_aids"); // spec 011 AC7: export
   const queryClient = useQueryClient();
   const summaries = useQuery({ queryKey: summaryKeys.forPaper(paperId), queryFn: () => listSummaries(paperId) });
   const templates = useQuery({ queryKey: summaryKeys.templates, queryFn: listTemplates });
@@ -391,7 +393,7 @@ export function SummaryPanel({ paperId }: { paperId: string }) {
         <h2 className="font-display text-lg font-bold whitespace-nowrap">Summary</h2>
         <span className="flex min-w-0 items-center gap-1">
           <TemplateSwitcher current={templateId} onChoose={choose} />
-          <ExportMenu summary={summary.data} />
+          {readingAids && <ExportMenu summary={summary.data} />}
         </span>
       </div>
       <div className="-mx-1 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-1 max-lg:pb-28">

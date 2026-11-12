@@ -271,3 +271,22 @@ async def test_012_AC5_platform_cap_applies_to_internal_and_warns_once_at_80_per
     with pytest.raises(BudgetExceededError) as info:
         await choose(guard, entry("stop"), user)
     assert info.value.status == 402
+
+
+async def test_011_AC13_the_admin_cap_replaces_the_deployment_setting(
+    guard: SpendGuard, admin: AsyncEngine
+) -> None:
+    async with admin.begin() as conn:
+        await conn.execute(
+            text("UPDATE platform_settings SET value = '1.0' WHERE key = 'llm_daily_cap_usd'")
+        )
+    try:
+        await spend(admin, None, 1.10)  # over the admin's $1, under the $5 deployment cap
+        with pytest.raises(BudgetExceededError) as info:
+            await choose(guard, entry("stop"), uuid4())
+        assert info.value.status == 402
+    finally:
+        async with admin.begin() as conn:
+            await conn.execute(
+                text("UPDATE platform_settings SET value = 'null' WHERE key = 'llm_daily_cap_usd'")
+            )

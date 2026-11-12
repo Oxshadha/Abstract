@@ -35,6 +35,14 @@ const templatesRoute = createRoute({ getParentRoute: () => appRoute, path: "/tem
 const newTemplateRoute = createRoute({ getParentRoute: () => appRoute, path: "/templates/new", component: lazyRouteComponent(() => import("@/features/templates/TemplatesRoute"), "NewTemplate") });
 const editTemplateRoute = createRoute({ getParentRoute: () => appRoute, path: "/templates/$templateId", component: lazyRouteComponent(() => import("@/features/templates/TemplatesRoute"), "EditTemplate") });
 const settingsRoute = createRoute({ getParentRoute: () => appRoute, path: "/settings", component: SettingsPage });
+// Admin (spec 011): platform admins only; loaded on demand so other users never download it.
+const adminRoute = createRoute({ getParentRoute: () => appRoute, path: "/admin", component: lazyRouteComponent(() => import("@/features/admin/AdminLayout"), "AdminLayout") });
+const adminOverviewRoute = createRoute({ getParentRoute: () => adminRoute, path: "/", component: lazyRouteComponent(() => import("@/features/admin/OverviewPage"), "OverviewPage") });
+const adminUsersRoute = createRoute({ getParentRoute: () => adminRoute, path: "/users", component: lazyRouteComponent(() => import("@/features/admin/UsersPage"), "UsersPage") });
+const adminPlansRoute = createRoute({ getParentRoute: () => adminRoute, path: "/plans", component: lazyRouteComponent(() => import("@/features/admin/PlansPage"), "PlansPage") });
+const adminModelsRoute = createRoute({ getParentRoute: () => adminRoute, path: "/models", component: lazyRouteComponent(() => import("@/features/admin/ModelsPage"), "ModelsPage") });
+const adminFlagsRoute = createRoute({ getParentRoute: () => adminRoute, path: "/flags", component: lazyRouteComponent(() => import("@/features/admin/FlagsPage"), "FlagsPage") });
+const adminJobsRoute = createRoute({ getParentRoute: () => adminRoute, path: "/jobs", component: lazyRouteComponent(() => import("@/features/admin/JobsPage"), "JobsPage") });
 const templateRoute = createRoute({ getParentRoute: () => appRoute, path: "/papers/$paperId/template", component: lazyRouteComponent(() => import("@/features/summaries/TemplateStep")) });
 const processingRoute = createRoute({ getParentRoute: () => appRoute, path: "/papers/$paperId/processing", component: lazyRouteComponent(() => import("@/features/papers/ProcessingPage")) });
 // A search passage opens the paper at its page with the passage highlighted (spec 013 AC8).
@@ -53,7 +61,7 @@ const routeTree = rootRoute.addChildren([
   indexRoute,
   signInRoute,
   signUpRoute,
-  appRoute.addChildren([appIndexRoute, homeRoute, libraryRoute, collectionsRoute, templatesRoute, newTemplateRoute, editTemplateRoute, settingsRoute, templateRoute, processingRoute, workspaceRoute]),
+  appRoute.addChildren([appIndexRoute, homeRoute, libraryRoute, collectionsRoute, templatesRoute, newTemplateRoute, editTemplateRoute, settingsRoute, adminRoute.addChildren([adminOverviewRoute, adminUsersRoute, adminPlansRoute, adminModelsRoute, adminFlagsRoute, adminJobsRoute]), templateRoute, processingRoute, workspaceRoute]),
 ]);
 
 export function createAppRouter(history?: RouterHistory) {

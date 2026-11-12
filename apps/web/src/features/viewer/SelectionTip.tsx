@@ -15,7 +15,7 @@ function seen(): boolean {
  * A one-time tip above the pages (spec 015): how to Explain or Ask about text, and the region
  * tool for tables and figures. Dismissed once per device.
  */
-export function SelectionTip() {
+export function SelectionTip({ regions = true }: { regions?: boolean }) {
   const [hidden, setHidden] = useState(seen);
   if (hidden) return null;
   const touch = typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches;
@@ -24,9 +24,14 @@ export function SelectionTip() {
       <Lightbulb aria-hidden className="mt-0.5 size-4 shrink-0" />
       <p className="min-w-0 flex-1">
         {touch ? "Press and hold on text, then drag the handles" : "Select text with the mouse"}
-        {" to Explain it or Ask about it. For a table or figure, use "}
-        <SquareDashedMousePointer aria-label="Select region" className="inline size-4 align-text-bottom" />
-        {" and draw a box."}
+        {" to Explain it or Ask about it."}
+        {regions && (
+          <>
+            {" For a table or figure, use "}
+            <SquareDashedMousePointer aria-label="Select region" className="inline size-4 align-text-bottom" />
+            {" and draw a box."}
+          </>
+        )}
       </p>
       <button
         type="button"

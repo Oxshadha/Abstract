@@ -7,6 +7,7 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "rea
 import { Document, Page, pdfjs } from "react-pdf";
 
 import { Select } from "@/components/menu/Select";
+import { useFlag } from "@/features/flags/api";
 
 import { useCitations, type PageBox } from "./citation-context";
 import { PDF_ASSETS } from "./pdf-assets";
@@ -29,6 +30,8 @@ type Zoom = "fit" | number;
 export function PdfViewer({ paperId }: { paperId: string }) {
   const queryClient = useQueryClient();
   const citations = useCitations();
+  const figures = useFlag("figures"); // spec 011 AC7: the region tool
+  const readingAids = useFlag("reading_aids"); // Explain and Ask on selected text
   const file = useQuery({ queryKey: viewerKeys.fileUrl(paperId), queryFn: () => getFileUrl(paperId), staleTime: 4 * 60_000 });
   const sizes = useQuery({ queryKey: viewerKeys.pages(paperId), queryFn: () => getPageSizes(paperId), staleTime: Infinity });
   const scroller = useRef<HTMLDivElement>(null);
@@ -235,6 +238,7 @@ export function PdfViewer({ paperId }: { paperId: string }) {
         <button type="button" aria-label="Next page" disabled={current >= pages.length} onClick={() => { goTo(current + 1); }} className="inline-flex size-11 items-center justify-center rounded-md hover:bg-muted disabled:opacity-40">
           <ChevronRight aria-hidden className="size-5" />
         </button>
+        {figures && (
         <button
           type="button"
           aria-pressed={selecting}
@@ -245,6 +249,7 @@ export function PdfViewer({ paperId }: { paperId: string }) {
         >
           <SquareDashedMousePointer aria-hidden className="size-5" />
         </button>
+        )}
         <span className="ml-auto flex shrink-0 items-center gap-0.5">
           <button type="button" aria-label="Zoom out" onClick={() => { setZoom(ZOOMS.filter((z) => z < scale - 0.01).at(-1) ?? ZOOMS[0] ?? 0.5); }} className="hidden size-11 items-center justify-center rounded-md hover:bg-muted @md:inline-flex">
             <Minus aria-hidden className="size-4" />
@@ -268,8 +273,8 @@ export function PdfViewer({ paperId }: { paperId: string }) {
       {highlight && !target?.box && found?.id === highlight.id && !highlight.located && (
         <p className="mt-2 text-sm text-text-secondary">{announcement}</p>
       )}
-      {citations && <SelectionTip />}
-      {text.selected && !selecting && citations && (
+      {citations && readingAids && <SelectionTip regions={figures} />}
+      {text.selected && !selecting && citations && readingAids && (
         <SelectionToolbar
           selection={text.selected}
           toolbarRef={toolbar}

@@ -1,6 +1,249 @@
 {
   "components": {
     "schemas": {
+      "AdminJob": {
+        "properties": {
+          "at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "At"
+          },
+          "attempts": {
+            "title": "Attempts",
+            "type": "integer"
+          },
+          "held": {
+            "title": "Held",
+            "type": "boolean"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "kind": {
+            "title": "Kind",
+            "type": "string"
+          },
+          "last_error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Error"
+          },
+          "owner_email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Owner Email"
+          },
+          "retryable": {
+            "title": "Retryable",
+            "type": "boolean"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          },
+          "stuck": {
+            "title": "Stuck",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "status",
+          "stuck",
+          "owner_email",
+          "attempts",
+          "last_error",
+          "held",
+          "at",
+          "retryable"
+        ],
+        "title": "AdminJob",
+        "type": "object"
+      },
+      "AdminJobs": {
+        "properties": {
+          "counts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Counts",
+            "type": "object"
+          },
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminJob"
+            },
+            "title": "Items",
+            "type": "array"
+          }
+        },
+        "required": [
+          "items",
+          "counts"
+        ],
+        "title": "AdminJobs",
+        "type": "object"
+      },
+      "AdminUser": {
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "title": "Created At",
+            "type": "string"
+          },
+          "disabled": {
+            "title": "Disabled",
+            "type": "boolean"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "last_active": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Last Active"
+          },
+          "papers": {
+            "title": "Papers",
+            "type": "integer"
+          },
+          "plan_id": {
+            "title": "Plan Id",
+            "type": "string"
+          },
+          "platform_role": {
+            "title": "Platform Role",
+            "type": "string"
+          },
+          "spend_month_usd": {
+            "title": "Spend Month Usd",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "email",
+          "display_name",
+          "plan_id",
+          "platform_role",
+          "disabled",
+          "papers",
+          "spend_month_usd",
+          "last_active",
+          "created_at"
+        ],
+        "title": "AdminUser",
+        "type": "object"
+      },
+      "AdminUserPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AdminUser"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "AdminUserPage",
+        "type": "object"
+      },
+      "Audience": {
+        "additionalProperties": false,
+        "properties": {
+          "plans": {
+            "items": {
+              "maxLength": 10000,
+              "type": "string"
+            },
+            "maxItems": 10,
+            "title": "Plans",
+            "type": "array"
+          },
+          "who": {
+            "enum": [
+              "everyone",
+              "admins",
+              "plans"
+            ],
+            "title": "Who",
+            "type": "string"
+          }
+        },
+        "required": [
+          "who"
+        ],
+        "title": "Audience",
+        "type": "object"
+      },
       "CitationElement": {
         "description": "The table or figure a citation points at (spec 009 AC9): the chip opens its box.",
         "properties": {
@@ -712,6 +955,51 @@
         "title": "FinalizeResponse",
         "type": "object"
       },
+      "FlagOut": {
+        "properties": {
+          "audience": {
+            "$ref": "#/components/schemas/Audience"
+          },
+          "description": {
+            "title": "Description",
+            "type": "string"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "description",
+          "enabled",
+          "audience"
+        ],
+        "title": "FlagOut",
+        "type": "object"
+      },
+      "FlagUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "audience": {
+            "$ref": "#/components/schemas/Audience"
+          },
+          "enabled": {
+            "title": "Enabled",
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "enabled",
+          "audience"
+        ],
+        "title": "FlagUpdate",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -1168,6 +1456,123 @@
         "title": "ModelRoute",
         "type": "object"
       },
+      "MyFlags": {
+        "properties": {
+          "flags": {
+            "additionalProperties": {
+              "type": "boolean"
+            },
+            "title": "Flags",
+            "type": "object"
+          }
+        },
+        "required": [
+          "flags"
+        ],
+        "title": "MyFlags",
+        "type": "object"
+      },
+      "Overview": {
+        "properties": {
+          "by_model": {
+            "items": {
+              "$ref": "#/components/schemas/UsageLine"
+            },
+            "title": "By Model",
+            "type": "array"
+          },
+          "by_task": {
+            "items": {
+              "$ref": "#/components/schemas/UsageLine"
+            },
+            "title": "By Task",
+            "type": "array"
+          },
+          "cap_usd": {
+            "title": "Cap Usd",
+            "type": "number"
+          },
+          "cap_warning": {
+            "title": "Cap Warning",
+            "type": "boolean"
+          },
+          "jobs": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Jobs",
+            "type": "object"
+          },
+          "paid_calls_enabled": {
+            "title": "Paid Calls Enabled",
+            "type": "boolean"
+          },
+          "provider_errors": {
+            "items": {
+              "$ref": "#/components/schemas/ProviderErrors"
+            },
+            "title": "Provider Errors",
+            "type": "array"
+          },
+          "queues": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Queues"
+          },
+          "spend_month_usd": {
+            "title": "Spend Month Usd",
+            "type": "number"
+          },
+          "spend_today_usd": {
+            "title": "Spend Today Usd",
+            "type": "number"
+          },
+          "tokens_today": {
+            "title": "Tokens Today",
+            "type": "integer"
+          },
+          "top_month": {
+            "items": {
+              "$ref": "#/components/schemas/TopUser"
+            },
+            "title": "Top Month",
+            "type": "array"
+          },
+          "top_today": {
+            "items": {
+              "$ref": "#/components/schemas/TopUser"
+            },
+            "title": "Top Today",
+            "type": "array"
+          }
+        },
+        "required": [
+          "spend_today_usd",
+          "spend_month_usd",
+          "tokens_today",
+          "cap_usd",
+          "cap_warning",
+          "paid_calls_enabled",
+          "by_task",
+          "by_model",
+          "top_today",
+          "top_month",
+          "queues",
+          "provider_errors",
+          "jobs"
+        ],
+        "title": "Overview",
+        "type": "object"
+      },
       "PageSize": {
         "properties": {
           "height": {
@@ -1563,6 +1968,230 @@
         "title": "PlanChange",
         "type": "object"
       },
+      "PlanLimits": {
+        "properties": {
+          "ai_usd_per_day": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai Usd Per Day"
+          },
+          "ai_usd_per_month": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai Usd Per Month"
+          },
+          "concurrent_jobs": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Concurrent Jobs"
+          },
+          "custom_templates": {
+            "title": "Custom Templates",
+            "type": "integer"
+          },
+          "fields_per_template": {
+            "title": "Fields Per Template",
+            "type": "integer"
+          },
+          "messages_per_day": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Messages Per Day"
+          },
+          "papers_per_month": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Papers Per Month"
+          },
+          "rate_per_minute": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "type": "integer"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rate Per Minute"
+          }
+        },
+        "required": [
+          "papers_per_month",
+          "messages_per_day",
+          "ai_usd_per_day",
+          "ai_usd_per_month",
+          "fields_per_template",
+          "custom_templates",
+          "concurrent_jobs",
+          "rate_per_minute"
+        ],
+        "title": "PlanLimits",
+        "type": "object"
+      },
+      "PlanLimitsIn": {
+        "additionalProperties": false,
+        "properties": {
+          "ai_usd_per_day": {
+            "anyOf": [
+              {
+                "maximum": 100000.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai Usd Per Day"
+          },
+          "ai_usd_per_month": {
+            "anyOf": [
+              {
+                "maximum": 1000000.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ai Usd Per Month"
+          },
+          "concurrent_jobs": {
+            "anyOf": [
+              {
+                "maximum": 100.0,
+                "minimum": 1.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Concurrent Jobs"
+          },
+          "custom_templates": {
+            "maximum": 1000.0,
+            "minimum": 1.0,
+            "title": "Custom Templates",
+            "type": "integer"
+          },
+          "fields_per_template": {
+            "maximum": 50.0,
+            "minimum": 1.0,
+            "title": "Fields Per Template",
+            "type": "integer"
+          },
+          "messages_per_day": {
+            "anyOf": [
+              {
+                "maximum": 1000000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Messages Per Day"
+          },
+          "papers_per_month": {
+            "anyOf": [
+              {
+                "maximum": 1000000.0,
+                "minimum": 0.0,
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Papers Per Month"
+          },
+          "rate_per_minute": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Rates"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "papers_per_month",
+          "messages_per_day",
+          "ai_usd_per_day",
+          "ai_usd_per_month",
+          "fields_per_template",
+          "custom_templates",
+          "concurrent_jobs",
+          "rate_per_minute"
+        ],
+        "title": "PlanLimitsIn",
+        "type": "object"
+      },
+      "PlanOut": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "limits": {
+            "$ref": "#/components/schemas/PlanLimits"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "users": {
+            "title": "Users",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "limits",
+          "users"
+        ],
+        "title": "PlanOut",
+        "type": "object"
+      },
       "PlanRef": {
         "properties": {
           "id": {
@@ -1579,6 +2208,35 @@
           "name"
         ],
         "title": "PlanRef",
+        "type": "object"
+      },
+      "PlanUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "limits": {
+            "$ref": "#/components/schemas/PlanLimitsIn"
+          }
+        },
+        "required": [
+          "limits"
+        ],
+        "title": "PlanUpdate",
+        "type": "object"
+      },
+      "PlatformCap": {
+        "additionalProperties": false,
+        "properties": {
+          "daily_usd": {
+            "maximum": 100000.0,
+            "minimum": 0.0,
+            "title": "Daily Usd",
+            "type": "number"
+          }
+        },
+        "required": [
+          "daily_usd"
+        ],
+        "title": "PlatformCap",
         "type": "object"
       },
       "Pong": {
@@ -1618,6 +2276,29 @@
         "title": "PreviewRequest",
         "type": "object"
       },
+      "ProviderErrors": {
+        "properties": {
+          "calls": {
+            "title": "Calls",
+            "type": "integer"
+          },
+          "errors": {
+            "title": "Errors",
+            "type": "integer"
+          },
+          "provider": {
+            "title": "Provider",
+            "type": "string"
+          }
+        },
+        "required": [
+          "provider",
+          "calls",
+          "errors"
+        ],
+        "title": "ProviderErrors",
+        "type": "object"
+      },
       "Quote": {
         "additionalProperties": false,
         "description": "Text the reader selected in the PDF (spec 015 AC4, AC5); data, never instructions.",
@@ -1640,6 +2321,43 @@
           "text"
         ],
         "title": "Quote",
+        "type": "object"
+      },
+      "Rates": {
+        "additionalProperties": false,
+        "properties": {
+          "read": {
+            "maximum": 100000.0,
+            "minimum": 1.0,
+            "title": "Read",
+            "type": "integer"
+          },
+          "search": {
+            "maximum": 100000.0,
+            "minimum": 1.0,
+            "title": "Search",
+            "type": "integer"
+          },
+          "upload": {
+            "maximum": 100000.0,
+            "minimum": 1.0,
+            "title": "Upload",
+            "type": "integer"
+          },
+          "write": {
+            "maximum": 100000.0,
+            "minimum": 1.0,
+            "title": "Write",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "read",
+          "write",
+          "upload",
+          "search"
+        ],
+        "title": "Rates",
         "type": "object"
       },
       "Ready": {
@@ -2497,6 +3215,54 @@
         "title": "TemplateUpdate",
         "type": "object"
       },
+      "TopUser": {
+        "properties": {
+          "calls": {
+            "title": "Calls",
+            "type": "integer"
+          },
+          "display_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Display Name"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "spend_usd": {
+            "title": "Spend Usd",
+            "type": "number"
+          },
+          "user_id": {
+            "format": "uuid",
+            "title": "User Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "user_id",
+          "email",
+          "display_name",
+          "spend_usd",
+          "calls"
+        ],
+        "title": "TopUser",
+        "type": "object"
+      },
       "UploadRequest": {
         "additionalProperties": false,
         "properties": {
@@ -2583,6 +3349,34 @@
           "meters"
         ],
         "title": "Usage",
+        "type": "object"
+      },
+      "UsageLine": {
+        "properties": {
+          "calls": {
+            "title": "Calls",
+            "type": "integer"
+          },
+          "cost_usd": {
+            "title": "Cost Usd",
+            "type": "number"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "tokens": {
+            "title": "Tokens",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "name",
+          "calls",
+          "tokens",
+          "cost_usd"
+        ],
+        "title": "UsageLine",
         "type": "object"
       },
       "UsageRow": {
@@ -2753,6 +3547,222 @@
         ]
       }
     },
+    "/api/v1/admin/flags": {
+      "get": {
+        "operationId": "list_flags_api_v1_admin_flags_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/FlagOut"
+                  },
+                  "title": "Response List Flags Api V1 Admin Flags Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Every feature flag and who it is on for",
+        "tags": [
+          "flags"
+        ]
+      }
+    },
+    "/api/v1/admin/flags/{key}": {
+      "put": {
+        "operationId": "update_flag_api_v1_admin_flags__key__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "title": "Key",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FlagUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FlagOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Switch a feature on or off, or limit it to admins or chosen plans (audited)",
+        "tags": [
+          "flags"
+        ]
+      }
+    },
+    "/api/v1/admin/jobs": {
+      "get": {
+        "operationId": "list_jobs_api_v1_admin_jobs_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "items": {
+                    "enum": [
+                      "failed",
+                      "enqueue_failed",
+                      "stuck"
+                    ],
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminJobs"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Failed, never-enqueued and stuck jobs with their last error, and job counts",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/jobs/{job_id}/retry": {
+      "post": {
+        "operationId": "retry_job_api_v1_admin_jobs__job_id__retry_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "job_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Queue a failed, never-enqueued or stuck job again (audited)",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/llm/cap": {
+      "put": {
+        "operationId": "set_platform_cap_api_v1_admin_llm_cap_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlatformCap"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlatformCap"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Set the platform-wide daily AI cap (spec 011 AC13, audited)",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
     "/api/v1/admin/llm/kill-switch": {
       "get": {
         "operationId": "get_kill_switch_api_v1_admin_llm_kill_switch_get",
@@ -2919,6 +3929,255 @@
           }
         },
         "summary": "Update one task's models, limits and fallbacks",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/overview": {
+      "get": {
+        "operationId": "overview_api_v1_admin_overview_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Overview"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Spend against the cap, usage by task and model, top users, queues, errors, jobs",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/plans": {
+      "get": {
+        "operationId": "list_plans_api_v1_admin_plans_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/PlanOut"
+                  },
+                  "title": "Response List Plans Api V1 Admin Plans Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Plans with their limits and how many accounts are on each",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/plans/{plan_id}": {
+      "put": {
+        "operationId": "update_plan_api_v1_admin_plans__plan_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "plan_id",
+            "required": true,
+            "schema": {
+              "title": "Plan Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PlanOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Change a plan's limits (applies within seconds; audited with before and after)",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/users": {
+      "get": {
+        "operationId": "list_users_api_v1_admin_users_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 120,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Q"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "maxLength": 300,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 25,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminUserPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Accounts with plan, role, status, papers, spend this month and last activity",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/users/{user_id}/disable": {
+      "post": {
+        "operationId": "disable_user_api_v1_admin_users__user_id__disable_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Disable an account: every later request is refused (audited)",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/users/{user_id}/enable": {
+      "post": {
+        "operationId": "enable_user_api_v1_admin_users__user_id__enable_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "User Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Re-enable a disabled account (audited); deleted accounts cannot come back",
         "tags": [
           "admin"
         ]
@@ -3625,6 +4884,27 @@
         "summary": "The signed-in user and their active organization",
         "tags": [
           "identity"
+        ]
+      }
+    },
+    "/api/v1/me/flags": {
+      "get": {
+        "operationId": "my_flags_api_v1_me_flags_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyFlags"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "The caller's feature flags, evaluated (spec 011 AC6)",
+        "tags": [
+          "flags"
         ]
       }
     },

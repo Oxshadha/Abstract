@@ -284,3 +284,38 @@ async def usage_summary(
         cost_usd=round(sum(i.cost_usd for i in items), 6),
         rows=items,
     )
+
+
+class PlatformCap(StrictModel):
+    daily_usd: float = Field(ge=0, le=100_000)
+
+
+@router.put(
+    "/llm/cap",
+    response_model=PlatformCap,
+    summary="Set the platform-wide daily AI cap (spec 011 AC13, audited)",
+    dependencies=[Depends(user_rate_limit("write"))],
+)
+async def set_platform_cap(
+    body: PlatformCap,
+    request: Request,
+    ctx: Annotated[Context, Depends(require("admin.cap.update"))],
+) -> PlatformCap:
+    before = (
+        await ctx.session.execute(
+            text("SELECT value FROM platform_settings WHERE key = 'llm_daily_cap_usd' FOR UPDATE")
+        )
+    ).scalar_one_or_none()
+    if before is None:
+        before = request.app.state.settings.llm_daily_cap_usd
+    await ctx.session.execute(
+        text(
+            "UPDATE platform_settings SET value = CAST(:v AS jsonb), version = version + 1,"
+            " updated_by = :by, updated_at = now() WHERE key = 'llm_daily_cap_usd'"
+        ),
+        {"v": json.dumps(body.daily_usd), "by": ctx.identity.user_id},
+    )
+    await _audit(ctx, "admin.llm.cap", "llm_daily_cap_usd", before, body.daily_usd)
+    await ctx.session.commit()
+    request.app.state.llm.budget.forget_cap()
+    return body

@@ -191,6 +191,7 @@ class Turn:
     quote: dict[str, Any] | None = None  # selected text {page, text} (spec 015 AC4, AC5)
     mode: str = "ask"  # "ask" or "explain"
     level: str = "plain"  # Explain level: "plain" or "expert"
+    follow_ups: bool = True  # off with the reading_aids flag (spec 011 AC7)
 
 
 def sse(event: str, data: Any) -> str:
@@ -724,7 +725,7 @@ async def answer_stream(deps: ChatDeps, turn: Turn) -> AsyncIterator[str]:
             "content": validated.text,
             "status": "complete",
             "retrieval_mode": found.mode,
-            "suggestions": follow_ups,  # spec 015 AC2: from the same answer call
+            "suggestions": follow_ups if turn.follow_ups else [],  # 015 AC2, 011 AC7
         },
     )
     if found.mode == "hybrid" and not turn.region and not turn.quote:
