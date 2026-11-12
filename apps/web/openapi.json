@@ -446,6 +446,57 @@
         "title": "FieldEdit",
         "type": "object"
       },
+      "FieldIn": {
+        "additionalProperties": false,
+        "description": "A field as the builder sends it; `key` is absent for new fields and kept for old ones.",
+        "properties": {
+          "instruction": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Instruction",
+            "type": "string"
+          },
+          "key": {
+            "anyOf": [
+              {
+                "pattern": "^[a-z][a-z0-9_]{1,39}$",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Key"
+          },
+          "label": {
+            "maxLength": 60,
+            "minLength": 1,
+            "title": "Label",
+            "type": "string"
+          },
+          "required": {
+            "default": true,
+            "title": "Required",
+            "type": "boolean"
+          },
+          "style": {
+            "default": "paragraph",
+            "enum": [
+              "paragraph",
+              "bullets",
+              "short"
+            ],
+            "title": "Style",
+            "type": "string"
+          }
+        },
+        "required": [
+          "label",
+          "instruction"
+        ],
+        "title": "FieldIn",
+        "type": "object"
+      },
       "FieldOut": {
         "properties": {
           "edited": {
@@ -697,6 +748,34 @@
           "paid_calls_enabled"
         ],
         "title": "KillSwitch",
+        "type": "object"
+      },
+      "Limits": {
+        "properties": {
+          "custom_templates": {
+            "title": "Custom Templates",
+            "type": "integer"
+          },
+          "fields_per_template": {
+            "title": "Fields Per Template",
+            "type": "integer"
+          },
+          "instruction_chars": {
+            "title": "Instruction Chars",
+            "type": "integer"
+          },
+          "label_chars": {
+            "title": "Label Chars",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "fields_per_template",
+          "custom_templates",
+          "label_chars",
+          "instruction_chars"
+        ],
+        "title": "Limits",
         "type": "object"
       },
       "Me": {
@@ -1395,6 +1474,25 @@
         "title": "Pong",
         "type": "object"
       },
+      "PreviewRequest": {
+        "additionalProperties": false,
+        "properties": {
+          "paper_id": {
+            "format": "uuid",
+            "title": "Paper Id",
+            "type": "string"
+          },
+          "template": {
+            "$ref": "#/components/schemas/TemplateIn"
+          }
+        },
+        "required": [
+          "paper_id",
+          "template"
+        ],
+        "title": "PreviewRequest",
+        "type": "object"
+      },
       "Ready": {
         "properties": {
           "checks": {
@@ -1740,9 +1838,25 @@
             "title": "Template Id",
             "type": "string"
           },
+          "template_latest_version": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template Latest Version"
+          },
           "template_name": {
             "title": "Template Name",
             "type": "string"
+          },
+          "template_version": {
+            "default": 1,
+            "title": "Template Version",
+            "type": "integer"
           }
         },
         "required": [
@@ -1967,6 +2081,36 @@
         "title": "TableOut",
         "type": "object"
       },
+      "TemplateCreate": {
+        "additionalProperties": false,
+        "description": "Either a new template or a duplicate of an existing one (system or own).",
+        "properties": {
+          "duplicate_of": {
+            "anyOf": [
+              {
+                "format": "uuid",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duplicate Of"
+          },
+          "template": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/TemplateIn"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "TemplateCreate",
+        "type": "object"
+      },
       "TemplateField": {
         "properties": {
           "instruction": {
@@ -2008,6 +2152,38 @@
           "instruction"
         ],
         "title": "TemplateField",
+        "type": "object"
+      },
+      "TemplateIn": {
+        "additionalProperties": false,
+        "properties": {
+          "description": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Description",
+            "type": "string"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/FieldIn"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Fields",
+            "type": "array"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "fields"
+        ],
+        "title": "TemplateIn",
         "type": "object"
       },
       "TemplateList": {
@@ -2056,6 +2232,18 @@
             "title": "Name",
             "type": "string"
           },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
           "version": {
             "title": "Version",
             "type": "integer"
@@ -2076,6 +2264,44 @@
           "fields"
         ],
         "title": "TemplateOut",
+        "type": "object"
+      },
+      "TemplateUpdate": {
+        "additionalProperties": false,
+        "properties": {
+          "base_version": {
+            "minimum": 1.0,
+            "title": "Base Version",
+            "type": "integer"
+          },
+          "description": {
+            "default": "",
+            "maxLength": 300,
+            "title": "Description",
+            "type": "string"
+          },
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/FieldIn"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "title": "Fields",
+            "type": "array"
+          },
+          "name": {
+            "maxLength": 80,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "fields",
+          "base_version"
+        ],
+        "title": "TemplateUpdate",
         "type": "object"
       },
       "UploadRequest": {
@@ -3075,6 +3301,27 @@
         "summary": "The signed-in user and their active organization",
         "tags": [
           "identity"
+        ]
+      }
+    },
+    "/api/v1/me/limits": {
+      "get": {
+        "operationId": "my_limits_api_v1_me_limits_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Limits"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "The caller's limits (templates today; plans in spec 012)",
+        "tags": [
+          "entitlements"
         ]
       }
     },
@@ -4547,6 +4794,222 @@
           }
         },
         "summary": "Summary templates available to the user (system templates first)",
+        "tags": [
+          "summaries"
+        ]
+      },
+      "post": {
+        "operationId": "create_template_api_v1_templates_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TemplateCreate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "description": "Template or field limit reached"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Create a custom template, or duplicate one to customize it",
+        "tags": [
+          "summaries"
+        ]
+      }
+    },
+    "/api/v1/templates/preview": {
+      "post": {
+        "operationId": "preview_template_api_v1_templates_preview_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PreviewRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "text/event-stream": {}
+            },
+            "description": "Successful Response"
+          },
+          "409": {
+            "description": "Paper not ready"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Try a template on a paper; fields stream back as Server-Sent Events, nothing is saved",
+        "tags": [
+          "summaries"
+        ]
+      }
+    },
+    "/api/v1/templates/{template_id}": {
+      "delete": {
+        "operationId": "delete_template_api_v1_templates__template_id__delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "template_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Template Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete a custom template (summaries made with it keep working)",
+        "tags": [
+          "summaries"
+        ]
+      },
+      "get": {
+        "operationId": "get_template_api_v1_templates__template_id__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "template_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Template Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "One template (system or the caller's own)",
+        "tags": [
+          "summaries"
+        ]
+      },
+      "put": {
+        "operationId": "update_template_api_v1_templates__template_id__put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "template_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Template Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TemplateUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TemplateOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "403": {
+            "description": "System templates are read-only"
+          },
+          "409": {
+            "description": "Saved from an older version, or a limit was reached"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save a new version of a custom template (from its base version)",
         "tags": [
           "summaries"
         ]

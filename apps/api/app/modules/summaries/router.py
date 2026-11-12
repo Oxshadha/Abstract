@@ -11,9 +11,12 @@ from app.core import idempotency
 from app.core.context import Context
 from app.core.policy import require, require_identity
 from app.core.ratelimit import user_rate_limit
+from app.core.schemas import StrictModel
 from app.core.tenancy import set_tenant
+from app.modules.entitlements.service import limits_for
 from app.modules.identity.service import RequestContext
-from app.modules.summaries import edits, service, templates
+from app.modules.llm.gateway import set_context as set_llm_context
+from app.modules.summaries import edits, preview, service, templates
 from app.modules.summaries.schemas import (
     CreatedSummary,
     CreateSummary,
@@ -22,9 +25,14 @@ from app.modules.summaries.schemas import (
     SummaryList,
     SummaryOut,
 )
-from app.modules.summaries.templates import TemplateList
+from app.modules.summaries.templates import TemplateList, TemplateOut
 
 router = APIRouter(tags=["summaries"])
+
+
+class PreviewRequest(StrictModel):
+    paper_id: UUID
+    template: templates.TemplateIn
 
 
 @router.get(
@@ -36,7 +44,112 @@ router = APIRouter(tags=["summaries"])
 async def list_templates(
     ctx: Annotated[Context, Depends(require("template.read"))],
 ) -> TemplateList:
-    return await templates.list_templates(ctx.session)
+    return await templates.list_templates(ctx.session, ctx.identity.user_id)
+
+
+@router.get(
+    "/templates/{template_id}",
+    response_model=TemplateOut,
+    summary="One template (system or the caller's own)",
+    dependencies=[Depends(user_rate_limit("read"))],
+)
+async def get_template(
+    template_id: UUID, ctx: Annotated[Context, Depends(require("template.read"))]
+) -> TemplateOut:
+    return await templates.get_template(ctx.session, ctx.identity.user_id, template_id)
+
+
+@router.post(
+    "/templates",
+    status_code=201,
+    response_model=TemplateOut,
+    summary="Create a custom template, or duplicate one to customize it",
+    responses={409: {"description": "Template or field limit reached"}},
+    dependencies=[Depends(user_rate_limit("write"))],
+)
+async def create_template(
+    body: templates.TemplateCreate,
+    request: Request,
+    ctx: Annotated[Context, Depends(require("template.create"))],
+) -> TemplateOut:
+    limits = limits_for(request.app.state.settings, ctx.identity.user_id)
+    return await templates.create(
+        ctx.session, ctx.identity.org_id, ctx.identity.user_id, body, limits
+    )
+
+
+@router.put(
+    "/templates/{template_id}",
+    response_model=TemplateOut,
+    summary="Save a new version of a custom template (from its base version)",
+    responses={
+        403: {"description": "System templates are read-only"},
+        409: {"description": "Saved from an older version, or a limit was reached"},
+    },
+    dependencies=[Depends(user_rate_limit("write"))],
+)
+async def update_template(
+    template_id: UUID,
+    body: templates.TemplateUpdate,
+    request: Request,
+    ctx: Annotated[Context, Depends(require("template.update"))],
+) -> TemplateOut:
+    limits = limits_for(request.app.state.settings, ctx.identity.user_id)
+    return await templates.update(
+        ctx.session, ctx.identity.org_id, ctx.identity.user_id, template_id, body, limits
+    )
+
+
+@router.delete(
+    "/templates/{template_id}",
+    status_code=204,
+    summary="Delete a custom template (summaries made with it keep working)",
+    dependencies=[Depends(user_rate_limit("write"))],
+)
+async def delete_template(
+    template_id: UUID, ctx: Annotated[Context, Depends(require("template.delete"))]
+) -> Response:
+    await templates.delete(ctx.session, ctx.identity.user_id, template_id)
+    return Response(status_code=204)
+
+
+@router.post(
+    "/templates/preview",
+    summary="Try a template on a paper; fields stream back as Server-Sent Events, nothing is saved",
+    response_class=StreamingResponse,
+    responses={
+        200: {"content": {"text/event-stream": {}}},
+        409: {"description": "Paper not ready"},
+    },
+    dependencies=[Depends(user_rate_limit("write"))],
+)
+async def preview_template(
+    body: PreviewRequest,
+    request: Request,
+    identity: Annotated[RequestContext, Depends(require_identity("summary.create"))],
+) -> StreamingResponse:
+    state = request.app.state
+    limits = limits_for(state.settings, identity.user_id)
+    fields = [
+        templates.TemplateField.model_validate(f)
+        for f in templates.build_fields(body.template.fields, limits)
+    ]
+    async with state.sessionmaker() as session, session.begin():
+        await set_tenant(session, identity.org_id)
+        filename, key = await preview.paper_for_preview(session, identity.user_id, body.paper_id)
+    set_llm_context(org_id=identity.org_id, user_id=identity.user_id, paper_id=body.paper_id)
+    events = preview.preview_events(
+        storage=state.storage,
+        gateway=state.llm.gateway,
+        storage_key=key,
+        filename=filename,
+        fields=fields,
+    )
+    return StreamingResponse(
+        events,
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
+    )
 
 
 @router.post(

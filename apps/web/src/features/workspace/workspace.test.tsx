@@ -40,7 +40,7 @@ beforeEach(() => {
   setAuthState({ status: "signed-in", provider: "dev" });
   vi.mocked(getPaper).mockResolvedValue(paper());
   vi.mocked(listTemplates).mockResolvedValue(templates);
-  vi.mocked(listSummaries).mockResolvedValue([{ id: "s1", template_id: QUICK_ID, template_name: "Quick Summary", status: "ready" }]);
+  vi.mocked(listSummaries).mockResolvedValue([{ id: "s1", template_id: QUICK_ID, template_name: "Quick Summary", status: "ready", template_version: 1 }]);
   vi.mocked(getSummary).mockResolvedValue(summary());
 });
 

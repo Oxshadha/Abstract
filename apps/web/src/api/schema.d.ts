@@ -265,6 +265,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/me/limits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The caller's limits (templates today; plans in spec 012) */
+        get: operations["my_limits_api_v1_me_limits_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/papers": {
         parameters: {
             query?: never;
@@ -671,8 +688,45 @@ export interface paths {
         /** Summary templates available to the user (system templates first) */
         get: operations["list_templates_api_v1_templates_get"];
         put?: never;
-        post?: never;
+        /** Create a custom template, or duplicate one to customize it */
+        post: operations["create_template_api_v1_templates_post"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/templates/preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Try a template on a paper; fields stream back as Server-Sent Events, nothing is saved */
+        post: operations["preview_template_api_v1_templates_preview_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/templates/{template_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One template (system or the caller's own) */
+        get: operations["get_template_api_v1_templates__template_id__get"];
+        /** Save a new version of a custom template (from its base version) */
+        put: operations["update_template_api_v1_templates__template_id__put"];
+        post?: never;
+        /** Delete a custom template (summaries made with it keep working) */
+        delete: operations["delete_template_api_v1_templates__template_id__delete"];
         options?: never;
         head?: never;
         patch?: never;
@@ -866,6 +920,29 @@ export interface components {
             /** Value */
             value: string;
         };
+        /**
+         * FieldIn
+         * @description A field as the builder sends it; `key` is absent for new fields and kept for old ones.
+         */
+        FieldIn: {
+            /** Instruction */
+            instruction: string;
+            /** Key */
+            key?: string | null;
+            /** Label */
+            label: string;
+            /**
+             * Required
+             * @default true
+             */
+            required: boolean;
+            /**
+             * Style
+             * @default paragraph
+             * @enum {string}
+             */
+            style: "paragraph" | "bullets" | "short";
+        };
         /** FieldOut */
         FieldOut: {
             /** Edited */
@@ -972,6 +1049,17 @@ export interface components {
         KillSwitch: {
             /** Paid Calls Enabled */
             paid_calls_enabled: boolean;
+        };
+        /** Limits */
+        Limits: {
+            /** Custom Templates */
+            custom_templates: number;
+            /** Fields Per Template */
+            fields_per_template: number;
+            /** Instruction Chars */
+            instruction_chars: number;
+            /** Label Chars */
+            label_chars: number;
         };
         /** Me */
         Me: {
@@ -1221,6 +1309,15 @@ export interface components {
             /** Worker */
             worker: string;
         };
+        /** PreviewRequest */
+        PreviewRequest: {
+            /**
+             * Paper Id
+             * Format: uuid
+             */
+            paper_id: string;
+            template: components["schemas"]["TemplateIn"];
+        };
         /** Ready */
         Ready: {
             /** Checks */
@@ -1373,8 +1470,15 @@ export interface components {
              * Format: uuid
              */
             template_id: string;
+            /** Template Latest Version */
+            template_latest_version?: number | null;
             /** Template Name */
             template_name: string;
+            /**
+             * Template Version
+             * @default 1
+             */
+            template_version: number;
         };
         /** SummaryList */
         SummaryList: {
@@ -1455,6 +1559,15 @@ export interface components {
             /** Page */
             page: number;
         };
+        /**
+         * TemplateCreate
+         * @description Either a new template or a duplicate of an existing one (system or own).
+         */
+        TemplateCreate: {
+            /** Duplicate Of */
+            duplicate_of?: string | null;
+            template?: components["schemas"]["TemplateIn"] | null;
+        };
         /** TemplateField */
         TemplateField: {
             /** Instruction */
@@ -1474,6 +1587,18 @@ export interface components {
              * @enum {string}
              */
             style: "paragraph" | "bullets" | "short";
+        };
+        /** TemplateIn */
+        TemplateIn: {
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** Fields */
+            fields: components["schemas"]["FieldIn"][];
+            /** Name */
+            name: string;
         };
         /** TemplateList */
         TemplateList: {
@@ -1498,6 +1623,8 @@ export interface components {
             kind: "system" | "custom";
             /** Name */
             name: string;
+            /** Updated At */
+            updated_at?: string | null;
             /** Version */
             version: number;
             /**
@@ -1505,6 +1632,20 @@ export interface components {
              * Format: uuid
              */
             version_id: string;
+        };
+        /** TemplateUpdate */
+        TemplateUpdate: {
+            /** Base Version */
+            base_version: number;
+            /**
+             * Description
+             * @default
+             */
+            description: string;
+            /** Fields */
+            fields: components["schemas"]["FieldIn"][];
+            /** Name */
+            name: string;
         };
         /** UploadRequest */
         UploadRequest: {
@@ -2210,6 +2351,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Me"];
+                };
+            };
+        };
+    };
+    my_limits_api_v1_me_limits_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Limits"];
                 };
             };
         };
@@ -3209,6 +3370,195 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TemplateList"];
+                };
+            };
+        };
+    };
+    create_template_api_v1_templates_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TemplateCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateOut"];
+                };
+            };
+            /** @description Template or field limit reached */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    preview_template_api_v1_templates_preview_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreviewRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/event-stream": unknown;
+                };
+            };
+            /** @description Paper not ready */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_template_api_v1_templates__template_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_template_api_v1_templates__template_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TemplateUpdate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplateOut"];
+                };
+            };
+            /** @description System templates are read-only */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Saved from an older version, or a limit was reached */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_template_api_v1_templates__template_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                template_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

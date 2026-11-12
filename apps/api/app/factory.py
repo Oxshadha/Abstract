@@ -25,6 +25,7 @@ from app.core.ratelimit import CounterStore, RedisCounterStore
 from app.core.readiness import ReadinessCheck
 from app.modules.admin import router as admin_router
 from app.modules.chat import router as chat_router
+from app.modules.entitlements import router as entitlements_router
 from app.modules.identity import router as identity_router
 from app.modules.identity import webhooks as identity_webhooks
 from app.modules.library import router as library_router
@@ -129,6 +130,7 @@ def create_app(
     app.include_router(summaries_router.router, prefix=API_PREFIX)
     app.include_router(chat_router.router, prefix=API_PREFIX)
     app.include_router(library_router.router, prefix=API_PREFIX)
+    app.include_router(entitlements_router.router, prefix=API_PREFIX)
     app.include_router(llm_admin.router, prefix=API_PREFIX)
     if not settings.is_production:
         app.include_router(debug.router, prefix=API_PREFIX)

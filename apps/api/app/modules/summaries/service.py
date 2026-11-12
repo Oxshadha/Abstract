@@ -49,9 +49,10 @@ async def create_summary(
             text(
                 "SELECT t.id, t.name, v.id AS version_id FROM templates t"
                 " JOIN template_versions v ON v.template_id = t.id"
-                " AND v.version = t.current_version WHERE t.id = :t"
+                " AND v.version = t.current_version WHERE t.id = :t AND t.deleted_at IS NULL"
+                " AND (t.kind = 'system' OR t.owner_id = :o)"
             ),
-            {"t": template_id},
+            {"t": template_id, "o": identity.user_id},
         )
     ).first()
     if template is None:
@@ -119,8 +120,9 @@ async def list_summaries(session: AsyncSession, owner_id: UUID, paper_id: UUID) 
     rows = (
         await session.execute(
             text(
-                "SELECT s.id, t.id AS template_id, t.name, s.status FROM summaries s"
-                " JOIN template_versions v ON v.id = s.template_version_id"
+                "SELECT s.id, t.id AS template_id, t.name, s.status, v.version,"
+                " CASE WHEN t.deleted_at IS NULL THEN t.current_version END AS latest"
+                " FROM summaries s JOIN template_versions v ON v.id = s.template_version_id"
                 " JOIN templates t ON t.id = v.template_id WHERE s.paper_id = :p"
                 " ORDER BY s.created_at"
             ),
@@ -129,7 +131,14 @@ async def list_summaries(session: AsyncSession, owner_id: UUID, paper_id: UUID) 
     ).all()
     return SummaryList(
         items=[
-            SummaryBrief(id=r.id, template_id=r.template_id, template_name=r.name, status=r.status)
+            SummaryBrief(
+                id=r.id,
+                template_id=r.template_id,
+                template_name=r.name,
+                status=r.status,
+                template_version=r.version,
+                template_latest_version=r.latest,
+            )
             for r in rows
         ]
     )
