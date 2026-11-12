@@ -31,7 +31,12 @@ export function SelectionToolbar({
   const { rect } = selection;
   const height = 48;
   const above = rect.top - height - MARGIN;
-  const top = above >= MARGIN ? above : rect.bottom + MARGIN;
+  // Touch screens show the system's own menu (Copy, Look Up) above a selection, and selection
+  // handles hang below the text: go below the handles there, above the text elsewhere.
+  const touch = typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches;
+  const below = rect.bottom + (touch ? 28 : MARGIN);
+  const fitsBelow = below + height <= window.innerHeight - MARGIN;
+  const top = touch ? (fitsBelow ? below : Math.max(MARGIN, above)) : above >= MARGIN ? above : below;
   const center = rect.left + rect.width / 2;
   const left = Math.max(MARGIN, Math.min(center - width / 2, window.innerWidth - width - MARGIN));
   const button = "inline-flex min-h-11 items-center gap-1.5 rounded-md px-2.5 text-sm font-medium hover:bg-muted";

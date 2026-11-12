@@ -14,6 +14,7 @@ import { getFileUrl, getPageSizes, viewerKeys, type PageSize } from "./api";
 import { locate, markItem, type Located, type TextPiece } from "./locate";
 import { RegionLayer } from "./RegionLayer";
 import { useExplainLevel, useTextSelection } from "./selection";
+import { SelectionTip } from "./SelectionTip";
 import { SelectionToolbar } from "./SelectionToolbar";
 import { visibleWindow } from "./virtual";
 
@@ -267,6 +268,7 @@ export function PdfViewer({ paperId }: { paperId: string }) {
       {highlight && !target?.box && found?.id === highlight.id && !highlight.located && (
         <p className="mt-2 text-sm text-text-secondary">{announcement}</p>
       )}
+      {citations && <SelectionTip />}
       {text.selected && !selecting && citations && (
         <SelectionToolbar
           selection={text.selected}
