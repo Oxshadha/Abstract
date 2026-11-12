@@ -90,6 +90,7 @@ async def _paper_row(session: AsyncSession, owner_id: UUID, paper_id: UUID) -> A
 # Before the first batch finishes there is no measured speed: a typical pace stands in for it
 # (measured with Docling on the 4 GB development VM; the measured pace replaces it at once).
 SECONDS_PER_PAGE_GUESS = 6.0
+STARTUP_GUESS = 20.0  # loading the layout models before the first page
 
 
 def estimate_seconds_left(
@@ -97,9 +98,13 @@ def estimate_seconds_left(
 ) -> int:
     """Time left from the pace so far (or the guess before any page is done), whole seconds."""
     remaining = max(0, pages_to_parse - pages_done)
-    pace = elapsed / pages_done if pages_done > 0 else guess
-    left = remaining * pace if pages_done > 0 else max(0.0, remaining * pace - elapsed)
-    return max(1, round(left)) if remaining else 0
+    if not remaining:
+        return 0
+    if pages_done > 0:
+        left = remaining * elapsed / pages_done
+    else:
+        left = STARTUP_GUESS + remaining * guess - elapsed
+    return max(1, round(left))
 
 
 async def _seconds_left(session: AsyncSession, paper: Any, parse_limit: int) -> int | None:

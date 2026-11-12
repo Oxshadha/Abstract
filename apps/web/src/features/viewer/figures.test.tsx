@@ -71,7 +71,7 @@ describe("Figures & tables (spec 009)", () => {
   });
 
   it("AC2: phrases the time left without ranges", () => {
-    expect(timeLeft(4)).toBe("a few seconds left");
+    expect(timeLeft(4)).toBe("almost done");
     expect(timeLeft(42)).toBe("about 40 seconds left");
     expect(timeLeft(60)).toBe("about 1 minute left");
     expect(timeLeft(61)).toBe("about 2 minutes left");
