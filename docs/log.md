@@ -15,6 +15,15 @@ Entry format:
 
 ---
 
+## 2026-11-13: Spec 016 landing page; CI fixed; ready for Google sign-in
+**Done:** The landing page at / (D93): centred hero with a real Workspace screenshot (light and dark), How it works, four feature cards, Free during preview, closing call to action. It is prerendered at build time with React's renderToString into its own small entry, and the app shell moves to dist/app.html. With mobile throttling: LCP 0.6 to 0.8 s, CLS 0.002.
+**Found and fixed:** CI on main had failed since #18 and I had not checked it before asking for merges. mypy could not find Docling (CI skips the enrichment group), and `pnpm typecheck` caught two type errors that my local check (`tsc --noEmit -p .`, which checks nothing because the root tsconfig lists no files) missed. From now on: run `pnpm typecheck` and check `gh run list` before asking for a merge.
+**Google sign-in:** no code needed (Clerk's components show it); the Clerk settings now reach the API and web containers, empty values keep the dev login, and `.env.example` lists the four Clerk dashboard steps (keys, Google connection, session token claims for email and name, webhooks).
+**Dev data:** removed 63 test collections ("E2E ...") from the demo account before taking the screenshots.
+**Decisions:** D93   **Specs:** 016 Implemented (as-built notes)
+**Next:** owner adds the Clerk keys to .env and enables Google in Clerk; merges the 016 PR; next spec per D89: 014 notes and references, then 017 deploy.
+**Blockers / waiting on owner:** Clerk keys, merge.
+
 ## 2026-11-12: Spec 011 admin panel implemented
 **Done:** Admin area for platform admins: Overview (spend today against an editable daily cap with the 80% warning, kill switch, spend this month, top users, usage by task and model, queues, AI errors, job counts), Users (search, plan, admin role, disable and enable), Plans (every limit editable, empty means no limit), Models (each task's model chain with If-Match and the re-index confirmation), Flags (on or off for everyone, admins or one plan) and Jobs (failed and stuck jobs with their last error, audited retry). Feature flags `figures`, `search` and `reading_aids` gate their UI and API. Admins never see paper content (D92).
 **Verified:** live on desktop and iPhone; a stuck enrichment job retried from the admin API finished as succeeded, confirming the #17 fix; 57 older stuck enrichment jobs in the dev database were marked succeeded (dev data only).

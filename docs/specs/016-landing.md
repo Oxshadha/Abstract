@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Approved (owner, 2026-11-13): centred hero with the product image, then steps and feature cards; a real screenshot; "Free during preview"; "See how it works" scrolls to the steps (D93) |
+| **Status** | Implemented (2026-11-13). Approved (owner, 2026-11-13): centred hero with the product image, then steps and feature cards; a real screenshot; "Free during preview"; "See how it works" scrolls to the steps (D93) |
 | **Week** | W4 |
 | **Decisions** | D27, D39, D42, D86, D89, D93 |
 | **Engineering practices (D67)** | Spec 016 item in `docs/engineering-practices.md` §3, included below as AC6 |
@@ -33,28 +33,28 @@ A visitor understands what Abstract does in a few seconds, sees the real product
 - other languages.
 
 ## Acceptance criteria
-- [ ] **AC1** — **Header and hero.**
+- [x] **AC1** — **Header and hero.**
   - **Header:** the "abstract." mark, links to Features, How it works and Plans (on-page anchors), "Log in", and "Get started".
   - **Hero:** headline, one supporting sentence, "Get started" and "See how it works", and the product image (Q1, Q2).
   - **Phones:** the header collapses to the mark, "Log in" and "Get started"; the section links move into the page, with no drawer (design principle 9).
-- [ ] **AC2** — **How it works:** three steps (Upload a paper, Summarize and analyze, Explore and ask) as in the mockup.
-- [ ] **AC3** — **Features:**
+- [x] **AC2** — **How it works:** three steps (Upload a paper, Summarize and analyze, Explore and ask) as in the mockup.
+- [x] **AC3** — **Features:**
   - **The cards:** Structured summaries, Understand figures, Custom templates and Stay organized, with icons from the icon set.
   - **The claims:** every one matches what the product does today.
-- [ ] **AC4** — **Plans section and closing:** the plans section (Q3), a closing call to action and a footer.
-- [ ] **AC5** — **Calls to action.**
+- [x] **AC4** — **Plans section and closing:** the plans section (Q3), a closing call to action and a footer.
+- [x] **AC5** — **Calls to action.**
   - **Destinations:** "Get started" opens sign-up; "Log in" opens sign-in.
   - **Signed-in visitors:** see "Open your library" instead of both.
   - **No requests:** the page makes no API calls for anonymous visitors.
-- [ ] **AC6** — **Speed (engineering practices §3).**
+- [x] **AC6** — **Speed (engineering practices §3).**
   - **The target:** the page meets LCP ≤ 2.5 s on a mid-range phone profile in Lighthouse.
   - **Fonts:** self-hosted with `font-display: swap` (D42).
   - **The product image:** responsive, modern format, with width and height set (no layout shift).
-- [ ] **AC7** — **Prerendering and search.**
+- [x] **AC7** — **Prerendering and search.**
   - **Prerendering:** `/` is prerendered to static HTML at build time and becomes interactive afterwards.
   - **In the HTML:** a title, meta description, canonical link, Open Graph and Twitter card tags, and an Open Graph image.
   - **Crawlers:** `robots.txt` and a `sitemap.xml` with `/`.
-- [ ] **AC8** — **Quality bar.**
+- [x] **AC8** — **Quality bar.**
   - Light and dark themes (following the system).
   - WCAG 2.1 AA, with no serious axe violations.
   - Works from 360 px with no horizontal scroll and 44 px touch targets.
@@ -78,6 +78,13 @@ A visitor understands what Abstract does in a few seconds, sees the real product
 - **Web:** signed-in visitors see "Open your library"; anonymous visitors make no API calls; axe.
 - **Playwright:** the landing page at phone and desktop widths with no horizontal scroll; "Get started" reaches sign-up.
 - **Lighthouse:** run against the production build (mobile profile), with the result recorded in the log.
+
+## As built
+- **Speed (AC6):** measured with Playwright Chromium under Lighthouse's mobile throttling (4x CPU, slow 4G) against the production build: LCP 0.6 to 0.8 s, CLS 0.002. Downloading the Lighthouse CLI was not permitted in this environment; run it in CI or by hand before launch.
+- **Build output:** `pnpm build` writes the prerendered page to `dist/index.html` and the app shell to `dist/app.html`. Spec 017's hosting must serve `app.html` for `/app/*`, `/sign-in/*` and `/sign-up/*`.
+- **`SITE_URL`:** set it at build time for the canonical link, `og:url`, `og:image` and `sitemap.xml`; without it they are left out, with a warning.
+- **Screenshots:** made by `scripts/landing-shots.mjs` (the running app) and `scripts/landing-images.py` (WebP and the 1200 x 630 Open Graph image).
+- **Spec 001's placeholder:** the placeholder home page (001 AC9, "shows the API status") is replaced by this page; the generated API client is still tested by `health.test.ts`.
 
 ## Open questions (owner)
 - **Q1 (answered):** both mockups combined. The centred hero "Research papers, made clear." with the product image, then the three steps and the four feature cards.
