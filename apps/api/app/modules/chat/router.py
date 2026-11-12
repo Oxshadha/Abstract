@@ -13,13 +13,14 @@ from app.core.errors import ProblemError
 from app.core.policy import require, require_identity
 from app.core.ratelimit import user_rate_limit
 from app.core.tenancy import set_tenant
-from app.modules.chat import conversations, engine
+from app.modules.chat import conversations, engine, suggestions
 from app.modules.chat.schemas import (
     ConversationList,
     ConversationOut,
     ConversationUpdate,
     MessagePage,
     SendMessage,
+    SuggestionList,
 )
 from app.modules.identity.service import RequestContext
 from app.modules.llm.registry import UnknownTaskError
@@ -37,6 +38,21 @@ async def list_conversations(
     paper_id: UUID, ctx: Annotated[Context, Depends(require("chat.read"))]
 ) -> ConversationList:
     return await conversations.list_conversations(ctx.session, ctx.identity.user_id, paper_id)
+
+
+@router.get(
+    "/papers/{paper_id}/suggestions",
+    response_model=SuggestionList,
+    summary="Starting questions written for this paper (generated once, then stored)",
+    dependencies=[Depends(user_rate_limit("read"))],
+)
+async def paper_suggestions(
+    paper_id: UUID, request: Request, ctx: Annotated[Context, Depends(require("chat.read"))]
+) -> SuggestionList:
+    questions = await suggestions.suggestions(
+        ctx.session, ctx.identity.user_id, paper_id, request.app.state.llm.gateway
+    )
+    return SuggestionList(questions=questions)
 
 
 @router.post(
@@ -203,6 +219,9 @@ async def send_message(
             conversation_id=conversation_id,
             question=body.content,
             region=body.region.model_dump() if body.region else None,
+            quote=body.quote.model_dump() if body.quote else None,
+            mode=body.mode if body.quote else "ask",
+            level=body.level,
         )
         if body.region is not None:
             await conversations.check_region_page(session, conversation.paper_id, body.region.page)
