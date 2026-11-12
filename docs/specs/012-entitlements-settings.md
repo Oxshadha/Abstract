@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | Draft |
+| **Status** | Approved (owner, 2026-11-12): Free and Pro numbers as listed; AI use shown as a percentage; Delete account in v1; platform cap $20 a day with the 80% alert (D91) |
 | **Week** | W3 |
-| **Decisions** | D53, D75, D87, D89, D90 |
+| **Decisions** | D53, D75, D87, D89, D90, D91 |
 | **Engineering practices (D67)** | Spec 012 items in `docs/engineering-practices.md` §3, included below as AC6 to AC9 |
 | **Feature flag** | none (core) |
 | **Mockup** | n/a; Settings follows `docs/design-principles.md` (phones first, one-line rows, design-system controls only) |
@@ -33,7 +33,7 @@ Every limit in the product comes from the user's **plan**, so the team and stake
 - [ ] **AC1** — **Plans in the database.**
   - **Seeds:** three plans are seeded.
     - **Free:** 20 papers a month, 100 chat messages a day, $0.50 AI spend a day, $5 a month, 10 fields per template, 10 custom templates, 2 concurrent processing jobs.
-    - **Pro:** higher limits, not sold yet.
+    - **Pro:** 200 papers a month, 1,000 messages a day, $5 AI spend a day and $50 a month, 20 fields per template, 50 custom templates, 4 concurrent jobs; not sold yet.
     - **Internal:** no per-user limits.
   - **No limit:** an empty value means no limit.
   - **Defaults:** every user has a plan; new users get Free.
@@ -52,7 +52,7 @@ Every limit in the product comes from the user's **plan**, so the team and stake
   - **Partly finished work is kept:** a summary already running finishes.
 - [ ] **AC4** — **Internal plan.** A user on Internal is never stopped by a per-user limit. Their usage is still counted and recorded per call: tokens, cost, model and task (D90).
 - [ ] **AC5** — **Platform safety net.**
-  - The platform-wide daily AI cap still applies to everyone, including Internal.
+  - The platform-wide daily AI cap ($20 a day, D91) still applies to everyone, including Internal.
   - At 80% of it, an alert is logged once a day (`llm_global_cap_warning`). Spec 011 shows it.
 
 ### Abuse protection (engineering practices §3, spec 012)
@@ -144,7 +144,7 @@ Every limit in the product comes from the user's **plan**, so the team and stake
 - **Playwright:** open Settings, see usage after asking a question.
 
 ## Open questions (owner)
-- **Q1:** Are the Free numbers in AC1 right (20 papers a month, 100 messages a day, $0.50 AI a day, $5 a month)? Should Pro be defined now (proposal: 200 papers, 1,000 messages, $5 a day) or left empty until pricing?
-- **Q2:** Show AI use to users as a percentage of their daily allowance (recommended) or in dollars?
-- **Q3:** Delete account in v1 Settings (recommended, as in architecture §4), or later?
-- **Q4:** Should the platform-wide daily cap for the demo period be raised from $5 (proposal: $20 with the 80% alert), given stakeholders on Internal?
+- **Q1 (answered):** Free as listed; Pro defined now (AC1).
+- **Q2 (answered):** AI use is shown to users as a percentage of their daily allowance.
+- **Q3 (answered):** Delete account ships in v1 Settings.
+- **Q4 (answered):** the platform-wide daily cap is $20 a day for the demo period, with the alert at 80%.
