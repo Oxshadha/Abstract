@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Query, Response
 from app.core.context import Context
 from app.core.policy import require
 from app.core.ratelimit import user_rate_limit
+from app.modules.flags.service import require_flag
 from app.modules.library import collections, search
 from app.modules.library.schemas import CollectionIn, CollectionList, CollectionOut, SearchResults
 
@@ -116,7 +117,7 @@ async def paper_collections(
     "/search",
     response_model=SearchResults,
     summary="Search the caller's papers by title, author and text (no model calls)",
-    dependencies=[Depends(user_rate_limit("search"))],
+    dependencies=[Depends(user_rate_limit("search")), Depends(require_flag("search"))],
 )
 async def search_papers(
     ctx: Annotated[Context, Depends(require("search.read"))],

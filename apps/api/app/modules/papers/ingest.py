@@ -28,6 +28,7 @@ from app.adapters.pdf.text import PageText, extract_text
 from app.core.config import Settings
 from app.core.logging import get_logger
 from app.core.tenancy import set_tenant
+from app.modules.flags.service import enabled_for_user
 from app.modules.llm.gateway import set_context as set_llm_context
 from app.modules.papers.chunking import Chunk, chunk_paper
 from app.modules.papers.jobs import transition
@@ -305,7 +306,9 @@ async def _run(deps: Deps, org_id: UUID, job_id: UUID, paper: _Paper) -> None:
                     {"org": org_id, "paper": paper.id},
                 )
             ).scalar_one()
-        if deps.settings.enrichment_enabled:  # tables and figures in the background (spec 009)
+        if deps.settings.enrichment_enabled and await enabled_for_user(
+            session, "figures", paper.owner_id
+        ):  # tables and figures in the background (spec 009; flag in spec 011)
             enrich_job = (
                 await session.execute(
                     text(

@@ -14,6 +14,7 @@ from app.core.ratelimit import user_rate_limit
 from app.core.schemas import StrictModel
 from app.core.tenancy import set_tenant
 from app.modules.entitlements.service import limits_for
+from app.modules.flags.service import require_flag
 from app.modules.identity.service import RequestContext
 from app.modules.llm.gateway import set_context as set_llm_context
 from app.modules.summaries import edits, export, preview, service, templates
@@ -235,7 +236,7 @@ async def get_summary(
             }
         }
     },
-    dependencies=[Depends(user_rate_limit("read"))],
+    dependencies=[Depends(user_rate_limit("read")), Depends(require_flag("reading_aids"))],
 )
 async def export_summary(
     summary_id: UUID,

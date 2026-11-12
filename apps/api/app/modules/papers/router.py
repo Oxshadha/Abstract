@@ -15,6 +15,7 @@ from app.core.errors import ProblemError
 from app.core.policy import require, require_identity
 from app.core.ratelimit import user_rate_limit
 from app.modules.entitlements import service as entitlements
+from app.modules.flags.service import require_flag
 from app.modules.identity.service import RequestContext
 from app.modules.library import collections
 from app.modules.llm.gateway import set_context as set_llm_context
@@ -290,7 +291,7 @@ async def _sanitized_key(ctx: Context, paper_id: UUID) -> str:
     "/{paper_id}/elements",
     response_model=elements.ElementsOut,
     summary="Tables and figures found in the paper, with enrichment progress",
-    dependencies=[Depends(user_rate_limit("read"))],
+    dependencies=[Depends(user_rate_limit("read")), Depends(require_flag("figures"))],
 )
 async def get_elements(
     paper_id: UUID, ctx: Annotated[Context, Depends(require("paper.read"))]
@@ -302,7 +303,7 @@ async def get_elements(
     "/{paper_id}/figures/{figure_id}/image",
     response_model=FileUrl,
     summary="A 5-minute link to a figure's image (JSON, like the PDF link)",
-    dependencies=[Depends(user_rate_limit("read"))],
+    dependencies=[Depends(user_rate_limit("read")), Depends(require_flag("figures"))],
 )
 async def get_figure_image(
     paper_id: UUID,
@@ -320,7 +321,7 @@ async def get_figure_image(
     response_model=elements.DescriptionOut,
     summary="An AI-generated description of a figure (cached per figure)",
     responses={409: {"description": "The figure has no image"}},
-    dependencies=[Depends(user_rate_limit("write"))],
+    dependencies=[Depends(user_rate_limit("write")), Depends(require_flag("figures"))],
 )
 async def describe_figure(
     paper_id: UUID,
@@ -344,7 +345,7 @@ async def describe_figure(
     status_code=202,
     summary="Find tables and figures again after a failure",
     responses={409: {"description": "Already running"}},
-    dependencies=[Depends(user_rate_limit("write"))],
+    dependencies=[Depends(user_rate_limit("write")), Depends(require_flag("figures"))],
 )
 async def retry_enrichment(
     paper_id: UUID, request: Request, ctx: Annotated[Context, Depends(require("paper.update"))]

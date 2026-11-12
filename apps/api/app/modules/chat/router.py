@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse
 from sqlalchemy import text
 
 from app.core import idempotency
+from app.core.auth import CurrentPrincipal
 from app.core.context import Context
 from app.core.errors import ProblemError
 from app.core.policy import require, require_identity
@@ -23,6 +24,7 @@ from app.modules.chat.schemas import (
     SuggestionList,
 )
 from app.modules.entitlements import service as entitlements
+from app.modules.flags.service import flags_for, require_flag
 from app.modules.identity.service import RequestContext
 from app.modules.llm.gateway import set_context as set_llm_context
 from app.modules.llm.registry import UnknownTaskError
@@ -46,7 +48,7 @@ async def list_conversations(
     "/papers/{paper_id}/suggestions",
     response_model=SuggestionList,
     summary="Starting questions written for this paper (generated once, then stored)",
-    dependencies=[Depends(user_rate_limit("read"))],
+    dependencies=[Depends(user_rate_limit("read")), Depends(require_flag("reading_aids"))],
 )
 async def paper_suggestions(
     paper_id: UUID,
@@ -201,7 +203,14 @@ async def send_message(
     request: Request,
     identity: Annotated[RequestContext, Depends(require_identity("chat.create"))],
     idempotency_key: Annotated[UUID, Header(alias="Idempotency-Key")],
+    principal: CurrentPrincipal,
 ) -> StreamingResponse:
+    # Spec 011 AC7: region questions need Figures & tables, quotes need Reading aids.
+    flags = await flags_for(request, principal)
+    if body.region is not None and not flags.get("figures", True):
+        raise ProblemError(403, "feature-off", "Asking about a region is switched off right now.")
+    if body.quote is not None and not flags.get("reading_aids", True):
+        raise ProblemError(403, "feature-off", "Explain and Ask are switched off right now.")
     state = request.app.state
     maker = state.sessionmaker
     digest = idempotency.request_hash(
@@ -232,6 +241,7 @@ async def send_message(
             quote=body.quote.model_dump() if body.quote else None,
             mode=body.mode if body.quote else "ask",
             level=body.level,
+            follow_ups=flags.get("reading_aids", True),
         )
         if body.region is not None:
             await conversations.check_region_page(session, conversation.paper_id, body.region.page)
