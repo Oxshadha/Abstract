@@ -53,6 +53,10 @@ class Settings(BaseSettings):
         default_factory=lambda: {"auth": 30, "read": 300, "write": 60, "upload": 20, "search": 120}
     )
 
+    # Custom template limits until plans exist (spec 010, D87); read through entitlements.
+    template_max_fields: int = 10
+    template_max_custom: int = 10
+
     # Tables and figures in the background (spec 009, D85); off skips the layout parse.
     enrichment_enabled: bool = True
 

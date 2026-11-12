@@ -41,13 +41,13 @@ beforeEach(() => {
   setAuthState({ status: "signed-in", provider: "dev" });
   vi.mocked(getPaper).mockResolvedValue(paper());
   vi.mocked(listTemplates).mockResolvedValue(templates);
-  vi.mocked(listSummaries).mockResolvedValue([{ id: "s1", template_id: QUICK_ID, template_name: "Quick Summary", status: "ready" }]);
+  vi.mocked(listSummaries).mockResolvedValue([{ id: "s1", template_id: QUICK_ID, template_name: "Quick Summary", status: "ready", template_version: 1 }]);
   vi.mocked(getSummary).mockResolvedValue(summary());
 });
 
 describe("AC2: template step", () => {
   it("preselects Quick Summary and Continue starts it then opens processing", async () => {
-    vi.mocked(createSummary).mockResolvedValue({ id: "s1", template_id: QUICK_ID, template_name: "Quick Summary", status: "queued" });
+    vi.mocked(createSummary).mockResolvedValue({ id: "s1", template_id: QUICK_ID, template_name: "Quick Summary", status: "queued", template_version: 1 });
     const { router } = await renderAt("/app/papers/p1/template");
     const quick = await screen.findByRole("radio", { name: /Quick Summary/ });
     expect(quick).toHaveAttribute("aria-checked", "true");
@@ -94,13 +94,26 @@ describe("AC8: summary panel", () => {
   });
 
   it("switching to a template without a summary starts one", async () => {
-    vi.mocked(createSummary).mockResolvedValue({ id: "s2", template_id: DETAILED_ID, template_name: "Detailed Research Analysis", status: "queued" });
+    vi.mocked(createSummary).mockResolvedValue({ id: "s2", template_id: DETAILED_ID, template_name: "Detailed Research Analysis", status: "queued", template_version: 1 });
     await renderAt("/app/papers/p1");
     fireEvent.click(await screen.findByRole("button", { name: /Quick Summary/ }));
     fireEvent.click(screen.getByRole("option", { name: /Detailed Research Analysis/ }));
     await vi.waitFor(() => {
       expect(createSummary).toHaveBeenCalledWith("p1", DETAILED_ID);
     });
+  });
+});
+
+describe("Spec 010 AC5: newer template versions", () => {
+  it("offers Update summary when the template changed since the summary", async () => {
+    vi.mocked(listSummaries).mockResolvedValue([
+      { id: "s1", template_id: QUICK_ID, template_name: "Quick Summary", status: "ready", template_version: 1, template_latest_version: 2 },
+    ]);
+    vi.mocked(createSummary).mockResolvedValue({ id: "s9", template_id: QUICK_ID, template_name: "Quick Summary", status: "queued", template_version: 2 });
+    await renderAt("/app/papers/p1");
+    expect(await screen.findByText("A newer version of this template exists.")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Update summary" }));
+    await vi.waitFor(() => { expect(createSummary).toHaveBeenCalledWith("p1", QUICK_ID); });
   });
 });
 
