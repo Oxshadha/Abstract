@@ -32,6 +32,7 @@ from app.modules.llm.gateway import set_context as set_llm_context
 from app.modules.papers.chunking import Chunk, chunk_paper
 from app.modules.papers.jobs import transition
 from app.modules.papers.keys import paper_prefix, sanitized_key
+from app.ports.layout import LayoutParser
 from app.ports.llm import LLMGateway
 from app.ports.scanner import MalwareScanner
 from app.ports.storage import ObjectChangedError, Storage
@@ -41,6 +42,7 @@ EMBED_TASK = "embed"
 EMBEDDING_DIMENSIONS = 1536  # D69: halfvec(1536) in migration 0003
 EMBED_BATCH = 64
 OCR_TASK = "app.worker.tasks.ocr_pages"
+ENRICH_TASK = "app.worker.tasks.enrich_paper"
 log = get_logger(__name__)
 
 
@@ -53,6 +55,7 @@ class Deps:
     enqueue: Callable[[str, dict[str, Any]], None]
     scanner: MalwareScanner | None = None
     tracer: Tracer = field(default_factory=NoTracer)
+    layout: LayoutParser | None = None  # tables and figures (spec 009); Docling when unset
 
 
 class PaperGoneError(Exception):
@@ -132,8 +135,11 @@ async def store_chunks(
     model: str,
 ) -> None:
     """Replace the paper's chunks; each records its embedding model and size (AC9 of 005),
-    and the paper records which embedding model its vectors use (re-indexing, 005 AC12)."""
-    await session.execute(text("DELETE FROM chunks WHERE paper_id = :p"), {"p": paper_id})
+    and the paper records which embedding model its vectors use (re-indexing, 005 AC12).
+    Only text chunks are replaced: table and figure chunks belong to enrichment (spec 009)."""
+    await session.execute(
+        text("DELETE FROM chunks WHERE paper_id = :p AND kind = 'text'"), {"p": paper_id}
+    )
     if not chunks:
         return
     await session.execute(
@@ -271,6 +277,7 @@ async def _run(deps: Deps, org_id: UUID, job_id: UUID, paper: _Paper) -> None:
         vectors, model = await embed_chunks(deps.gateway, chunks)
 
     ocr_job: UUID | None = None
+    enrich_job: UUID | None = None
     async with maker() as session, session.begin():
         await set_tenant(session, org_id)
         await lock_usable_paper(session, paper.id)
@@ -298,6 +305,20 @@ async def _run(deps: Deps, org_id: UUID, job_id: UUID, paper: _Paper) -> None:
                     {"org": org_id, "paper": paper.id},
                 )
             ).scalar_one()
+        if deps.settings.enrichment_enabled:  # tables and figures in the background (spec 009)
+            enrich_job = (
+                await session.execute(
+                    text(
+                        "INSERT INTO jobs (org_id, paper_id, kind, step) VALUES"
+                        " (:org, :paper, 'enrich', 'triage') RETURNING id"
+                    ),
+                    {"org": org_id, "paper": paper.id},
+                )
+            ).scalar_one()
+            await session.execute(
+                text("UPDATE papers SET enrichment_status = 'pending' WHERE id = :id"),
+                {"id": paper.id},
+            )
         await set_step(session, job_id, "done")
         await transition(session, job_id, "succeeded")
     log.info(
@@ -315,3 +336,11 @@ async def _run(deps: Deps, org_id: UUID, job_id: UUID, paper: _Paper) -> None:
             async with maker() as session, session.begin():
                 await set_tenant(session, org_id)
                 await transition(session, ocr_job, "enqueue_failed", error="enqueue failed")
+    if enrich_job is not None:  # after commit; OCR (same queue) runs first when both exist
+        try:
+            deps.enqueue(ENRICH_TASK, {"job_id": str(enrich_job), "org_id": str(org_id)})
+        except Exception as exc:
+            log.error("enqueue_failed", job_id=str(enrich_job), error=type(exc).__name__)
+            async with maker() as session, session.begin():
+                await set_tenant(session, org_id)
+                await transition(session, enrich_job, "enqueue_failed", error="enqueue failed")

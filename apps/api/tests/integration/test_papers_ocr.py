@@ -27,7 +27,10 @@ SCANNED = [
 
 
 async def _ocr(worker: Worker) -> None:
-    task, kwargs = worker.enqueued[-1]
+    # Ingest also queues enrichment (spec 009); pick the OCR task.
+    task, kwargs = next(
+        t for t in reversed(worker.enqueued) if t[0] == "app.worker.tasks.ocr_pages"
+    )
     assert task == "app.worker.tasks.ocr_pages"
     org, job = UUID(kwargs["org_id"]), UUID(kwargs["job_id"])
     outcome = await run_job(

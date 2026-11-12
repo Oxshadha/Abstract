@@ -134,10 +134,11 @@ services:
       migrate: { condition: service_completed_successfully }
 
   worker-bg:
-    build: { context: ./apps/api, target: dev }
+    # Docling for tables and figures (spec 009, D85): its own image and memory budget.
+    build: { context: ./apps/api, target: enrich-dev }
     command: ["celery", "-A", "app.worker.celery_app", "worker", "--loglevel=INFO", "-Q", "enrichment,scan,deletion", "--concurrency=1", "-n", "bg@%h"]
     <<: *worker-hardening
-    mem_limit: 2g  # OCR renders pages at 300 dpi
+    mem_limit: 6g  # Docling layout and table models plus OCR at 300 dpi (D85)
     environment: *worker-env
     volumes: ["./apps/api/app:/app/app"]
     secrets: [gcp_sa]

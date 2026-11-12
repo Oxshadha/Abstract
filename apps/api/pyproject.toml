@@ -48,11 +48,30 @@ eval = [
     "rapidfuzz>=3.14.6",
 ]
 eval-docling = [
-    "docling>=2.150.0",
+    "docling==2.144.0",
+]
+# Background table and figure parsing (spec 009, D85). Installed only in the enrichment worker
+# image; CPU-only PyTorch on Linux keeps that image small (no CUDA libraries).
+enrichment = [
+    "docling==2.144.0",
+    "torch==2.15.0",
+    "torchvision==0.29.2",
 ]
 
 [tool.uv]
 package = false
+# Dependencies must be at least two weeks old: the Docling family is held to releases before
+# 2026-10-29, the date of docling 2.144.0.
+exclude-newer-package = { docling = "2026-10-29T00:00:00Z", docling-core = "2026-10-29T00:00:00Z", docling-ibm-models = "2026-10-29T00:00:00Z", docling-parse = "2026-10-29T00:00:00Z" }
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+torchvision = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
 
 [tool.ruff]
 line-length = 100

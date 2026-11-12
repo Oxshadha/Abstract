@@ -34,3 +34,31 @@ RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-install-proj
 COPY . .
 USER app
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+# --- enrichment worker (spec 009, D85): Docling with CPU-only PyTorch, models baked in ---
+# Only the background worker runs this image; the API and the fast worker stay small. Models are
+# downloaded at build time because workers run with a read-only root and no model downloads.
+FROM base AS enrich-base
+ENV DOCLING_ARTIFACTS_PATH=/opt/docling-models \
+    UV_CACHE_DIR=/root/.cache/uv \
+    OMP_NUM_THREADS=2
+
+FROM enrich-base AS enrich
+COPY pyproject.toml uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --no-install-project --group enrichment
+RUN docling-tools models download --output-dir /opt/docling-models layout tableformer \
+ && chmod -R a+rX /opt/docling-models
+# Runtime: read-only root, so model caches point at /tmp and nothing is downloaded.
+ENV HF_HUB_OFFLINE=1 HF_HOME=/tmp/hf TORCH_HOME=/tmp/torch XDG_CACHE_HOME=/tmp/cache
+COPY app ./app
+USER app
+CMD ["celery", "-A", "app.worker.celery_app", "worker", "--loglevel=INFO", "-Q", "enrichment,scan,deletion", "--concurrency=1"]
+
+FROM enrich-base AS enrich-dev
+COPY pyproject.toml uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-install-project --group enrichment
+RUN docling-tools models download --output-dir /opt/docling-models layout tableformer \
+ && chmod -R a+rX /opt/docling-models
+ENV HF_HUB_OFFLINE=1 HF_HOME=/tmp/hf TORCH_HOME=/tmp/torch XDG_CACHE_HOME=/tmp/cache
+COPY . .
+USER app
