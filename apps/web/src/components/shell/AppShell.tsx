@@ -4,7 +4,8 @@ import { useEffect, useState } from "react";
 
 import { ErrorBoundary } from "@/components/feedback/ErrorBoundary";
 import { OfflineBanner } from "@/components/feedback/offline";
-import { useFlag } from "@/features/flags/api";
+import { AdminSidebar } from "@/features/admin/AdminSidebar";
+import { useFlag, useIsAdmin } from "@/features/flags/api";
 import { SearchDialog } from "@/features/library/SearchDialog";
 import { useOpenCollection } from "@/features/library/useOpenCollection";
 
@@ -30,6 +31,8 @@ export function AppShell() {
   const shortcut = isMac ? "Cmd+K" : "Ctrl+K";
   const search = useFlag("search"); // spec 011 AC7
   const navItems = useNavItems();
+  // Inside Admin, admins get the admin sidebar instead of the app one (spec 018 AC1, D97).
+  const adminSidebar = useIsAdmin() && pathname.startsWith("/app/admin");
 
   // Ctrl+K or Cmd+K opens search from anywhere (spec 013 AC8); no badge on screen (D82).
   useEffect(() => {
@@ -45,9 +48,13 @@ export function AppShell() {
 
   return (
     <div className="flex h-dvh overflow-hidden bg-bg text-text">
-      <aside className="hidden h-dvh w-64 shrink-0 flex-col border-r border-border md:flex">
-        <Sidebar />
-      </aside>
+      {adminSidebar ? (
+        <AdminSidebar />
+      ) : (
+        <aside className="hidden h-dvh w-64 shrink-0 flex-col border-r border-border md:flex">
+          <Sidebar />
+        </aside>
+      )}
 
       <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <OfflineBanner />

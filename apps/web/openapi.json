@@ -1630,6 +1630,64 @@
         "title": "Overview",
         "type": "object"
       },
+      "OverviewSeries": {
+        "properties": {
+          "by_model": {
+            "items": {
+              "$ref": "#/components/schemas/Slice"
+            },
+            "title": "By Model",
+            "type": "array"
+          },
+          "by_task": {
+            "items": {
+              "$ref": "#/components/schemas/Slice"
+            },
+            "title": "By Task",
+            "type": "array"
+          },
+          "days": {
+            "items": {
+              "$ref": "#/components/schemas/SeriesDay"
+            },
+            "title": "Days",
+            "type": "array"
+          },
+          "jobs_by_state": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Jobs By State",
+            "type": "object"
+          },
+          "range": {
+            "enum": [
+              "7d",
+              "30d",
+              "90d"
+            ],
+            "title": "Range",
+            "type": "string"
+          },
+          "users_by_plan": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Users By Plan",
+            "type": "object"
+          }
+        },
+        "required": [
+          "range",
+          "days",
+          "by_task",
+          "by_model",
+          "jobs_by_state",
+          "users_by_plan"
+        ],
+        "title": "OverviewSeries",
+        "type": "object"
+      },
       "PageSize": {
         "properties": {
           "height": {
@@ -2879,6 +2937,76 @@
           "content"
         ],
         "title": "SendMessage",
+        "type": "object"
+      },
+      "SeriesDay": {
+        "properties": {
+          "active_users": {
+            "title": "Active Users",
+            "type": "integer"
+          },
+          "date": {
+            "format": "date",
+            "title": "Date",
+            "type": "string"
+          },
+          "errors": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Errors",
+            "type": "object"
+          },
+          "papers": {
+            "title": "Papers",
+            "type": "integer"
+          },
+          "questions": {
+            "title": "Questions",
+            "type": "integer"
+          },
+          "signups": {
+            "title": "Signups",
+            "type": "integer"
+          },
+          "spend_usd": {
+            "title": "Spend Usd",
+            "type": "number"
+          },
+          "tokens": {
+            "title": "Tokens",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "date",
+          "spend_usd",
+          "tokens",
+          "papers",
+          "questions",
+          "signups",
+          "active_users",
+          "errors"
+        ],
+        "title": "SeriesDay",
+        "type": "object"
+      },
+      "Slice": {
+        "properties": {
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "value"
+        ],
+        "title": "Slice",
         "type": "object"
       },
       "StepOut": {
@@ -4164,6 +4292,54 @@
           }
         },
         "summary": "Spend against the cap, usage by task and model, top users, queues, errors, jobs",
+        "tags": [
+          "admin"
+        ]
+      }
+    },
+    "/api/v1/admin/overview/series": {
+      "get": {
+        "operationId": "overview_series_api_v1_admin_overview_series_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "range",
+            "required": false,
+            "schema": {
+              "default": "30d",
+              "enum": [
+                "7d",
+                "30d",
+                "90d"
+              ],
+              "title": "Range",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OverviewSeries"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Per-day spend and activity with breakdowns, for the Overview charts",
         "tags": [
           "admin"
         ]

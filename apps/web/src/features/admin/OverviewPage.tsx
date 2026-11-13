@@ -8,17 +8,21 @@ import { StatusPill } from "@/components/status/StatusPill";
 import { toast } from "@/components/status/toast";
 
 import { adminKeys, getOverview, setKillSwitch, setPlatformCap, type Overview } from "./api";
+import { OverviewCharts } from "./OverviewCharts";
 import { count, money } from "./format";
 import { Card, NumberField, Switch } from "./ui";
 
-function Stat({ label, value, detail }: { label: string; value: string; detail?: string }) {
-  return (
-    <div className="flex min-w-0 flex-col gap-0.5 rounded-lg border border-border bg-surface p-4">
+function Stat({ label, value, detail, to }: { label: string; value: string; detail?: string; to?: "/app/admin/jobs" }) {
+  const body = (
+    <>
       <span className="truncate text-sm text-text-secondary">{label}</span>
       <span className="font-display text-2xl font-bold tabular-nums">{value}</span>
       {detail && <span className="truncate text-xs text-text-secondary">{detail}</span>}
-    </div>
+    </>
   );
+  const cls = "flex min-w-0 flex-col gap-0.5 rounded-lg border border-border bg-surface p-4";
+  // Each card opens its detail where there is one (spec 018 AC4).
+  return to ? <Link to={to} className={`${cls} hover:bg-muted/50`}>{body}</Link> : <div className={cls}>{body}</div>;
 }
 
 function Rows({ label, rows }: { label: string; rows: { key: string; name: string; value: string; detail?: string }[] }) {
@@ -49,11 +53,9 @@ function SpendCard({ data }: { data: Overview }) {
   });
   const percent = data.cap_usd > 0 ? Math.min(100, Math.round((data.spend_today_usd / data.cap_usd) * 100)) : 100;
   return (
-    <Card title="Spend today" action={data.cap_warning ? <StatusPill status="warning">Over 80% of the cap</StatusPill> : undefined}>
-      <p className="text-sm">
-        <span className="font-display text-2xl font-bold tabular-nums">{money(data.spend_today_usd)}</span>
-        <span className="text-text-secondary">{` of ${money(data.cap_usd)} a day`}</span>
-      </p>
+    <Card title="Daily cap" action={data.cap_warning ? <StatusPill status="warning">Over 80% of the cap</StatusPill> : undefined}>
+      {/* Today's amount is on the summary card above (say it once); this card is the cap. */}
+      <p className="text-sm text-text-secondary">{`${String(percent)}% of ${money(data.cap_usd)} used today`}</p>
       <div role="progressbar" aria-label="Spend today against the daily cap" aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent} className="h-1.5 overflow-hidden rounded-pill bg-muted">
         <div className="h-full rounded-pill bg-primary" style={{ width: `${String(percent)}%` }} />
       </div>
@@ -116,11 +118,21 @@ export function OverviewPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <Stat
+          label="Spend today"
+          value={money(d.spend_today_usd)}
+          detail={`of ${money(d.cap_usd)} a day`}
+        />
         <Stat label="Spend this month" value={money(d.spend_month_usd)} />
         <Stat label="Tokens today" value={count(d.tokens_today)} />
-        <Stat label="Jobs waiting" value={count((d.jobs.queued ?? 0) + (d.jobs.held ?? 0))} detail={`${count(d.jobs.running ?? 0)} running`} />
-        <Stat label="Failed today" value={count(d.jobs.failed_24h ?? 0)} detail="Jobs in the last 24 hours" />
+        <Stat
+          label="Failed jobs"
+          value={count(d.jobs.failed_24h ?? 0)}
+          detail={`Last 24 hours, ${count((d.jobs.queued ?? 0) + (d.jobs.held ?? 0))} waiting, ${count(d.jobs.running ?? 0)} running`}
+          to="/app/admin/jobs"
+        />
       </div>
+      <OverviewCharts capUsd={d.cap_usd} />
       <div className="grid items-start gap-4 lg:grid-cols-2">
         <SpendCard key={d.cap_usd} data={d} />
         <KillSwitchCard enabled={d.paid_calls_enabled} />

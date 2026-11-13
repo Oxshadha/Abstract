@@ -5,19 +5,7 @@ import { fetchMe } from "@/api/me";
 import { ListRowSkeleton, Loading } from "@/components/feedback/Skeleton";
 import { NotFoundPage } from "@/routes/app/pages";
 
-const SECTIONS = [
-  { to: "/app/admin", label: "Overview" },
-  { to: "/app/admin/users", label: "Users" },
-  { to: "/app/admin/plans", label: "Plans" },
-  { to: "/app/admin/models", label: "Models" },
-  { to: "/app/admin/flags", label: "Flags" },
-  { to: "/app/admin/jobs", label: "Jobs" },
-] as const;
-
-function isActive(pathname: string, to: string): boolean {
-  const path = pathname.replace(/\/$/, "");
-  return to === "/app/admin" ? path === to : path.startsWith(to);
-}
+import { SECTIONS, isActive } from "./sections";
 
 /** Admin area (spec 011): platform admins only; anyone else sees "Page not found" (AC1). */
 export function AdminLayout() {
@@ -34,8 +22,9 @@ export function AdminLayout() {
   return (
     <div className="flex flex-col gap-4 px-4 pt-4 pb-28 sm:pt-6 md:px-8 lg:pb-10">
       <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">Admin</h1>
-      {/* One scrolling row of sections on phones (no drawer, design principle 9). */}
-      <nav aria-label="Admin sections" className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] md:mx-0 md:px-0">
+      {/* Phones: one scrolling row of sections (no drawer, design principle 9). From tablet up
+          the admin sidebar takes over (spec 018 AC3). */}
+      <nav aria-label="Admin sections" className="-mx-4 overflow-x-auto px-4 [scrollbar-width:none] md:hidden">
         <ul className="flex w-max gap-1 rounded-pill border border-border p-1">
           {SECTIONS.map((s) => {
             const active = isActive(pathname, s.to);

@@ -31,7 +31,12 @@ export const lightColors = {
   "info-bg": "#eaf0fa",
   "focus": "#202020",
   "logo-back": "#b6b6b2",
-  "logo-front": "#222222"
+  "logo-front": "#222222",
+  "chart-1": "#202020",
+  "chart-2": "#4a4a47",
+  "chart-3": "#77776f",
+  "chart-4": "#a3a39c",
+  "chart-5": "#cfcfc9"
 } as const;
 export const darkColors = {
   "bg": "#151515",
@@ -53,5 +58,10 @@ export const darkColors = {
   "info-bg": "#253247",
   "focus": "#f1f1ed",
   "logo-back": "#858581",
-  "logo-front": "#f1f1ed"
+  "logo-front": "#f1f1ed",
+  "chart-1": "#f1f1ed",
+  "chart-2": "#c5c5bf",
+  "chart-3": "#9a9a94",
+  "chart-4": "#6f6f6a",
+  "chart-5": "#4a4a47"
 } as const;

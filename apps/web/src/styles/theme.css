@@ -32,4 +32,9 @@
   --color-focus: var(--abs-color-focus);
   --color-logo-back: var(--abs-color-logo-back);
   --color-logo-front: var(--abs-color-logo-front);
+  --color-chart-1: var(--abs-color-chart-1);
+  --color-chart-2: var(--abs-color-chart-2);
+  --color-chart-3: var(--abs-color-chart-3);
+  --color-chart-4: var(--abs-color-chart-4);
+  --color-chart-5: var(--abs-color-chart-5);
 }
