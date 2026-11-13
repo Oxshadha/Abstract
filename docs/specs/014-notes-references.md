@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | Draft |
+| **Status** | Approved (owner, 2026-11-13): a simple formatting bar; one notes page per paper; Notes and References in the phone pill; build without a Semantic Scholar key, add it later (D95) |
 | **Week** | W4 |
-| **Decisions** | D28, D39, D42, D86, D89 |
+| **Decisions** | D28, D39, D42, D86, D89, D95 |
 | **Engineering practices (D67)** | Spec 014 items in `docs/engineering-practices.md` §3, included below as AC4 and AC7 |
 | **Feature flag** | `notes`, `references` (AGENTS.md rule 7), on by default |
 | **Mockup** | `UI/Abstract Research Workspace UI.png` (Workspace · Notes · References tabs under the paper title) |
@@ -74,7 +74,10 @@ A reader keeps their own notes on a paper next to it, can save a good answer fro
 | GET | `/papers/{id}/references` | none | `200 {status, items: [{n, raw, match?: {title, authors, year, venue, citations, url, pdf_url}}]}` | 404, 403 off |
 
 ## Data model changes (migration 0020)
-- **`paper_notes`:** `org_id`, `owner_id`, `paper_id` (unique), `content`, `version`, `updated_at`; RLS by `org_id`; deleted with the paper.
+- **`paper_notes`:**
+  - **Columns:** `org_id`, `owner_id`, `paper_id` (unique), `doc jsonb` (the editor document, restricted to the allowed node types), `text` (plain text for search and export), `version`, `updated_at`.
+  - **Safety:** never raw HTML.
+  - **Access:** RLS by `org_id`; deleted with the paper.
 - **`paper_references`:** `org_id`, `paper_id`, `n`, `raw`, `doi`, `arxiv_id`, `match jsonb`, `status`; RLS.
 - **`scholar_cache`:** platform-level, keyed by DOI, arXiv id or a normalized title, holding the public metadata only, with an expiry (30 days).
 - **Seeds:** the `notes` and `references` flags.
@@ -105,7 +108,7 @@ A reader keeps their own notes on a paper next to it, can save a good answer fro
 - **Playwright:** save an answer to notes and see it in the Notes tab.
 
 ## Open questions (owner)
-- **Q1:** The notes format.
-- **Q2:** One notes page per paper, or separate note cards?
-- **Q3:** How do phones reach Notes and References?
-- **Q4:** Semantic Scholar works without a key but shares a public rate limit. Should we ask Semantic Scholar for a free API key (1 request a second, set as `SEMANTIC_SCHOLAR_API_KEY`)?
+- **Q1 (answered):** a simple formatting bar (bold, italic, headings, lists, quote) with TipTap. No Markdown symbols to learn.
+- **Q2 (answered):** one notes page per paper. Save to notes adds the answer at the end as a quote with its page sources.
+- **Q3 (answered):** phones get Notes and References in the floating pill: Paper, Summary, Chat, Notes, References, icons only.
+- **Q4 (answered):** built without a key, with caching and slow background retries. `SEMANTIC_SCHOLAR_API_KEY` is used when set.

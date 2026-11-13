@@ -20,7 +20,7 @@ This is lightweight spec-driven development. Each feature gets a one-to-two page
 | 011 | [Admin panel: users, usage, models, flags, jobs](011-admin.md) (D92) | W3 | Implemented | [practices §3 Spec 011](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 012 | [Plans, limits and the Settings page](012-entitlements-settings.md) (D90, D91) | W3 | Implemented | [practices §3 Spec 012](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 013 | [Library, collections, star, search](013-library-search.md) (D82 to D84) | W3 | Implemented | [practices §3 Spec 013](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
-| 014 | [Notes and references](014-notes-references.md) | W4 | Draft | [practices §3 Spec 014](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
+| 014 | [Notes and references](014-notes-references.md) (D95) | W4 | Approved | [practices §3 Spec 014](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 015 | [Reading aids](015-reading-aids.md) (D88) | W4 | Implemented | [practices §3 Spec 015](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 016 | [Landing page (prerendered)](016-landing.md) (D93) | W4 | Implemented | [practices §3 Spec 016](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 017 | Deploy: EC2 + Vercel + Neon + S3, secrets, backups | W4 | Not started | [practices §3 Spec 017](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
