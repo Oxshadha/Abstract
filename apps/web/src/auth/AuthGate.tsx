@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { AuthPanel } from "./AuthPanel";
+import { AuthCard } from "./AuthCard";
 import { useAuthState } from "./state";
 
 /**
@@ -21,9 +21,9 @@ export function AuthGate({ children }: { children: ReactNode }) {
             role="dialog"
             aria-modal="true"
             aria-labelledby="auth-title"
-            className="w-full max-w-md rounded-t-xl bg-surface p-8 shadow-overlay sm:rounded-xl"
+            className="w-full max-w-md overflow-hidden rounded-t-xl bg-surface p-8 shadow-overlay sm:rounded-xl lg:max-w-5xl lg:p-0"
           >
-            <AuthPanel mode="sign-in" routing="hash" />
+            <AuthCard mode="sign-in" routing="hash" />
           </div>
         </div>
       )}

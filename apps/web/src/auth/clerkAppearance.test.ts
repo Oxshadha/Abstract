@@ -16,3 +16,14 @@ describe("AC8: Clerk appearance comes from design tokens", () => {
     expect(variables.fontFamily).toBe(fonts.ui);
   });
 });
+
+describe("D96: the Google button stands out from the card", () => {
+  it.each([
+    ["light", lightColors],
+    ["dark", darkColors],
+  ] as const)("%s theme", (theme, colors) => {
+    const button = clerkAppearance(theme).elements.socialButtonsBlockButton;
+    expect(button.boxShadow).toBe(`0 0 0 1px ${colors["border-strong"]}`);
+    expect(button.backgroundColor).not.toBe(colors.surface);
+  });
+});

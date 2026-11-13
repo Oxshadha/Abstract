@@ -87,3 +87,14 @@
   pointer-events: none;
   color: var(--color-text-secondary);
 }
+
+/* Clerk draws input borders as its border colour at 11% opacity, invisible on white, and its
+   internal rule outranks the appearance object (D96). */
+.cl-formFieldInput,
+.cl-otpCodeFieldInput {
+  box-shadow: 0 0 0 1px var(--color-border-strong) !important;
+}
+.cl-formFieldInput:focus-visible,
+.cl-otpCodeFieldInput:focus-visible {
+  box-shadow: 0 0 0 2px var(--color-focus) !important;
+}
