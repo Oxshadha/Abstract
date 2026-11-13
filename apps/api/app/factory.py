@@ -33,6 +33,7 @@ from app.modules.identity import webhooks as identity_webhooks
 from app.modules.library import router as library_router
 from app.modules.llm import admin as llm_admin
 from app.modules.llm.factory import build_llm
+from app.modules.notes import router as notes_router
 from app.modules.papers import router as papers_router
 from app.modules.summaries import router as summaries_router
 from app.ports.auth import AuthProvider
@@ -135,6 +136,7 @@ def create_app(
     app.include_router(library_router.router, prefix=API_PREFIX)
     app.include_router(entitlements_router.router, prefix=API_PREFIX)
     app.include_router(flags_router.router, prefix=API_PREFIX)
+    app.include_router(notes_router.router, prefix=API_PREFIX)
     app.include_router(llm_admin.router, prefix=API_PREFIX)
     if not settings.is_production:
         app.include_router(debug.router, prefix=API_PREFIX)
