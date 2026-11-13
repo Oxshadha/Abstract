@@ -192,6 +192,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/admin/overview/series": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Per-day spend and activity with breakdowns, for the Overview charts */
+        get: operations["overview_series_api_v1_admin_overview_series_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/admin/plans": {
         parameters: {
             query?: never;
@@ -1688,6 +1705,28 @@ export interface components {
             /** Top Today */
             top_today: components["schemas"]["TopUser"][];
         };
+        /** OverviewSeries */
+        OverviewSeries: {
+            /** By Model */
+            by_model: components["schemas"]["Slice"][];
+            /** By Task */
+            by_task: components["schemas"]["Slice"][];
+            /** Days */
+            days: components["schemas"]["SeriesDay"][];
+            /** Jobs By State */
+            jobs_by_state: {
+                [key: string]: number;
+            };
+            /**
+             * Range
+             * @enum {string}
+             */
+            range: "7d" | "30d" | "90d";
+            /** Users By Plan */
+            users_by_plan: {
+                [key: string]: number;
+            };
+        };
         /** PageSize */
         PageSize: {
             /** Height */
@@ -2117,6 +2156,37 @@ export interface components {
             mode: "ask" | "explain";
             quote?: components["schemas"]["Quote"] | null;
             region?: components["schemas"]["Region"] | null;
+        };
+        /** SeriesDay */
+        SeriesDay: {
+            /** Active Users */
+            active_users: number;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Errors */
+            errors: {
+                [key: string]: number;
+            };
+            /** Papers */
+            papers: number;
+            /** Questions */
+            questions: number;
+            /** Signups */
+            signups: number;
+            /** Spend Usd */
+            spend_usd: number;
+            /** Tokens */
+            tokens: number;
+        };
+        /** Slice */
+        Slice: {
+            /** Name */
+            name: string;
+            /** Value */
+            value: number;
         };
         /** StepOut */
         StepOut: {
@@ -2794,6 +2864,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Overview"];
+                };
+            };
+        };
+    };
+    overview_series_api_v1_admin_overview_series_get: {
+        parameters: {
+            query?: {
+                range?: "7d" | "30d" | "90d";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OverviewSeries"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

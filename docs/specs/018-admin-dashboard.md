@@ -71,14 +71,14 @@ All charts are monochrome: five grey steps from tokens (`chart-1` to `chart-5`, 
 - [ ] **AC6** — **Activity per day.** Bar charts over the same range show papers created and chat questions asked, new sign-ups, active users (distinct users with an AI call, upload or chat message) and AI errors stacked by provider.
 - [ ] **AC7** — **Breakdowns.** Donuts show spend by task (with a by model tab), jobs by state and users by plan; each shows the total in the centre, at most five segments plus Other, and a legend with values; selecting a segment of jobs or plans opens Jobs or Users filtered to it.
 - [ ] **AC8** — **Accessible charts.** Every chart has an `aria-label` summary and a data table available to screen readers, bars and segments are reachable by keyboard with a visible focus and a tooltip, and no information is carried by colour alone (axe passes on the Overview in light and dark).
-- [ ] **AC9** — **Series API.** `GET /api/v1/admin/overview/series?range=7d|30d|90d` returns one row per UTC day with spend, tokens, papers, questions, sign-ups, active users and AI errors by provider, plus the breakdowns, for platform admins only (`admin.usage.read`); anyone else gets 404 like the rest of the admin API; the range is validated (anything else is 422); the query reads existing tables and stays under 300 ms p95 at 90 days on the dev data.
+- [ ] **AC9** — **Series API.** `GET /api/v1/admin/overview/series?range=7d|30d|90d` returns one row per UTC day with spend, tokens, papers, questions, sign-ups, active users and AI errors by provider, plus the breakdowns, for platform admins only (`admin.usage.read`); anyone else gets 403 like the rest of the admin API (the web app shows them "Page not found"); the range is validated (anything else is 422); the query reads existing tables and stays under 300 ms p95 at 90 days on the dev data.
 - [ ] **AC10** — **011 still holds.** Queue depth per queue, AI error rate per provider, top users and spend today against the cap remain on the Overview (below the charts); admins still never see paper content; the admin route stays lazy-loaded and the chart code is not in the entry chunk (bundle budget passes).
 - [ ] **AC11** — **States.** Loading shows chart-shaped skeletons; a failed series request shows the cards and lists with a Retry in the chart area instead of failing the page; a brand-new install with no usage shows empty charts with "No usage yet".
 
 ## API contract
 | Method | Path | Request | Response | Errors |
 |---|---|---|---|---|
-| GET | `/api/v1/admin/overview/series` | `range=7d\|30d\|90d` | `200 {range, days: [{date, spend_usd, tokens, papers, questions, signups, active_users, errors: {provider: n}}], by_task: [{name, spend_usd}], by_model: [...], jobs_by_state: {state: n}, users_by_plan: {plan: n}}` | `404` (not an admin), `422` (bad range), `429` |
+| GET | `/api/v1/admin/overview/series` | `range=7d\|30d\|90d` | `200 {range, days: [{date, spend_usd, tokens, papers, questions, signups, active_users, errors: {provider: n}}], by_task: [{name, spend_usd}], by_model: [...], jobs_by_state: {state: n}, users_by_plan: {plan: n}}` | `403` (not an admin), `422` (bad range), `429` |
 
 Rate-limit group: `read` (D75). Days are UTC, matching the daily cap.
 

@@ -7,7 +7,7 @@ change goes through policy and is written to the audit log.
 import base64
 import json
 from collections.abc import Sequence
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from typing import Annotated, Any, Literal
 from uuid import UUID
 
@@ -306,6 +306,90 @@ async def overview(
             for e in errors
         ],
         jobs={k: int(getattr(jobs, k)) for k in ("queued", "held", "running", "failed_24h")},
+    )
+
+
+# ---------- overview series (spec 018 AC5 to AC7, AC9; D97) ----------
+
+RANGES: dict[str, int] = {"7d": 7, "30d": 30, "90d": 90}
+MAX_SLICES = 5  # donuts show five slices, the rest as Other (AC7)
+
+
+class SeriesDay(BaseModel):
+    date: date
+    spend_usd: float
+    tokens: int
+    papers: int
+    questions: int
+    signups: int
+    active_users: int
+    errors: dict[str, int]  # failed model calls by provider
+
+
+class Slice(BaseModel):
+    name: str
+    value: float
+
+
+class OverviewSeries(BaseModel):
+    range: Literal["7d", "30d", "90d"]
+    days: list[SeriesDay]
+    by_task: list[Slice]
+    by_model: list[Slice]
+    jobs_by_state: dict[str, int]
+    users_by_plan: dict[str, int]
+
+
+def _slices(lines: list[UsageLine]) -> list[Slice]:
+    top = [Slice(name=line.name, value=round(line.cost_usd, 6)) for line in lines[:MAX_SLICES]]
+    rest = sum(line.cost_usd for line in lines[MAX_SLICES:])
+    return top + ([Slice(name="Other", value=round(rest, 6))] if rest > 0 else [])
+
+
+@router.get(
+    "/overview/series",
+    response_model=OverviewSeries,
+    summary="Per-day spend and activity with breakdowns, for the Overview charts",
+    dependencies=[Depends(user_rate_limit("read"))],
+)
+async def overview_series(
+    ctx: Annotated[Context, Depends(require("admin.usage.read"))],
+    range_: Annotated[Literal["7d", "30d", "90d"], Query(alias="range")] = "30d",
+) -> OverviewSeries:
+    n = RANGES[range_]
+    rows = (await ctx.session.execute(text("SELECT * FROM admin_daily_series(:n)"), {"n": n})).all()
+    errors: dict[date, dict[str, int]] = {}
+    for e in (
+        await ctx.session.execute(text("SELECT * FROM admin_daily_errors(:n)"), {"n": n})
+    ).all():
+        errors.setdefault(e.day, {})[e.provider] = int(e.errors)
+    since = datetime.combine(rows[0].day, datetime.min.time(), tzinfo=UTC)
+    usage = (
+        await ctx.session.execute(text("SELECT * FROM llm_usage_summary(:s)"), {"s": since})
+    ).all()
+    jobs = (
+        await ctx.session.execute(text("SELECT * FROM admin_jobs_by_state(:s)"), {"s": since})
+    ).all()
+    plans = (await ctx.session.execute(text("SELECT * FROM admin_users_by_plan()"))).all()
+    return OverviewSeries(
+        range=range_,
+        days=[
+            SeriesDay(
+                date=r.day,
+                spend_usd=float(r.spend),
+                tokens=int(r.tokens),
+                papers=int(r.papers),
+                questions=int(r.questions),
+                signups=int(r.signups),
+                active_users=int(r.active_users),
+                errors=errors.get(r.day, {}),
+            )
+            for r in rows
+        ],
+        by_task=_slices(_lines(usage, "task")),
+        by_model=_slices(_lines(usage, "model")),
+        jobs_by_state={j.status: int(j.n) for j in jobs},
+        users_by_plan={p.plan_id: int(p.n) for p in plans},
     )
 
 
