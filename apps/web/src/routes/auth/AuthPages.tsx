@@ -1,6 +1,6 @@
 import { Navigate } from "@tanstack/react-router";
 
-import { AuthCard } from "@/auth/AuthCard";
+import { AuthCard, AuthClose } from "@/auth/AuthCard";
 import { useAuthState } from "@/auth/state";
 
 /** The Workspace, blurred behind the sign-in card on desktop, like the dialog over the app (D96). */
@@ -25,6 +25,7 @@ function AuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
       <Backdrop />
       <div aria-hidden className="absolute inset-0 hidden bg-text/30 lg:block" />
       <main className="relative w-full max-w-md overflow-hidden rounded-xl bg-surface p-8 shadow-card lg:max-w-5xl lg:p-0 lg:shadow-overlay">
+        <AuthClose />
         <AuthCard mode={mode} routing="path" />
       </main>
     </div>

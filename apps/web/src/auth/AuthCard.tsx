@@ -1,4 +1,6 @@
-import { lazy, Suspense } from "react";
+import { Link, useNavigate } from "@tanstack/react-router";
+import { X } from "lucide-react";
+import { lazy, Suspense, useEffect } from "react";
 
 import { useMediaQuery } from "@/features/workspace/layout";
 
@@ -8,6 +10,31 @@ import { AuthPanel } from "./AuthPanel";
 const LiquidText = lazy(() => import("@/components/brand/LiquidText").then((m) => ({ default: m.LiquidText })));
 
 const WIDE = "(min-width: 1024px)";
+
+/**
+ * Close (top right of the sign-in card, its container must be `relative`): back to the landing
+ * page, so nobody is stuck on sign-in. Escape does the same.
+ */
+export function AuthClose() {
+  const navigate = useNavigate();
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !e.defaultPrevented) void navigate({ to: "/" });
+    };
+    document.addEventListener("keydown", onKey);
+    return () => { document.removeEventListener("keydown", onKey); };
+  }, [navigate]);
+  return (
+    <Link
+      to="/"
+      aria-label="Close"
+      title="Close"
+      className="absolute right-3 top-3 z-10 inline-flex size-11 items-center justify-center rounded-pill text-text-secondary hover:bg-muted hover:text-text"
+    >
+      <X aria-hidden className="size-5" />
+    </Link>
+  );
+}
 
 /** The liquid "abstract." wordmark beside the form, desktop only (D96). */
 function AuthHero({ page }: { page: boolean }) {
