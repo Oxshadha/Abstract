@@ -7,3 +7,7 @@ export function when(iso: string | null | undefined): string {
   if (!iso) return "Never";
   return new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }).format(new Date(iso));
 }
+
+/** A UTC day ("2026-11-13") as "13 Nov", in the reader's locale. */
+export const shortDate = (iso: string): string =>
+  new Intl.DateTimeFormat(undefined, { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(`${iso}T00:00:00Z`));

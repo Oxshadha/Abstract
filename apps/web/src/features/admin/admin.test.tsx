@@ -14,6 +14,7 @@ import { seriousViolations } from "@/test/axe";
 
 import {
   getOverview,
+  getOverviewSeries,
   listFlags,
   listJobs,
   listModels,
@@ -29,15 +30,17 @@ import {
   updatePlan,
   type ModelEntry,
   type Overview,
+  type OverviewSeries,
   type Plan,
 } from "./api";
+import { shortDate } from "./format";
 
 vi.mock("@/api/me", () => ({ fetchMe: vi.fn() }));
 vi.mock("@/features/flags/client", () => ({ getFlags: vi.fn() }));
 vi.mock("@/features/library/api", async (orig) => ({ ...(await orig<typeof import("@/features/library/api")>()), listCollections: vi.fn() }));
 vi.mock("./api", async (orig) => ({
   ...(await orig<typeof import("./api")>()),
-  getOverview: vi.fn(), setKillSwitch: vi.fn(), setPlatformCap: vi.fn(), listUsers: vi.fn(), setUserPlan: vi.fn(),
+  getOverview: vi.fn(), getOverviewSeries: vi.fn(), setKillSwitch: vi.fn(), setPlatformCap: vi.fn(), listUsers: vi.fn(), setUserPlan: vi.fn(),
   setUserAdmin: vi.fn(), setUserDisabled: vi.fn(), listPlans: vi.fn(), updatePlan: vi.fn(), listFlags: vi.fn(),
   updateFlag: vi.fn(), listJobs: vi.fn(), retryJob: vi.fn(), listModels: vi.fn(), updateModel: vi.fn(),
 }));
@@ -58,6 +61,22 @@ const OVERVIEW: Overview = {
   queues: { fast: 0, enrichment: 2, scan: 0, deletion: 0 }, provider_errors: [{ provider: "vertex", calls: 100, errors: 3 }],
   jobs: { queued: 1, held: 1, running: 2, failed_24h: 1 },
 };
+function seriesFixture(days = 30, empty = false): OverviewSeries {
+  return {
+    range: days === 7 ? "7d" : days === 90 ? "90d" : "30d",
+    days: Array.from({ length: days }, (_, i) => {
+      const date = new Date(Date.UTC(2026, 10, 13 - (days - 1 - i))).toISOString().slice(0, 10);
+      const last = i === days - 1 && !empty;
+      const errors: Record<string, number> = last ? { vertex: 2 } : {};
+      return { date, spend_usd: last ? 4.1 : 0, tokens: last ? 900 : 0, papers: last ? 3 : 0, questions: last ? 7 : 0, signups: last ? 2 : 0, active_users: last ? 5 : 0, errors };
+    }),
+    by_task: empty ? [] : [{ name: "answer", value: 3 }, { name: "summarize", value: 1.1 }],
+    by_model: empty ? [] : [{ name: "gemini", value: 4.1 }],
+    jobs_by_state: empty ? {} : { succeeded: 40, failed: 2 },
+    users_by_plan: empty ? {} : { free: 12, internal: 3 },
+  };
+}
+
 const MODEL: ModelEntry = {
   task: "embed", routes: [{ provider: "vertex", model: "gemini-embedding-2", input_usd_per_m: 0.1, output_usd_per_m: 0 }],
   params: { max_tokens: 1000 }, deadline_seconds: 10, on_budget: "downgrade", enabled: true, version: 4, updated_at: "2026-11-12T00:00:00Z",
@@ -81,6 +100,7 @@ beforeEach(() => {
   vi.mocked(getFlags).mockResolvedValue({ figures: true, search: true, reading_aids: true });
   vi.mocked(listCollections).mockResolvedValue([]);
   vi.mocked(getOverview).mockResolvedValue(OVERVIEW);
+  vi.mocked(getOverviewSeries).mockImplementation((range) => Promise.resolve(seriesFixture(range === "7d" ? 7 : range === "90d" ? 90 : 30)));
   vi.mocked(listPlans).mockResolvedValue(PLANS);
   vi.mocked(listUsers).mockResolvedValue({ items: [{ id: "u2", email: "grace@example.org", display_name: "Grace", plan_id: "free", platform_role: "user", disabled: false, papers: 4, spend_month_usd: 1.25, last_active: "2026-11-12T08:00:00Z", created_at: "2026-11-01T08:00:00Z" }], next_cursor: null });
   vi.mocked(listFlags).mockResolvedValue([{ key: "search", description: "Search across papers", enabled: true, audience: { who: "everyone", plans: [] } }]);
@@ -239,5 +259,72 @@ describe("Spec 018 AC1 to AC3: the admin sidebar", () => {
     await renderAt("/app/admin");
     expect(await screen.findByRole("heading", { name: "Page not found" })).toBeInTheDocument();
     expect(screen.queryByRole("complementary", { name: "Admin" })).toBeNull();
+  });
+});
+
+describe("Spec 018 AC4 to AC8, AC11: the Overview charts", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("AC4: four summary cards, with the cap warning and failed jobs opening Jobs", async () => {
+    await renderAt("/app/admin");
+    const failed = await screen.findByRole("link", { name: /Failed jobs/ });
+    expect(failed).toHaveAttribute("href", "/app/admin/jobs");
+    expect(screen.getByText("Spend today")).toBeInTheDocument();
+    expect(screen.getByText("Over 80% of the cap")).toBeInTheDocument(); // cap_warning in the fixture
+    expect(screen.getByText("Spend this month")).toBeInTheDocument();
+    expect(screen.getByText("Tokens today")).toBeInTheDocument();
+  });
+
+  it("AC5: spend per day for 30 days by default, switchable and remembered", async () => {
+    await renderAt("/app/admin");
+    const chart = await screen.findByRole("group", { name: new RegExp(`^Spend per day, last 30 days, highest \\$4\\.10 on ${shortDate("2026-11-13")}`) });
+    expect(chart).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: /^Spend per day/ }).querySelectorAll("tbody tr")).toHaveLength(30);
+    fireEvent.click(screen.getByRole("radio", { name: "7 days" }));
+    expect(await screen.findByRole("group", { name: /^Spend per day, last 7 days/ })).toBeInTheDocument();
+    expect(getOverviewSeries).toHaveBeenCalledWith("7d");
+    expect(window.localStorage.getItem("abstract.admin.range")).toBe("7d");
+  });
+
+  it("AC6: papers and questions, active users, sign-ups and AI errors per day", async () => {
+    await renderAt("/app/admin");
+    expect(await screen.findByRole("group", { name: /^Papers and questions per day, last 30 days: 3 papers, 7 questions/ })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: /^Active users per day, last 30 days, highest 5/ })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: /^New sign-ups per day, last 30 days, 2 in total/ })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: /^AI errors per day by provider, last 30 days, 2 in total/ })).toBeInTheDocument();
+  });
+
+  it("AC7: breakdowns with totals; failed jobs and plans open their pages; task or model", async () => {
+    await renderAt("/app/admin");
+    expect(await screen.findByRole("figure", { name: /^Spend by task/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /^Failed\s*\d+%/ })).toHaveAttribute("href", "/app/admin/jobs");
+    expect(screen.getByRole("link", { name: /^Free/ })).toHaveAttribute("href", "/app/admin/plans");
+    expect(within(screen.getByRole("figure", { name: /^Users by plan/ })).getByText("15")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("radio", { name: "Model" }));
+    expect(screen.getByRole("figure", { name: /^Spend by model/ })).toBeInTheDocument();
+  });
+
+  it("AC8: arrow keys read out a day; no serious axe violations", async () => {
+    vi.mocked(getOverview).mockResolvedValue({ ...OVERVIEW, cap_usd: 5 }); // $4.10 is over 80%
+    const { container } = await renderAt("/app/admin");
+    const chart = await screen.findByRole("group", { name: /^Spend per day/ });
+    chart.focus();
+    fireEvent.keyDown(chart, { key: "End" });
+    expect(await screen.findByText(`${shortDate("2026-11-13")}: Spend $4.10. At or over 80% of the cap`)).toBeInTheDocument();
+    fireEvent.keyDown(chart, { key: "ArrowLeft" });
+    expect(screen.getByText(`${shortDate("2026-11-12")}: Spend $0`)).toBeInTheDocument();
+    expect(await seriousViolations(container)).toEqual([]);
+  });
+
+  it("AC11: a failed request offers Retry and leaves the page; no data says so", async () => {
+    vi.mocked(getOverviewSeries).mockRejectedValueOnce(new Error("Could not load the charts."));
+    await renderAt("/app/admin");
+    expect(await screen.findByText("Could not load the charts.")).toBeInTheDocument();
+    expect(screen.getByText("Spend this month")).toBeInTheDocument(); // the rest still shows
+    vi.mocked(getOverviewSeries).mockResolvedValueOnce(seriesFixture(30, true));
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect((await screen.findAllByText("No usage yet")).length).toBeGreaterThan(0);
   });
 });

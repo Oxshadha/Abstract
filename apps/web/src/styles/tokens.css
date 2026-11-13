@@ -32,6 +32,11 @@
   --abs-color-focus: #202020;
   --abs-color-logo-back: #b6b6b2;
   --abs-color-logo-front: #222222;
+  --abs-color-chart-1: #202020;
+  --abs-color-chart-2: #4a4a47;
+  --abs-color-chart-3: #77776f;
+  --abs-color-chart-4: #a3a39c;
+  --abs-color-chart-5: #cfcfc9;
 }
 
 /* Dark: explicit choice, or the system preference unless the user chose light. */
@@ -56,6 +61,11 @@
   --abs-color-focus: #f1f1ed;
   --abs-color-logo-back: #858581;
   --abs-color-logo-front: #f1f1ed;
+  --abs-color-chart-1: #f1f1ed;
+  --abs-color-chart-2: #c5c5bf;
+  --abs-color-chart-3: #9a9a94;
+  --abs-color-chart-4: #6f6f6a;
+  --abs-color-chart-5: #4a4a47;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -79,5 +89,10 @@
     --abs-color-focus: #f1f1ed;
     --abs-color-logo-back: #858581;
     --abs-color-logo-front: #f1f1ed;
+    --abs-color-chart-1: #f1f1ed;
+    --abs-color-chart-2: #c5c5bf;
+    --abs-color-chart-3: #9a9a94;
+    --abs-color-chart-4: #6f6f6a;
+    --abs-color-chart-5: #4a4a47;
 }
 }
