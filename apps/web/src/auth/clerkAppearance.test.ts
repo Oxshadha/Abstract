@@ -27,3 +27,12 @@ describe("D96: the Google button stands out from the card", () => {
     expect(button.backgroundColor).not.toBe(colors.surface);
   });
 });
+
+describe("D96: Clerk's card never clips the fields", () => {
+  it("fits its box exactly and lets edges and the Last used tag show", () => {
+    const { cardBox, card } = clerkAppearance("light").elements;
+    expect(cardBox.overflow).toBe("visible");
+    expect(card.margin).toBe(0);
+    expect(card.width).toBe("100%");
+  });
+});

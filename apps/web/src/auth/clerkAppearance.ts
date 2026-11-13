@@ -33,8 +33,11 @@ export function clerkAppearance(theme: "light" | "dark") {
       // Our card is the card: Clerk's own box goes flat and full width, so there is no card
       // inside a card on desktop and nothing spills past the edge on phones (D96).
       rootBox: { width: "100%" },
-      cardBox: { width: "100%", maxWidth: "100%", boxShadow: "none", border: "none", borderRadius: 0 },
-      card: { boxShadow: "none", border: "none", backgroundColor: "transparent", paddingLeft: 0, paddingRight: 0 },
+      // Clerk's card is 2px wider than its box (negative margins) and the box clips, which cut
+      // the right edge of every field and the "Last used" tag: no clipping, exact width, and a
+      // few px of room so focus rings and the tag fit.
+      cardBox: { width: "100%", maxWidth: "100%", boxShadow: "none", border: "none", borderRadius: 0, overflow: "visible" },
+      card: { boxShadow: "none", border: "none", backgroundColor: "transparent", margin: 0, width: "100%", paddingLeft: "4px", paddingRight: "4px" },
       footer: { background: "transparent" },
       // Clerk draws borders as box-shadow rings and ignores `border`, so outlines use a ring too.
       formButtonPrimary: { backgroundImage: "none", boxShadow: "none" },
