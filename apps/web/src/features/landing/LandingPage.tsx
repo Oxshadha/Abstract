@@ -1,5 +1,5 @@
-import { ArrowRight, BookOpen, Check, Folder, ImageIcon, Layers, MessageSquare, Play, SlidersHorizontal, Upload, type LucideIcon } from "lucide-react";
-import { useSyncExternalStore, type ReactNode } from "react";
+import { ArrowRight, BookOpen, Check, Folder, ImageIcon, Layers, MessageSquare, Pause, Play, SlidersHorizontal, Upload, type LucideIcon } from "lucide-react";
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 
 import { LogoMark } from "@/components/brand/Logo";
 
@@ -71,6 +71,72 @@ function ProductShot() {
         className="h-auto w-full rounded-xl border border-border bg-surface shadow-overlay"
       />
     </picture>
+  );
+}
+
+/**
+ * The How it works demo (D94): a real recording of the Workspace, muted and looping. It loads
+ * and plays only while on screen, can be paused (WCAG 2.2.2), and stays still for readers who
+ * prefer reduced motion until they press play.
+ */
+function DemoVideo() {
+  const video = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(false);
+  const [paused, setPaused] = useState(false); // paused by the reader: never restart on scroll
+
+  useEffect(() => {
+    const el = video.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    const reduced = typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced || paused) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) void el.play().catch(() => undefined);
+        else el.pause();
+      },
+      { threshold: 0.4 },
+    );
+    observer.observe(el);
+    return () => { observer.disconnect(); };
+  }, [paused]);
+
+  return (
+    <figure className="relative mx-auto w-full max-w-5xl">
+      <video
+        ref={video}
+        muted
+        loop
+        playsInline
+        preload="none"
+        poster="/landing/demo-poster.webp"
+        width={1280}
+        height={800}
+        aria-label="Demo: a question about the paper is answered with numbered sources, and a source opens Table 2 in the paper."
+        onPlay={() => { setPlaying(true); }}
+        onPause={() => { setPlaying(false); }}
+        className="h-auto w-full rounded-xl border border-border bg-surface shadow-overlay"
+      >
+        <source src="/landing/demo.mp4" type="video/mp4" />
+      </video>
+      <button
+        type="button"
+        aria-label={playing ? "Pause the demo" : "Play the demo"}
+        onClick={() => {
+          const el = video.current;
+          if (!el) return;
+          if (el.paused) {
+            setPaused(false);
+            void el.play().catch(() => undefined);
+          } else {
+            setPaused(true);
+            el.pause();
+          }
+        }}
+        className="absolute bottom-3 left-3 inline-flex size-11 items-center justify-center rounded-pill border border-border bg-surface/90 text-text shadow-card backdrop-blur"
+      >
+        {playing ? <Pause aria-hidden className="size-5" /> : <Play aria-hidden className="size-5" />}
+      </button>
+    </figure>
   );
 }
 
@@ -155,6 +221,7 @@ export function LandingPage() {
               </li>
             ))}
           </ol>
+          <DemoVideo />
         </Section>
 
         <Section id="features" title="Everything a paper needs" intro="Built for researchers who want to understand, not skim.">
@@ -201,10 +268,6 @@ export function LandingPage() {
       <footer className="border-t border-border px-4 py-8 md:px-8">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-4 text-sm text-text-secondary">
           <span className="inline-flex items-center gap-2"><LogoMark className="size-6" />{`© ${String(new Date().getFullYear())} Abstract.`}</span>
-          <nav aria-label="Footer" className="ml-auto flex gap-1">
-            <a href={SIGN_IN} className="inline-flex min-h-11 items-center px-2 hover:text-text">Log in</a>
-            <a href={SIGN_UP} className="inline-flex min-h-11 items-center px-2 hover:text-text">Get started</a>
-          </nav>
         </div>
       </footer>
     </div>

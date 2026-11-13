@@ -38,6 +38,15 @@ describe("Landing page (spec 016)", () => {
     expect(await seriousViolations(container)).toEqual([]);
   });
 
+  it("D94: How it works shows the demo, paused until it is on screen, with a play button", () => {
+    render(<LandingPage />);
+    const steps = screen.getByRole("region", { name: "How it works" });
+    const video = within(steps).getByLabelText(/Demo: a question about the paper/);
+    expect(video).toHaveAttribute("poster", "/landing/demo-poster.webp");
+    expect(video).toHaveAttribute("preload", "none");
+    expect(within(steps).getByRole("button", { name: "Play the demo" })).toBeInTheDocument();
+  });
+
   it("AC5: Get started goes to sign-up, Log in to sign-in, See how it works to the steps; no API calls", () => {
     render(<LandingPage />);
     const header = screen.getByRole("banner");
