@@ -61,3 +61,29 @@ describe("AC8: sign-in modal over the blurred app (D45, D70)", () => {
     expect(screen.getByRole("button", { name: "Continue as demo user" })).toBeInTheDocument();
   });
 });
+
+describe("D96: a way back from sign-in", () => {
+  async function routerAt(path: string) {
+    const router = createAppRouter(createMemoryHistory({ initialEntries: [path] }));
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+        <RouterProvider router={router} />
+      </QueryClientProvider>,
+    );
+    await router.load();
+    return router;
+  }
+
+  it.each(["/sign-in", "/sign-up", "/app/library"])("Close on %s goes to the landing page", async (path) => {
+    const router = await routerAt(path);
+    fireEvent.click(await screen.findByRole("link", { name: "Close" }));
+    await waitFor(() => { expect(router.state.location.pathname).toBe("/"); });
+  });
+
+  it("Escape does the same", async () => {
+    const router = await routerAt("/sign-in");
+    await screen.findByRole("link", { name: "Close" });
+    fireEvent.keyDown(document, { key: "Escape" });
+    await waitFor(() => { expect(router.state.location.pathname).toBe("/"); });
+  });
+});
