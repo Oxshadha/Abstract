@@ -1,10 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowUp, BookOpen, ChevronDown, FileText, Loader2, MessageSquareQuote, Plus, RotateCcw, Sparkles, Square, SquareDashedMousePointer, User, X } from "lucide-react";
+import { ArrowUp, BookOpen, Check, ChevronDown, FileText, Loader2, MessageSquareQuote, NotebookPen, Plus, RotateCcw, Sparkles, Square, SquareDashedMousePointer, User, X } from "lucide-react";
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 
 import { StatusPill } from "@/components/status/StatusPill";
 import { toast } from "@/components/status/toast";
 import { getStatus, paperKeys } from "@/features/papers/api";
+import { useFlag } from "@/features/flags/api";
+import { notesKeys, saveAnswer } from "@/features/notes/api";
 import { Markdown } from "@/features/summaries/Markdown";
 
 import {
@@ -160,13 +162,40 @@ function Bubble({ role, children }: { role: Message["role"]; children: ReactNode
   );
 }
 
-function AssistantMessage({ message }: { message: Message }) {
+/** Spec 014 AC2: add this answer, with its question and page sources, to the paper's notes. */
+function SaveToNotes({ paperId, messageId }: { paperId: string; messageId: string }) {
+  const queryClient = useQueryClient();
+  const save = useMutation({
+    mutationFn: () => saveAnswer(paperId, messageId),
+    onSuccess: (notes) => {
+      queryClient.setQueryData(notesKeys.forPaper(paperId), notes);
+      toast("Saved to your notes.");
+    },
+    onError: (err) => {
+      toast(err.message);
+    },
+  });
+  return (
+    <button
+      type="button"
+      disabled={save.isPending || save.isSuccess}
+      onClick={() => { save.mutate(); }}
+      className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-md px-2 text-sm text-text-secondary hover:bg-muted hover:text-text disabled:opacity-60"
+    >
+      {save.isSuccess ? <Check aria-hidden className="size-4" /> : <NotebookPen aria-hidden className="size-4" />}
+      {save.isSuccess ? "Saved to notes" : "Save to notes"}
+    </button>
+  );
+}
+
+function AssistantMessage({ message, paperId, notes }: { message: Message; paperId: string; notes: boolean }) {
   return (
     <Bubble role="assistant">
       {message.status === "stopped" && <StatusPill status="neutral">Stopped</StatusPill>}
       {message.retrieval_mode === "keyword" && <StatusPill status="neutral">Answered from a keyword search</StatusPill>}
       <Markdown>{withMarkers(message.content)}</Markdown>
       <Citations items={message.citations} />
+      {notes && message.content.trim() && <SaveToNotes paperId={paperId} messageId={message.id} />}
     </Bubble>
   );
 }
@@ -269,6 +298,7 @@ function ConversationSwitcher({
 /** Ask Abstract (spec 007 AC9, AC10, AC14 to AC16), opened on demand in the Workspace (D79). */
 export function ChatPanel({ paperId, onClose }: { paperId: string; onClose?: () => void }) {
   const queryClient = useQueryClient();
+  const notes = useFlag("notes");
   const inputId = useId();
   const viewerApi = useCitations(); // a region waiting to be asked about (spec 009 AC10)
   const status = useQuery({ queryKey: paperKeys.status(paperId), queryFn: () => getStatus(paperId),
@@ -409,7 +439,7 @@ export function ChatPanel({ paperId, onClose }: { paperId: string; onClose?: () 
                 {m.content}
               </Bubble>
             ) : (
-              <AssistantMessage key={m.id} message={m} />
+              <AssistantMessage key={m.id} message={m} paperId={paperId} notes={notes} />
             ),
           )
         )}
