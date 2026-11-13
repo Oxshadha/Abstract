@@ -12,9 +12,12 @@ export type AdminJobs = components["schemas"]["AdminJobs"];
 export type AdminJob = components["schemas"]["AdminJob"];
 export type ModelEntry = components["schemas"]["RegistryEntryOut"];
 export type ModelUpdate = components["schemas"]["RegistryUpdate"];
+export type OverviewSeries = components["schemas"]["OverviewSeries"];
+export type SeriesRange = OverviewSeries["range"];
 
 export const adminKeys = {
   overview: ["admin", "overview"] as const,
+  series: (range: string) => ["admin", "series", range] as const,
   users: (q: string) => ["admin", "users", q] as const,
   plans: ["admin", "plans"] as const,
   flags: ["admin", "flags"] as const,
@@ -25,6 +28,12 @@ export const adminKeys = {
 export async function getOverview(): Promise<Overview> {
   const { data, response } = await api.GET("/api/v1/admin/overview");
   if (!data) throw await problem(response, "Could not load the overview.");
+  return data;
+}
+
+export async function getOverviewSeries(range: SeriesRange): Promise<OverviewSeries> {
+  const { data, response } = await api.GET("/api/v1/admin/overview/series", { params: { query: { range } } });
+  if (!data) throw await problem(response, "Could not load the charts.");
   return data;
 }
 

@@ -191,3 +191,53 @@ describe("Spec 011 AC7: flags gate the UI", () => {
     await waitFor(() => { expect(screen.queryByRole("button", { name: "Search" })).toBeNull(); });
   });
 });
+
+describe("Spec 018 AC1 to AC3: the admin sidebar", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+  });
+
+  it("AC1: groups the sections, marks the current page and badges failed jobs", async () => {
+    await renderAt("/app/admin/users");
+    const sidebar = await screen.findByRole("complementary", { name: "Admin" });
+    const monitor = within(sidebar).getByRole("group", { name: "Monitor" });
+    const manage = within(sidebar).getByRole("group", { name: "Manage" });
+    expect(within(monitor).getByRole("link", { name: "Overview" })).toBeInTheDocument();
+    expect(await within(monitor).findByRole("link", { name: "Jobs 1 failed" })).toBeInTheDocument();
+    for (const name of ["Users", "Plans", "Models", "Flags"]) expect(within(manage).getByRole("link", { name })).toBeInTheDocument();
+    expect(within(manage).getByRole("link", { name: "Users" })).toHaveAttribute("aria-current", "page");
+    expect(within(sidebar).getByRole("link", { name: "Back to app" })).toHaveAttribute("href", "/app/home");
+    // The app sidebar (Library, Templates) is not shown inside Admin.
+    expect(screen.queryByRole("navigation", { name: "Main" })).toBeNull();
+  });
+
+  it("AC2: collapses to an icon rail that keeps names, and the device remembers it", async () => {
+    const view = await renderAt("/app/admin");
+    const sidebar = await screen.findByRole("complementary", { name: "Admin" });
+    fireEvent.click(within(sidebar).getByRole("button", { name: "Collapse sidebar" }));
+    expect(sidebar).toHaveAttribute("data-collapsed", "true");
+    expect(within(sidebar).getByRole("link", { name: "Plans" })).toHaveAttribute("title", "Plans");
+    expect(window.localStorage.getItem("abstract.admin.sidebar")).toBe("collapsed");
+    view.unmount();
+    await renderAt("/app/admin");
+    const again = await screen.findByRole("complementary", { name: "Admin" });
+    expect(again).toHaveAttribute("data-collapsed", "true");
+    fireEvent.click(within(again).getAllByRole("button", { name: "Expand sidebar" })[0] as HTMLElement);
+    expect(again).toHaveAttribute("data-collapsed", "false");
+  });
+
+  it("AC3: phones keep the section pill row, which hides where the sidebar shows", async () => {
+    await renderAt("/app/admin");
+    const main = await screen.findByRole("main");
+    const pills = within(main).getByRole("navigation", { name: "Admin sections" });
+    expect(pills).toHaveClass("md:hidden");
+    expect(screen.getByRole("complementary", { name: "Admin" })).toHaveClass("hidden", "md:flex");
+  });
+
+  it("is not shown to someone who is not an admin", async () => {
+    vi.mocked(fetchMe).mockResolvedValue(me("user") as Awaited<ReturnType<typeof fetchMe>>);
+    await renderAt("/app/admin");
+    expect(await screen.findByRole("heading", { name: "Page not found" })).toBeInTheDocument();
+    expect(screen.queryByRole("complementary", { name: "Admin" })).toBeNull();
+  });
+});

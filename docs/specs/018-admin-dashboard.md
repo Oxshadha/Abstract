@@ -26,7 +26,7 @@ Admins see the state of the platform at a glance: a proper admin sidebar on desk
 - A metrics backend; everything is read from existing tables and Redis, as 011 required.
 
 ## Layout
-**Desktop (1024 px and up):** inside `/app/admin` the app sidebar is replaced by the admin sidebar:
+**Tablet and desktop (768 px and up, where the app sidebar shows):** inside `/app/admin` the app sidebar is replaced by the admin sidebar:
 ```
 ┌───────────────┬──────────────────────────────────────────────┐
 │ abstract.     │  Overview                     [7d|30d|90d]   │
@@ -63,9 +63,9 @@ Admins see the state of the platform at a glance: a proper admin sidebar on desk
 All charts are monochrome: five grey steps from tokens (`chart-1` to `chart-5`, light and dark), with labels and patterns rather than colour to tell series apart. Hover or focus a bar or segment for a tooltip; every chart has a hidden data table and an `aria-label` summary ("Spend per day, last 30 days, highest 4.10 dollars on 2 November").
 
 ## Acceptance criteria
-- [ ] **AC1** — **Admin sidebar (desktop).** Given a platform admin on a 1024 px or wider screen, when they open any `/app/admin` page, then the admin sidebar shows the brand, Back to app, the sections under Monitor (Overview, Jobs with the failed count as a badge) and Manage (Users, Plans, Models, Flags), with the current page marked by a pill that glides between items (no glide with reduced motion).
+- [ ] **AC1** — **Admin sidebar (desktop).** Given a platform admin on a screen 768 px or wider (where the app sidebar shows), when they open any `/app/admin` page, then the admin sidebar shows the brand, Back to app, the sections under Monitor (Overview, Jobs with the failed count as a badge) and Manage (Users, Plans, Models, Flags), with the current page marked by a pill that glides between items (no glide with reduced motion).
 - [ ] **AC2** — **Collapse.** The sidebar collapses to an icon rail and expands again from a button or the logo; the choice is remembered on the device; each icon keeps its name as a tooltip and for screen readers; collapsing animates the width in 240 ms (instant with reduced motion) and the page reflows without jumping.
-- [ ] **AC3** — **Phones unchanged.** Below 1024 px there is no sidebar; the section pill row from 011 stays, and every admin page has no horizontal scroll at 360 px.
+- [ ] **AC3** — **Phones unchanged.** Below 768 px there is no sidebar; the section pill row from 011 stays, and every admin page has no horizontal scroll at 360 px.
 - [ ] **AC4** — **Summary cards.** The Overview starts with four cards: spend today against the cap (with the 80% warning pill from 011), spend this month, tokens today and failed jobs; each card links to its detail (Jobs for failed jobs).
 - [ ] **AC5** — **Spend per day.** A bar chart shows spend per UTC day for the chosen range (7, 30 or 90 days, default 30, remembered on the device), with the daily cap drawn as a line; empty days show as zero, not gaps.
 - [ ] **AC6** — **Activity per day.** Bar charts over the same range show papers created and chat questions asked, new sign-ups, active users (distinct users with an AI call, upload or chat message) and AI errors stacked by provider.
