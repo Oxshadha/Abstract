@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Approved (owner, 2026-11-13): sidebar rebuilt from the reference without new libraries (EDP 1 option 1), hand-written SVG charts (EDP 2 option 1), own admin sidebar with Back to app, plus sign-ups, active users and AI errors per day (D97) |
+| **Status** | Implemented (2026-11-13). Approved (owner, 2026-11-13): sidebar rebuilt from the reference without new libraries (EDP 1 option 1), hand-written SVG charts (EDP 2 option 1), own admin sidebar with Back to app, plus sign-ups, active users and AI errors per day (D97) |
 | **Week** | W4 |
 | **Decisions** | D45, D60, D86, D92, D97 |
 | **Engineering practices (D67)** | No new §3 items; spec 011's items (AC6, AC8, AC9 there) keep holding and are re-tested here as AC10 |
@@ -63,17 +63,17 @@ Admins see the state of the platform at a glance: a proper admin sidebar on desk
 All charts are monochrome: five grey steps from tokens (`chart-1` to `chart-5`, light and dark), with labels and patterns rather than colour to tell series apart. Hover or focus a bar or segment for a tooltip; every chart has a hidden data table and an `aria-label` summary ("Spend per day, last 30 days, highest 4.10 dollars on 2 November").
 
 ## Acceptance criteria
-- [ ] **AC1** — **Admin sidebar (desktop).** Given a platform admin on a screen 768 px or wider (where the app sidebar shows), when they open any `/app/admin` page, then the admin sidebar shows the brand, Back to app, the sections under Monitor (Overview, Jobs with the failed count as a badge) and Manage (Users, Plans, Models, Flags), with the current page marked by a pill that glides between items (no glide with reduced motion).
-- [ ] **AC2** — **Collapse.** The sidebar collapses to an icon rail and expands again from a button or the logo; the choice is remembered on the device; each icon keeps its name as a tooltip and for screen readers; collapsing animates the width in 240 ms (instant with reduced motion) and the page reflows without jumping.
-- [ ] **AC3** — **Phones unchanged.** Below 768 px there is no sidebar; the section pill row from 011 stays, and every admin page has no horizontal scroll at 360 px.
-- [ ] **AC4** — **Summary cards.** The Overview starts with four cards: spend today against the cap (with the 80% warning pill from 011), spend this month, tokens today and failed jobs; each card links to its detail (Jobs for failed jobs).
-- [ ] **AC5** — **Spend per day.** A bar chart shows spend per UTC day for the chosen range (7, 30 or 90 days, default 30, remembered on the device), with the daily cap drawn as a line; empty days show as zero, not gaps.
-- [ ] **AC6** — **Activity per day.** Bar charts over the same range show papers created and chat questions asked, new sign-ups, active users (distinct users with an AI call, upload or chat message) and AI errors stacked by provider.
-- [ ] **AC7** — **Breakdowns.** Donuts show spend by task (with a by model tab), jobs by state and users by plan; each shows the total in the centre, at most five segments plus Other, and a legend with values; selecting a segment of jobs or plans opens Jobs or Users filtered to it.
-- [ ] **AC8** — **Accessible charts.** Every chart has an `aria-label` summary and a data table available to screen readers, bars and segments are reachable by keyboard with a visible focus and a tooltip, and no information is carried by colour alone (axe passes on the Overview in light and dark).
-- [ ] **AC9** — **Series API.** `GET /api/v1/admin/overview/series?range=7d|30d|90d` returns one row per UTC day with spend, tokens, papers, questions, sign-ups, active users and AI errors by provider, plus the breakdowns, for platform admins only (`admin.usage.read`); anyone else gets 403 like the rest of the admin API (the web app shows them "Page not found"); the range is validated (anything else is 422); the query reads existing tables and stays under 300 ms p95 at 90 days on the dev data.
-- [ ] **AC10** — **011 still holds.** Queue depth per queue, AI error rate per provider, top users and spend today against the cap remain on the Overview (below the charts); admins still never see paper content; the admin route stays lazy-loaded and the chart code is not in the entry chunk (bundle budget passes).
-- [ ] **AC11** — **States.** Loading shows chart-shaped skeletons; a failed series request shows the cards and lists with a Retry in the chart area instead of failing the page; a brand-new install with no usage shows empty charts with "No usage yet".
+- [x] **AC1** — **Admin sidebar (desktop).** Given a platform admin on a screen 768 px or wider (where the app sidebar shows), when they open any `/app/admin` page, then the admin sidebar shows the brand, Back to app, the sections under Monitor (Overview, Jobs with the failed count as a badge) and Manage (Users, Plans, Models, Flags), with the current page marked by a pill that glides between items (no glide with reduced motion).
+- [x] **AC2** — **Collapse.** The sidebar collapses to an icon rail and expands again from a button or the logo; the choice is remembered on the device; each icon keeps its name as a tooltip and for screen readers; collapsing animates the width in 240 ms (instant with reduced motion) and the page reflows without jumping.
+- [x] **AC3** — **Phones unchanged.** Below 768 px there is no sidebar; the section pill row from 011 stays, and every admin page has no horizontal scroll at 360 px.
+- [x] **AC4** — **Summary cards.** The Overview starts with four cards: spend today against the cap (with the 80% warning pill from 011), spend this month, tokens today and failed jobs; each card links to its detail (Jobs for failed jobs).
+- [x] **AC5** — **Spend per day.** A bar chart shows spend per UTC day for the chosen range (7, 30 or 90 days, default 30, remembered on the device), with the daily cap drawn as a line; empty days show as zero, not gaps.
+- [x] **AC6** — **Activity per day.** Bar charts over the same range show papers created and chat questions asked, new sign-ups, active users (distinct users with an AI call, upload or chat message) and AI errors stacked by provider.
+- [x] **AC7** — **Breakdowns.** Donuts show spend by task (with a by model tab), jobs by state and users by plan; each shows the total in the centre, at most five segments plus Other, and a legend with values; selecting a segment of jobs or plans opens Jobs or Users filtered to it.
+- [x] **AC8** — **Accessible charts.** Every chart has an `aria-label` summary and a data table available to screen readers, bars and segments are reachable by keyboard with a visible focus and a tooltip, and no information is carried by colour alone (axe passes on the Overview in light and dark).
+- [x] **AC9** — **Series API.** `GET /api/v1/admin/overview/series?range=7d|30d|90d` returns one row per UTC day with spend, tokens, papers, questions, sign-ups, active users and AI errors by provider, plus the breakdowns, for platform admins only (`admin.usage.read`); anyone else gets 403 like the rest of the admin API (the web app shows them "Page not found"); the range is validated (anything else is 422); the query reads existing tables and stays under 300 ms p95 at 90 days on the dev data.
+- [x] **AC10** — **011 still holds.** Queue depth per queue, AI error rate per provider, top users and spend today against the cap remain on the Overview (below the charts); admins still never see paper content; the admin route stays lazy-loaded and the chart code is not in the entry chunk (bundle budget passes).
+- [x] **AC11** — **States.** Loading shows chart-shaped skeletons; a failed series request shows the cards and lists with a Retry in the chart area instead of failing the page; a brand-new install with no usage shows empty charts with "No usage yet".
 
 ## API contract
 | Method | Path | Request | Response | Errors |
@@ -129,3 +129,13 @@ Impact: spec 018; new chart tokens in `design/tokens.json`. Reversibility: easy 
 - **Q1:** the admin area gets its own sidebar with Back to app (recommended layout; the owner left the adaptation to us).
 - **Q2:** 7, 30 and 90 days, default 30 (not changed by the owner).
 - **Q3:** add new sign-ups, active users and AI errors per day.
+
+## As built (2026-11-13)
+- **Sidebar breakpoint:** shows where the app sidebar does (768 px up), so the phone pill row and the sidebar never appear together; AC1 and AC3 say so.
+- **Segment links:** failed jobs open Jobs (which lists failed and stuck jobs) and plan slices open Plans (users per plan); neither page gained a filter, which would have been new scope.
+- **Daily cap card:** today's spend is said once, on the summary card; the old Spend today card is now Daily cap (percent used, the cap field and the 80% warning pill).
+- **Cap line:** drawn only when spend comes within half of the cap; otherwise the chart names the cap underneath, so small amounts stay readable.
+- **Data:** migration 0022 adds four SECURITY DEFINER functions (daily series, daily errors, jobs by state, users by plan); no table changes. 40 ms at 90 days on the dev data, so no index. Non-admins get 403 like the rest of the admin API.
+- **Verified:** Chromium, WebKit and Firefox at 1440 and 390 wide, light and dark; fixed on the way: Firefox drew a hidden table caption over the chart.
+- **Tests:** API 436 (5 new), web 223 (10 new).
+

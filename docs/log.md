@@ -15,6 +15,14 @@ Entry format:
 
 ---
 
+## 2026-11-13: Spec 018 admin sidebar and charts implemented
+**Done:** Admins get their own sidebar inside Admin (Monitor and Manage groups, failed-jobs badge, Back to app, collapses to a remembered icon rail), adapted from the owner's reference without new libraries. The Overview gains hand-written SVG charts in new chart greys: spend, papers and questions, active users, sign-ups and AI errors per day (7, 30 or 90 days), and donuts for spend by task or model, jobs by state and users by plan. One read-only series endpoint (migration 0022 functions).
+**Verified:** Chromium, WebKit and Firefox, desktop and phone, light and dark, on the dev data. Fixed on the way: Firefox showed a hidden table caption over a chart; a $20 cap flattened cent-sized spend bars.
+**Branching:** 018 sits on top of the 014 branch so its migration follows 0021; merge #23 first.
+**Decisions:** D97   **Specs:** 018 Implemented (as-built notes)
+**Next:** owner merges #23, then the 018 branch; the auth hero branch (D96) waits for its PR; then 017 deploy.
+**Blockers / waiting on owner:** merges; whether to open PRs for 018 and the auth hero.
+
 ## 2026-11-13: Spec 014 notes and references implemented; auth hero; spec 018 drafted
 **Done:** Notes beside the paper (formatting bar, 1 s autosave, Reload or Keep mine on a conflict, Save to notes on every chat answer with its page sources) and References (parsed from the paper, matched on Semantic Scholar in the background through one allowlisted client, cached 30 days). Desktop tabs under the title; five icons in the phone pill; each tab follows its flag. `make references` read the lists of 154 older dev papers.
 **Verified:** Chromium, WebKit and Firefox, desktop and phone, on the dev library; autosave survives a reload. Fixed on the way: reference titles wrapped to two lines on phones.
