@@ -33,9 +33,11 @@ from app.modules.llm.gateway import set_context as set_llm_context
 from app.modules.papers.chunking import Chunk, chunk_paper
 from app.modules.papers.jobs import transition
 from app.modules.papers.keys import paper_prefix, sanitized_key
+from app.modules.references.store import MATCH_TASK, create_job, store_extracted
 from app.ports.layout import LayoutParser
 from app.ports.llm import LLMGateway
 from app.ports.scanner import MalwareScanner
+from app.ports.scholar import ScholarClient
 from app.ports.storage import ObjectChangedError, Storage
 from app.ports.tracing import NoTracer, Tracer
 
@@ -57,6 +59,7 @@ class Deps:
     scanner: MalwareScanner | None = None
     tracer: Tracer = field(default_factory=NoTracer)
     layout: LayoutParser | None = None  # tables and figures (spec 009); Docling when unset
+    scholar: ScholarClient | None = None  # reference matching (spec 014); raw entries when unset
 
 
 class PaperGoneError(Exception):
@@ -279,6 +282,7 @@ async def _run(deps: Deps, org_id: UUID, job_id: UUID, paper: _Paper) -> None:
 
     ocr_job: UUID | None = None
     enrich_job: UUID | None = None
+    references_job: UUID | None = None
     async with maker() as session, session.begin():
         await set_tenant(session, org_id)
         await lock_usable_paper(session, paper.id)
@@ -322,6 +326,16 @@ async def _run(deps: Deps, org_id: UUID, job_id: UUID, paper: _Paper) -> None:
                 text("UPDATE papers SET enrichment_status = 'pending' WHERE id = :id"),
                 {"id": paper.id},
             )
+        with deps.tracer.observe("extract-references"):  # spec 014 AC5
+            match = await store_extracted(
+                session,
+                org_id,
+                paper.id,
+                paper.owner_id,
+                [p.text for p in extracted.pages if p.has_text_layer],
+            )
+        if match:
+            references_job = await create_job(session, org_id, paper.id)
         await set_step(session, job_id, "done")
         await transition(session, job_id, "succeeded")
     log.info(
@@ -347,3 +361,11 @@ async def _run(deps: Deps, org_id: UUID, job_id: UUID, paper: _Paper) -> None:
             async with maker() as session, session.begin():
                 await set_tenant(session, org_id)
                 await transition(session, enrich_job, "enqueue_failed", error="enqueue failed")
+    if references_job is not None:  # after commit; lookups never delay reading (AC6)
+        try:
+            deps.enqueue(MATCH_TASK, {"job_id": str(references_job), "org_id": str(org_id)})
+        except Exception as exc:
+            log.error("enqueue_failed", job_id=str(references_job), error=type(exc).__name__)
+            async with maker() as session, session.begin():
+                await set_tenant(session, org_id)
+                await transition(session, references_job, "enqueue_failed", error="enqueue failed")

@@ -140,7 +140,7 @@ services:
   worker-bg:
     # Docling for tables and figures (spec 009, D85): its own image and memory budget.
     build: { context: ./apps/api, target: enrich-dev }
-    command: ["celery", "-A", "app.worker.celery_app", "worker", "--loglevel=INFO", "-Q", "enrichment,scan,deletion", "--concurrency=1", "-n", "bg@%h"]
+    command: ["celery", "-A", "app.worker.celery_app", "worker", "--loglevel=INFO", "-Q", "enrichment,scan,deletion,lookups", "--concurrency=1", "-n", "bg@%h"]
     <<: *worker-hardening
     mem_limit: 6g  # Docling layout and table models plus OCR at 300 dpi (D85)
     environment: *worker-env

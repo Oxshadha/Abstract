@@ -16,6 +16,7 @@ from app.modules.papers import ocr as ocr_module
 from app.modules.papers import scan as scan_module
 from app.modules.papers.ingest import Deps
 from app.modules.papers.runner import JobTimeoutError, Outcome, run_job
+from app.modules.references import service as references_module
 from app.modules.summaries import failures as summary_failures
 from app.modules.summaries import generate as summary_module
 from app.worker.celery_app import celery_app
@@ -35,6 +36,7 @@ async def _run(
     scan: bool = False,
     summary: bool = False,
     enrich: bool = False,
+    references: bool = False,
 ) -> Outcome:
     async with worker_deps() as deps:
 
@@ -53,6 +55,9 @@ async def _run(
         async def enrich_give_up(reason: str) -> None:
             await enrich_module.give_up(deps, org_id, job_id, reason)
 
+        async def references_give_up(reason: str) -> None:
+            await references_module.give_up(deps, org_id, job_id, reason)
+
         return await run_job(
             deps.sessionmaker,
             org_id,
@@ -67,6 +72,8 @@ async def _run(
                 if summary
                 else enrich_give_up
                 if enrich
+                else references_give_up
+                if references
                 else None
             ),
             tracer=deps.tracer,
@@ -84,6 +91,7 @@ def _job_task(
     scan: bool = False,
     summary: bool = False,
     enrich: bool = False,
+    references: bool = False,
 ) -> str:
     outcome = asyncio.run(
         _run(
@@ -95,6 +103,7 @@ def _job_task(
             scan=scan,
             summary=summary,
             enrich=enrich,
+            references=references,
         )
     )
     if outcome.kind == "retry":
@@ -140,6 +149,19 @@ def enrich_paper(self: Any, job_id: str, org_id: str) -> str:
     """Tables and figures on the enrichment queue (spec 009 AC1, AC12, AC13)."""
     return _job_task(
         self, enrich_module.run_enrich, job_id, org_id, name="enrich-paper", enrich=True
+    )
+
+
+@celery_app.task(bind=True, name="app.worker.tasks.match_references", max_retries=MAX_RETRIES)  # type: ignore[untyped-decorator]
+def match_references(self: Any, job_id: str, org_id: str) -> str:
+    """Semantic Scholar lookups for the paper's references (spec 014 AC6, AC7); never blocks."""
+    return _job_task(
+        self,
+        references_module.run_matching,
+        job_id,
+        org_id,
+        name="match-references",
+        references=True,
     )
 
 

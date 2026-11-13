@@ -59,6 +59,11 @@ class Settings(BaseSettings):
     # Tables and figures in the background (spec 009, D85); off skips the layout parse.
     enrichment_enabled: bool = True
 
+    # Reference matching on Semantic Scholar (spec 014 AC6, AC7, D95). Works without a key; a
+    # key raises the rate limit. Lookups are spaced at least this far apart.
+    semantic_scholar_api_key: SecretStr | None = None
+    scholar_interval_seconds: float = 1.0
+
     # Upload limits (spec 004, D57). Plan-specific limits move to entitlements in spec 012.
     upload_max_bytes: int = 50 * 1024 * 1024
     upload_url_ttl_seconds: int = 600
