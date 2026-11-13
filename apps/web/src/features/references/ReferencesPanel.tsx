@@ -46,14 +46,14 @@ function Row({ item }: { item: ReferenceItem }) {
       <div className="min-w-0 flex-1">
         {m ? (
           <>
-            <p className="line-clamp-2 font-medium" title={m.title}>
+            <p className="line-clamp-1 font-medium sm:line-clamp-2" title={m.title}>
               <span className="sr-only">Reference {label}: </span>
               {m.title}
             </p>
             <p className="truncate text-sm text-text-secondary">{meta(item)}</p>
           </>
         ) : (
-          <p className="line-clamp-3 font-reading text-sm text-text-secondary" title={item.raw}>
+          <p className="line-clamp-2 font-reading text-sm text-text-secondary sm:line-clamp-3" title={item.raw}>
             <span className="sr-only">Reference {label}: </span>
             {item.raw}
           </p>
