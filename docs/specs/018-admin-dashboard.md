@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | Draft (2026-11-13). Waiting on the owner for the two EDPs below and the open questions |
+| **Status** | Approved (owner, 2026-11-13): sidebar rebuilt from the reference without new libraries (EDP 1 option 1), hand-written SVG charts (EDP 2 option 1), own admin sidebar with Back to app, plus sign-ups, active users and AI errors per day (D97) |
 | **Week** | W4 |
-| **Decisions** | D45, D60, D86, D92 (refines 011's layout; adds D97 on approval) |
+| **Decisions** | D45, D60, D86, D92, D97 |
 | **Engineering practices (D67)** | No new §3 items; spec 011's items (AC6, AC8, AC9 there) keep holding and are re-tested here as AC10 |
 | **Feature flag** | none (the admin area is gated by the platform admin role, as in 011) |
 | **Mockup** | none; owner's reference sidebar component (2026-11-13) and `docs/design-principles.md` |
@@ -15,7 +15,7 @@ Admins see the state of the platform at a glance: a proper admin sidebar on desk
 ## Scope
 **In:**
 - An admin sidebar on desktop, adapted from the owner's reference component (sections, active pill that glides, collapse to an icon rail, remembered per device).
-- Charts on the Overview: two time series (bar) and three breakdowns (donut), each with a range switch and a data table for screen readers.
+- Charts on the Overview: five time series (bar) and three breakdowns (donut), each with a range switch and a data table for screen readers.
 - One new read-only API: daily time series for the Overview.
 - Chart grey tokens in `design/tokens.json`.
 
@@ -52,6 +52,9 @@ Admins see the state of the platform at a glance: a proper admin sidebar on desk
 |---|---|---|---|
 | Spend per day | Bar | `llm_usage` cost per day, UTC | Daily cap as a line; days at or over 80% of the cap use the darkest grey and a warning icon in the tooltip (colour stays monochrome) |
 | Papers and questions per day | Bar, two series side by side | Papers created per day, chat messages per day | Counts only, never titles |
+| New sign-ups per day | Bar | Users created per day | Owner, 2026-11-13 |
+| Active users per day | Bar | Distinct users with an AI call, upload or chat message that day | Owner, 2026-11-13; counted from `llm_usage`, `papers` and chat messages, no new tracking |
+| AI errors per day | Bar, stacked by provider (at most three, then Other) | Failed model calls per day | Owner, 2026-11-13; providers told apart by pattern and label, not colour |
 | Spend by task | Donut | `llm_usage` grouped by task for the range | Top 5, the rest as "Other"; total in the centre |
 | Spend by model | Donut | Same, by model | Shown as a second tab on the task donut, not a sixth card |
 | Jobs by state | Donut | Jobs in the range by status | Failed links to Jobs, filtered |
@@ -65,22 +68,22 @@ All charts are monochrome: five grey steps from tokens (`chart-1` to `chart-5`, 
 - [ ] **AC3** — **Phones unchanged.** Below 1024 px there is no sidebar; the section pill row from 011 stays, and every admin page has no horizontal scroll at 360 px.
 - [ ] **AC4** — **Summary cards.** The Overview starts with four cards: spend today against the cap (with the 80% warning pill from 011), spend this month, tokens today and failed jobs; each card links to its detail (Jobs for failed jobs).
 - [ ] **AC5** — **Spend per day.** A bar chart shows spend per UTC day for the chosen range (7, 30 or 90 days, default 30, remembered on the device), with the daily cap drawn as a line; empty days show as zero, not gaps.
-- [ ] **AC6** — **Activity per day.** A bar chart shows papers created and chat questions asked per day over the same range.
+- [ ] **AC6** — **Activity per day.** Bar charts over the same range show papers created and chat questions asked, new sign-ups, active users (distinct users with an AI call, upload or chat message) and AI errors stacked by provider.
 - [ ] **AC7** — **Breakdowns.** Donuts show spend by task (with a by model tab), jobs by state and users by plan; each shows the total in the centre, at most five segments plus Other, and a legend with values; selecting a segment of jobs or plans opens Jobs or Users filtered to it.
 - [ ] **AC8** — **Accessible charts.** Every chart has an `aria-label` summary and a data table available to screen readers, bars and segments are reachable by keyboard with a visible focus and a tooltip, and no information is carried by colour alone (axe passes on the Overview in light and dark).
-- [ ] **AC9** — **Series API.** `GET /api/v1/admin/overview/series?range=7d|30d|90d` returns one row per UTC day with spend, tokens, papers and questions, plus the breakdowns, for platform admins only (`admin.usage.read`); anyone else gets 404 like the rest of the admin API; the range is validated (anything else is 422); the query reads existing tables and stays under 300 ms p95 at 90 days on the dev data.
+- [ ] **AC9** — **Series API.** `GET /api/v1/admin/overview/series?range=7d|30d|90d` returns one row per UTC day with spend, tokens, papers, questions, sign-ups, active users and AI errors by provider, plus the breakdowns, for platform admins only (`admin.usage.read`); anyone else gets 404 like the rest of the admin API; the range is validated (anything else is 422); the query reads existing tables and stays under 300 ms p95 at 90 days on the dev data.
 - [ ] **AC10** — **011 still holds.** Queue depth per queue, AI error rate per provider, top users and spend today against the cap remain on the Overview (below the charts); admins still never see paper content; the admin route stays lazy-loaded and the chart code is not in the entry chunk (bundle budget passes).
 - [ ] **AC11** — **States.** Loading shows chart-shaped skeletons; a failed series request shows the cards and lists with a Retry in the chart area instead of failing the page; a brand-new install with no usage shows empty charts with "No usage yet".
 
 ## API contract
 | Method | Path | Request | Response | Errors |
 |---|---|---|---|---|
-| GET | `/api/v1/admin/overview/series` | `range=7d\|30d\|90d` | `200 {range, days: [{date, spend_usd, tokens, papers, questions}], by_task: [{name, spend_usd}], by_model: [...], jobs_by_state: {state: n}, users_by_plan: {plan: n}}` | `404` (not an admin), `422` (bad range), `429` |
+| GET | `/api/v1/admin/overview/series` | `range=7d\|30d\|90d` | `200 {range, days: [{date, spend_usd, tokens, papers, questions, signups, active_users, errors: {provider: n}}], by_task: [{name, spend_usd}], by_model: [...], jobs_by_state: {state: n}, users_by_plan: {plan: n}}` | `404` (not an admin), `422` (bad range), `429` |
 
 Rate-limit group: `read` (D75). Days are UTC, matching the daily cap.
 
 ## Data model changes
-None. Reads `llm_usage`, `papers` (created_at, count only), chat messages (created_at, count only), `jobs` and users with their plan. If AC9's 300 ms budget fails at 90 days, add an index on `llm_usage (created_at)` in a migration (checked first with `EXPLAIN ANALYZE`).
+None. Reads `llm_usage` (cost, task, model, provider, errors, user), `papers` (created_at, owner, count only), chat messages (created_at, count only), `jobs` and users (created_at, plan). If AC9's 300 ms budget fails at 90 days, add an index on `llm_usage (created_at)` in a migration (checked first with `EXPLAIN ANALYZE`).
 
 ## Authorization & entitlements
 `admin.usage.read`, platform admins only, through `authorize` and RLS as in 011. Counts across orgs are allowed for admins (the existing admin usage policy); no content columns are selected.
@@ -120,7 +123,9 @@ Options:
 Recommendation: **1**. Two chart types do not justify a library, and our monochrome and accessibility rules are easier to meet in code we own. If later specs need many more chart types, revisit with 3.
 Impact: spec 018; new chart tokens in `design/tokens.json`. Reversibility: easy (components sit behind our own API).
 
-## Open questions
-- **Q1:** Should the admin sidebar replace the app sidebar inside `/app/admin` (recommended: a focused admin area with Back to app), or should Admin become a group inside the app sidebar?
-- **Q2:** Range options 7, 30 and 90 days, default 30: right?
-- **Q3:** Any other chart you want on the Overview (for example new sign-ups per day)? Each one is cheap with option 1 of EDP 2.
+## Owner answers (2026-11-13)
+- **EDP 1:** option 1, rebuild the sidebar from the reference with what the app has (the pasted code is a reference to adapt, not to copy).
+- **EDP 2:** option 1, hand-written SVG charts.
+- **Q1:** the admin area gets its own sidebar with Back to app (recommended layout; the owner left the adaptation to us).
+- **Q2:** 7, 30 and 90 days, default 30 (not changed by the owner).
+- **Q3:** add new sign-ups, active users and AI errors per day.
