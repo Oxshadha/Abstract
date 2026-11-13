@@ -75,7 +75,9 @@ export function Legend({ items, patternId }: { items: { label: string; index: nu
 
 function DataTable({ caption, head, rows }: { caption: string; head: string[]; rows: (string | number)[][] }) {
   return (
-    <table className="sr-only">
+    // The wrapper is what hides it: Firefox draws a table's caption outside a clipped table.
+    <div className="sr-only">
+    <table>
       <caption>{caption}</caption>
       <thead>
         <tr>{head.map((h) => <th key={h} scope="col">{h}</th>)}</tr>
@@ -86,6 +88,7 @@ function DataTable({ caption, head, rows }: { caption: string; head: string[]; r
         ))}
       </tbody>
     </table>
+    </div>
   );
 }
 
