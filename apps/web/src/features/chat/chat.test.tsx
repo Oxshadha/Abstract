@@ -7,6 +7,7 @@ import { configureAuth } from "@/auth/session";
 import { getStatus } from "@/features/papers/api";
 import { status } from "@/features/papers/fixtures";
 import { seriousViolations } from "@/test/axe";
+import { saveAnswer } from "@/features/notes/api";
 
 import { createConversation, getSuggestions, listConversations, listMessages, type Message } from "./api";
 import { useCitations } from "@/features/viewer/citation-context";
@@ -17,6 +18,7 @@ import { withMarkers } from "./markers";
 import { completedSentences } from "./useChat";
 
 vi.mock("@/features/papers/api", async (orig) => ({ ...(await orig<typeof import("@/features/papers/api")>()), getStatus: vi.fn() }));
+vi.mock("@/features/notes/api", async (orig) => ({ ...(await orig<typeof import("@/features/notes/api")>()), saveAnswer: vi.fn() }));
 vi.mock("./api", async (orig) => ({
   ...(await orig<typeof import("./api")>()),
   listConversations: vi.fn(), createConversation: vi.fn(), listMessages: vi.fn(), getSuggestions: vi.fn(),
@@ -339,5 +341,17 @@ describe("Spec 015 AC4, AC5: Explain and Ask on selected text", () => {
     vi.mocked(listMessages).mockResolvedValue([{ ...(saved[0] as Message), quote: { page: 5, text: "Positional encodings use sines." } }, saved[1] as Message]);
     renderPanel();
     expect(await screen.findByText("Positional encodings use sines.")).toBeInTheDocument();
+  });
+});
+
+describe("Spec 014 AC2: Save to notes", () => {
+  it("adds an answer, with its question and sources, to the paper's notes", async () => {
+    vi.mocked(listMessages).mockResolvedValue(saved);
+    vi.mocked(saveAnswer).mockResolvedValue({ doc: { type: "doc", content: [] }, version: 1, updated_at: "" });
+    renderPanel();
+    const button = await screen.findByRole("button", { name: "Save to notes" });
+    fireEvent.click(button);
+    expect(await screen.findByRole("button", { name: "Saved to notes" })).toBeDisabled();
+    expect(saveAnswer).toHaveBeenCalledWith("p1", "a1");
   });
 });

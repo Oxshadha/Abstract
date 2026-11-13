@@ -6,6 +6,7 @@ OCR job or a scan never delays another user's text index.
   enrichment  OCR of pages without text, layout enrichment (spec 009)
   scan        malware scanning when a scanner is configured (D77)
   deletion    paper and account deletion
+  lookups     outbound metadata lookups (spec 014 references), mostly waiting on the network
 Limits (AC9): every task has soft and hard time limits; the Redis visibility timeout is longer
 than the longest hard limit, so a running task is never re-delivered while it is still working.
 """
@@ -17,7 +18,7 @@ from celery import Celery
 # Read directly so importing the worker module doesn't require the full Settings (fast startup).
 _redis_url = os.environ.get("REDIS_URL", "redis://localhost:6379/0")
 
-QUEUES = ("fast", "enrichment", "scan", "deletion")
+QUEUES = ("fast", "enrichment", "scan", "deletion", "lookups")
 
 # task name -> (queue, soft_time_limit, time_limit) in seconds
 TASKS: dict[str, tuple[str, int, int]] = {
@@ -29,6 +30,7 @@ TASKS: dict[str, tuple[str, int, int]] = {
     "app.worker.tasks.reindex_embeddings": ("enrichment", 900, 960),
     "app.worker.tasks.enrich_paper": ("enrichment", 600, 660),  # spec 009 AC13
     "app.worker.tasks.delete_account": ("deletion", 600, 660),
+    "app.worker.tasks.match_references": ("lookups", 300, 330),  # spec 014; 120 s budget a run
     "app.worker.tasks.ping": ("fast", 5, 10),
 }
 VISIBILITY_TIMEOUT = 2 * max(hard for _, _, hard in TASKS.values())

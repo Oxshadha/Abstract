@@ -1472,6 +1472,63 @@
         "title": "MyFlags",
         "type": "object"
       },
+      "Notes": {
+        "properties": {
+          "doc": {
+            "additionalProperties": true,
+            "title": "Doc",
+            "type": "object"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          },
+          "version": {
+            "title": "Version",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "doc",
+          "version",
+          "updated_at"
+        ],
+        "title": "Notes",
+        "type": "object"
+      },
+      "NotesIn": {
+        "additionalProperties": false,
+        "properties": {
+          "base_version": {
+            "maximum": 10000000.0,
+            "minimum": 0.0,
+            "title": "Base Version",
+            "type": "integer"
+          },
+          "doc": {
+            "additionalProperties": true,
+            "propertyNames": {
+              "maxLength": 10000
+            },
+            "title": "Doc",
+            "type": "object"
+          }
+        },
+        "required": [
+          "doc",
+          "base_version"
+        ],
+        "title": "NotesIn",
+        "type": "object"
+      },
       "Overview": {
         "properties": {
           "by_model": {
@@ -2395,6 +2452,148 @@
         "title": "Received",
         "type": "object"
       },
+      "ReferenceItem": {
+        "properties": {
+          "label": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Label"
+          },
+          "match": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReferenceMatch"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "n": {
+            "title": "N",
+            "type": "integer"
+          },
+          "raw": {
+            "title": "Raw",
+            "type": "string"
+          }
+        },
+        "required": [
+          "n",
+          "label",
+          "raw",
+          "match"
+        ],
+        "title": "ReferenceItem",
+        "type": "object"
+      },
+      "ReferenceMatch": {
+        "properties": {
+          "authors": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Authors",
+            "type": "array"
+          },
+          "citations": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Citations"
+          },
+          "pdf_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pdf Url"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          },
+          "venue": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Venue"
+          },
+          "year": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Year"
+          }
+        },
+        "required": [
+          "title",
+          "authors",
+          "year",
+          "venue",
+          "citations",
+          "url",
+          "pdf_url"
+        ],
+        "title": "ReferenceMatch",
+        "type": "object"
+      },
+      "References": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/ReferenceItem"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "status": {
+            "enum": [
+              "pending",
+              "matching",
+              "done",
+              "none"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "items"
+        ],
+        "title": "References",
+        "type": "object"
+      },
       "Region": {
         "additionalProperties": false,
         "description": "A box on one page as fractions (0 to 1, origin top left), drawn in the viewer (AC10).\nOnly coordinates come from the browser; the server renders the crop (AC11).",
@@ -2587,6 +2786,21 @@
           "platform_role"
         ],
         "title": "RoleChange",
+        "type": "object"
+      },
+      "SaveAnswer": {
+        "additionalProperties": false,
+        "properties": {
+          "message_id": {
+            "format": "uuid",
+            "title": "Message Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "message_id"
+        ],
+        "title": "SaveAnswer",
         "type": "object"
       },
       "SearchResults": {
@@ -5777,6 +5991,153 @@
         ]
       }
     },
+    "/api/v1/papers/{paper_id}/notes": {
+      "get": {
+        "operationId": "get_notes_api_v1_papers__paper_id__notes_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Notes"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "The reader's notes on this paper (an empty page before the first save)",
+        "tags": [
+          "notes"
+        ]
+      },
+      "put": {
+        "operationId": "save_notes_api_v1_papers__paper_id__notes_put",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NotesIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Notes"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save the notes from the version they started at (409 when changed elsewhere)",
+        "tags": [
+          "notes"
+        ]
+      }
+    },
+    "/api/v1/papers/{paper_id}/notes/answers": {
+      "post": {
+        "operationId": "save_answer_api_v1_papers__paper_id__notes_answers_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveAnswer"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Notes"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Add a chat answer, with its question and page sources, to the notes",
+        "tags": [
+          "notes"
+        ]
+      }
+    },
     "/api/v1/papers/{paper_id}/opened": {
       "post": {
         "operationId": "paper_opened_api_v1_papers__paper_id__opened_post",
@@ -5853,6 +6214,49 @@
         "summary": "Page sizes in PDF points, so the viewer can lay out every page before rendering",
         "tags": [
           "papers"
+        ]
+      }
+    },
+    "/api/v1/papers/{paper_id}/references": {
+      "get": {
+        "operationId": "get_references_api_v1_papers__paper_id__references_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/References"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "The paper's reference list, with Semantic Scholar matches as they arrive",
+        "tags": [
+          "references"
         ]
       }
     },

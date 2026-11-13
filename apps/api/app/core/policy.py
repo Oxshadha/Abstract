@@ -22,6 +22,9 @@ OWNERS: frozenset[str] = frozenset({"owner"})
 POLICY: dict[str, frozenset[str]] = {
     "me.read": MEMBERS,
     "me.delete": MEMBERS,  # spec 012 AC15: the caller's own account only
+    "notes.read": MEMBERS,  # spec 014: the caller's own notes (owner checked by the service)
+    "notes.write": MEMBERS,
+    "references.read": MEMBERS,  # spec 014: owner checked by the service
     "org.update": OWNERS,
     "paper.read": MEMBERS,
     "paper.create": MEMBERS,

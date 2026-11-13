@@ -736,6 +736,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/papers/{paper_id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The reader's notes on this paper (an empty page before the first save) */
+        get: operations["get_notes_api_v1_papers__paper_id__notes_get"];
+        /** Save the notes from the version they started at (409 when changed elsewhere) */
+        put: operations["save_notes_api_v1_papers__paper_id__notes_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/papers/{paper_id}/notes/answers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a chat answer, with its question and page sources, to the notes */
+        post: operations["save_answer_api_v1_papers__paper_id__notes_answers_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/papers/{paper_id}/opened": {
         parameters: {
             query?: never;
@@ -762,6 +797,23 @@ export interface paths {
         };
         /** Page sizes in PDF points, so the viewer can lay out every page before rendering */
         get: operations["get_pages_api_v1_papers__paper_id__pages_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/papers/{paper_id}/references": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The paper's reference list, with Semantic Scholar matches as they arrive */
+        get: operations["get_references_api_v1_papers__paper_id__references_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1583,6 +1635,26 @@ export interface components {
                 [key: string]: boolean;
             };
         };
+        /** Notes */
+        Notes: {
+            /** Doc */
+            doc: {
+                [key: string]: unknown;
+            };
+            /** Updated At */
+            updated_at: string | null;
+            /** Version */
+            version: number;
+        };
+        /** NotesIn */
+        NotesIn: {
+            /** Base Version */
+            base_version: number;
+            /** Doc */
+            doc: {
+                [key: string]: unknown;
+            };
+        };
         /** Overview */
         Overview: {
             /** By Model */
@@ -1885,6 +1957,43 @@ export interface components {
             /** Received */
             received: boolean;
         };
+        /** ReferenceItem */
+        ReferenceItem: {
+            /** Label */
+            label: string | null;
+            match: components["schemas"]["ReferenceMatch"] | null;
+            /** N */
+            n: number;
+            /** Raw */
+            raw: string;
+        };
+        /** ReferenceMatch */
+        ReferenceMatch: {
+            /** Authors */
+            authors: string[];
+            /** Citations */
+            citations: number | null;
+            /** Pdf Url */
+            pdf_url: string | null;
+            /** Title */
+            title: string;
+            /** Url */
+            url: string;
+            /** Venue */
+            venue: string | null;
+            /** Year */
+            year: number | null;
+        };
+        /** References */
+        References: {
+            /** Items */
+            items: components["schemas"]["ReferenceItem"][];
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "pending" | "matching" | "done" | "none";
+        };
         /**
          * Region
          * @description A box on one page as fractions (0 to 1, origin top left), drawn in the viewer (AC10).
@@ -1974,6 +2083,14 @@ export interface components {
              * Format: uuid
              */
             user_id: string;
+        };
+        /** SaveAnswer */
+        SaveAnswer: {
+            /**
+             * Message Id
+             * Format: uuid
+             */
+            message_id: string;
         };
         /** SearchResults */
         SearchResults: {
@@ -3965,6 +4082,107 @@ export interface operations {
             };
         };
     };
+    get_notes_api_v1_papers__paper_id__notes_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Notes"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_notes_api_v1_papers__paper_id__notes_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["NotesIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Notes"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    save_answer_api_v1_papers__paper_id__notes_answers_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SaveAnswer"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Notes"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     paper_opened_api_v1_papers__paper_id__opened_post: {
         parameters: {
             query?: never;
@@ -4012,6 +4230,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PageSizes"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_references_api_v1_papers__paper_id__references_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["References"];
                 };
             };
             /** @description Validation Error */

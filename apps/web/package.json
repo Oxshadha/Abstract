@@ -30,6 +30,19 @@
     "@sentry/react": "^11.12.0",
     "@tanstack/react-query": "^5.107.1",
     "@tanstack/react-router": "^1.170.46",
+    "@tiptap/core": "3.32.1",
+    "@tiptap/extension-blockquote": "3.32.1",
+    "@tiptap/extension-bold": "3.32.1",
+    "@tiptap/extension-document": "3.32.1",
+    "@tiptap/extension-hard-break": "3.32.1",
+    "@tiptap/extension-heading": "3.32.1",
+    "@tiptap/extension-italic": "3.32.1",
+    "@tiptap/extension-list": "3.32.1",
+    "@tiptap/extension-paragraph": "3.32.1",
+    "@tiptap/extension-text": "3.32.1",
+    "@tiptap/extensions": "3.32.1",
+    "@tiptap/pm": "3.32.1",
+    "@tiptap/react": "3.32.1",
     "katex": "0.19.1",
     "lucide-react": "^1.72.0",
     "openapi-fetch": "^0.17.0",
@@ -67,5 +80,14 @@
     "typescript-eslint": "^8.72.2",
     "vite": "^8.3.7",
     "vitest": "^5.1.0"
+  },
+  "pnpm": {
+    "overrides": {
+      "prosemirror-changeset": "2.4.4",
+      "prosemirror-model": "1.25.12",
+      "prosemirror-schema-list": "1.5.1",
+      "prosemirror-transform": "1.12.4",
+      "prosemirror-view": "1.42.8"
+    }
   }
 }

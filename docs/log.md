@@ -15,6 +15,16 @@ Entry format:
 
 ---
 
+## 2026-11-13: Spec 014 notes and references implemented; auth hero; spec 018 drafted
+**Done:** Notes beside the paper (formatting bar, 1 s autosave, Reload or Keep mine on a conflict, Save to notes on every chat answer with its page sources) and References (parsed from the paper, matched on Semantic Scholar in the background through one allowlisted client, cached 30 days). Desktop tabs under the title; five icons in the phone pill; each tab follows its flag. `make references` read the lists of 154 older dev papers.
+**Verified:** Chromium, WebKit and Firefox, desktop and phone, on the dev library; autosave survives a reload. Fixed on the way: reference titles wrapped to two lines on phones.
+**Incident:** the Mac's disk filled during a rebuild. Docker's build cache was left with zero-byte files (an empty `alembic.ini` inside the image, so migrations failed) and one image lost a layer. Fixed by pruning the build cache and rebuilding; the Postgres and S3 volumes were untouched. One unrelated broken image still makes `docker image ls` fail.
+**Also on separate branches:** `feat/auth-liquid-hero` (D96: liquid "abstract." wordmark beside the sign-in form on desktop, the routes float over the blurred Workspace, visible Google button and inputs; phones unchanged) and `feat/018-admin-dashboard` (spec 018 Draft: admin sidebar and charts, with EDPs on dependencies and charts).
+**Decisions:** D95 (approval), D96   **Specs:** 014 Implemented (as-built notes), 018 Draft
+**Artifacts:** `features/notes/`, `features/references/`, `app/scripts/backfill_references.py`, `components/brand/LiquidText.tsx`, `auth/AuthCard.tsx`, `docs/specs/018-admin-dashboard.md`
+**Next:** owner merges the 014 PR and the auth hero PR; answers spec 018's EDPs and questions; then 017 deploy.
+**Blockers / waiting on owner:** Semantic Scholar API key (optional, title lookups are slower without it); spec 018 decisions; merges.
+
 ## 2026-11-13: Spec 016 landing page; CI fixed; ready for Google sign-in
 **Done:** The landing page at / (D93): centred hero with a real Workspace screenshot (light and dark), How it works, four feature cards, Free during preview, closing call to action. It is prerendered at build time with React's renderToString into its own small entry, and the app shell moves to dist/app.html. With mobile throttling: LCP 0.6 to 0.8 s, CLS 0.002.
 **Found and fixed:** CI on main had failed since #18 and I had not checked it before asking for merges. mypy could not find Docling (CI skips the enrichment group), and `pnpm typecheck` caught two type errors that my local check (`tsc --noEmit -p .`, which checks nothing because the root tsconfig lists no files) missed. From now on: run `pnpm typecheck` and check `gh run list` before asking for a merge.

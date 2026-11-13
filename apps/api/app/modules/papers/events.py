@@ -35,6 +35,10 @@ async def load_status(
     maker: async_sessionmaker[AsyncSession], identity: RequestContext, paper_id: UUID
 ) -> PaperStatus:
     async with maker() as session, session.begin():
+        # One snapshot for the paper and its jobs. Under READ COMMITTED each statement sees its
+        # own moment, so a worker commit between them gave "processing" with the final seq; the
+        # "ready" that followed had the same seq, was never sent, and the stream ended early.
+        await session.connection(execution_options={"isolation_level": "REPEATABLE READ"})
         await set_tenant(session, identity.org_id)
         return await paper_status(session, identity.user_id, paper_id)
 

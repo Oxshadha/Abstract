@@ -5,7 +5,7 @@ import { useAuthState } from "@/auth/state";
 
 import { getFlags } from "./client";
 
-export type FlagKey = "figures" | "search" | "reading_aids";
+export type FlagKey = "figures" | "search" | "reading_aids" | "notes" | "references";
 
 
 /**

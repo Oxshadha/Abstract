@@ -76,7 +76,13 @@ async def test_AC6_AC7_turning_search_off_hides_it_and_refuses_the_api(
     api: PapersApi, worker: Worker
 ) -> None:
     admin, user = await an_admin(api, worker), new_user()
-    assert await my_flags(api, user) == {"figures": True, "reading_aids": True, "search": True}
+    assert await my_flags(api, user) == {
+        "figures": True,
+        "notes": True,
+        "reading_aids": True,
+        "references": True,
+        "search": True,
+    }
     response = await flag(api, admin, "search", False)
     assert response.status_code == 200, response.text
     assert (await my_flags(api, user))["search"] is False

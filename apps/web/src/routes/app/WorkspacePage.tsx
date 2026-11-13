@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate, useParams, useSearch } from "@tanstack/react-router";
-import { ArrowLeft, FileText, MessageSquare, Sparkles } from "lucide-react";
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
+import { ArrowLeft, FileText, LayoutPanelLeft, MessageSquare, NotebookPen, Quote, Sparkles } from "lucide-react";
+import { Suspense, lazy, useCallback, useEffect, useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 
 import { ErrorBoundary } from "@/components/feedback/ErrorBoundary";
 import { getPaper, paperKeys } from "@/features/papers/api";
@@ -17,13 +17,68 @@ import { PdfViewer } from "@/features/viewer/PdfViewer";
 import { useIsDesktop, useWorkspaceLayout } from "@/features/workspace/layout";
 import { PillBar } from "@/components/shell/PillBar";
 import { useFlag } from "@/features/flags/api";
+import { SummaryCardSkeleton } from "@/components/feedback/Skeleton";
+import { ReferencesPanel } from "@/features/references/ReferencesPanel";
 
-type PanelId = "paper" | "summary" | "chat";
+// The editor (TipTap) loads only when Notes is opened, keeping the Workspace light.
+const NotesPanel = lazy(() => import("@/features/notes/NotesPanel").then((m) => ({ default: m.NotesPanel })));
+
+function Notes({ paperId }: { paperId: string }) {
+  return (
+    <Suspense fallback={<SummaryCardSkeleton />}>
+      <NotesPanel paperId={paperId} />
+    </Suspense>
+  );
+}
+
+type PanelId = "paper" | "summary" | "chat" | "notes" | "references";
+// Phones (D95): Notes and References join the pill, five icons; each follows its flag.
 const MOBILE_TABS = [
   { id: "paper", label: "Paper", Icon: FileText },
   { id: "summary", label: "Summary", Icon: Sparkles },
   { id: "chat", label: "Chat", Icon: MessageSquare },
+  { id: "notes", label: "Notes", Icon: NotebookPen },
+  { id: "references", label: "References", Icon: Quote },
 ] as const;
+
+type TabId = "workspace" | "notes" | "references";
+// Desktop: tabs under the paper title (mockup).
+const TABS = [
+  { id: "workspace", label: "Workspace", Icon: LayoutPanelLeft },
+  { id: "notes", label: "Notes", Icon: NotebookPen },
+  { id: "references", label: "References", Icon: Quote },
+] as const;
+
+/** Workspace, Notes and References under the title on desktop (spec 014, mockup). */
+function Tabs({ tabs, current, onSelect }: { tabs: readonly (typeof TABS)[number][]; current: TabId; onSelect: (id: TabId) => void }) {
+  return (
+    <div role="tablist" aria-label="Paper views" className="flex gap-1 border-b border-border px-4">
+      {tabs.map(({ id, label, Icon }) => (
+        <button
+          key={id}
+          type="button"
+          role="tab"
+          aria-selected={current === id}
+          onClick={() => { onSelect(id); }}
+          onKeyDown={(event) => {
+            const i = tabs.findIndex((t) => t.id === id);
+            const step = event.key === "ArrowRight" ? 1 : event.key === "ArrowLeft" ? -1 : 0;
+            if (!step) return;
+            const next = tabs[(i + step + tabs.length) % tabs.length];
+            if (next) onSelect(next.id);
+          }}
+          tabIndex={current === id ? 0 : -1}
+          className={`-mb-px inline-flex min-h-11 items-center gap-2 border-b-2 px-3 text-sm ${
+            current === id ? "border-text font-medium text-text" : "border-transparent text-text-secondary hover:text-text"
+          }`}
+        >
+          <Icon aria-hidden className="size-4" />
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function byline(summary: Summary | undefined): string {
   if (!summary) return "";
@@ -178,13 +233,22 @@ export default function WorkspacePage() {
   const { paperId } = useParams({ from: "/app/papers/$paperId" });
   const { layout, toggle, setChat, setSplit, showPaper } = useWorkspaceLayout();
   const [mobile, setMobile] = useState<PanelId>("summary");
+  const [tab, setTab] = useState<TabId>("workspace");
+  const notesOn = useFlag("notes"); // spec 014 AC8
+  const referencesOn = useFlag("references");
+  const shown = (id: string) => (id === "notes" ? notesOn : id === "references" ? referencesOn : true);
+  const tabs = TABS.filter((t) => shown(t.id));
+  const view: TabId = shown(tab) ? tab : "workspace"; // a flag turned off falls back
+  const phone: PanelId = shown(mobile) ? mobile : "summary";
   const paper = useQuery({ queryKey: paperKeys.detail(paperId), queryFn: () => getPaper(paperId) });
   const summaries = useQuery({ queryKey: summaryKeys.forPaper(paperId), queryFn: () => listSummaries(paperId) });
   const headerSummary = useQuery<Summary>({
     queryKey: summaryKeys.detail(summaries.data?.[0]?.id ?? "none"),
     enabled: false, // filled by the Summary panel's live query
   });
-  const both = layout.paper && layout.summary;
+  // Notes sit beside the paper, so a source opens next to the note (D95).
+  const paperShown = view === "notes" || layout.paper;
+  const both = view === "notes" || (layout.paper && layout.summary);
   const desktop = useIsDesktop();
   // "Recently opened" sort (spec 013 AC3): once per visit, failures are harmless.
   useEffect(() => {
@@ -223,7 +287,7 @@ export default function WorkspacePage() {
           </p>
         </div>
         {paper.data && <StarButton paper={paper.data} />}
-        {desktop && (
+        {desktop && view === "workspace" && (
         <div role="toolbar" aria-label="Panels" className="flex shrink-0 items-center gap-2">
           <ToggleButton pressed={layout.paper} disabled={layout.paper && !layout.summary} onClick={() => { toggle("paper"); }}>
             <FileText aria-hidden className="size-4" />
@@ -241,26 +305,45 @@ export default function WorkspacePage() {
         )}
       </header>
 
-      {/* Desktop: resizable Paper | Summary, chat as a side panel on demand. */}
+      {desktop && tabs.length > 1 && <Tabs tabs={tabs} current={view} onSelect={setTab} />}
+
+      {/* Desktop: resizable Paper | Summary (or Notes), chat as a side panel on demand. The Paper
+          panel keeps its place in the tree across Workspace and Notes, so the viewer stays put. */}
       {desktop ? (
       <div className="flex min-h-0 flex-1 gap-4 p-4" data-paper-id={paperId}>
+        {view === "references" ? (
+          <Panel label="References" className="flex-1">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+              <ReferencesPanel paperId={paperId} />
+            </div>
+          </Panel>
+        ) : (
+        <>
         <div className="flex min-w-0 flex-1">
-          {layout.paper && (
+          {paperShown && (
             <Panel label="Paper" className={both ? "" : "flex-1"} width={both ? layout.split : undefined}>
               <PaperPanel paperId={paperId} />
             </Panel>
           )}
           {both && <Divider split={layout.split} onChange={setSplit} />}
-          {layout.summary && (
-            <Panel label="Summary" className="flex-1">
-              <SummaryPanel paperId={paperId} />
+          {view === "notes" ? (
+            <Panel label="Notes" className="flex-1">
+              <Notes paperId={paperId} />
             </Panel>
+          ) : (
+            layout.summary && (
+              <Panel label="Summary" className="flex-1">
+                <SummaryPanel paperId={paperId} />
+              </Panel>
+            )
           )}
         </div>
-        {layout.chat && (
+        {view === "workspace" && layout.chat && (
           <Panel label="Ask Abstract" className="w-96 shrink-0">
             <ChatPanel paperId={paperId} onClose={() => { setChat(false); }} />
           </Panel>
+        )}
+        </>
         )}
       </div>
 
@@ -270,18 +353,21 @@ export default function WorkspacePage() {
       <div className="relative min-h-0 flex-1">
         {/* Hidden, not unmounted: a citation tapped mid-answer switches to Paper without
             cancelling the streaming answer, and the viewer keeps its place. */}
-        <div hidden={mobile !== "paper"} className="h-full"><Panel label="Paper" bare="under"><PaperPanel paperId={paperId} /></Panel></div>
-        <div hidden={mobile !== "summary"} className="h-full"><Panel label="Summary" bare="under"><SummaryPanel paperId={paperId} /></Panel></div>
-        <div hidden={mobile !== "chat"} className="h-full"><Panel label="Ask Abstract" bare="fill"><ChatPanel paperId={paperId} /></Panel></div>
+        <div hidden={phone !== "paper"} className="h-full"><Panel label="Paper" bare="under"><PaperPanel paperId={paperId} /></Panel></div>
+        <div hidden={phone !== "summary"} className="h-full"><Panel label="Summary" bare="under"><SummaryPanel paperId={paperId} /></Panel></div>
+        <div hidden={phone !== "chat"} className="h-full"><Panel label="Ask Abstract" bare="fill"><ChatPanel paperId={paperId} /></Panel></div>
+        {/* Mounted only while shown: notes save on leaving, references poll only when seen. */}
+        {phone === "notes" && <div className="h-full"><Panel label="Notes" bare="fill"><Notes paperId={paperId} /></Panel></div>}
+        {phone === "references" && <div className="h-full"><Panel label="References" bare="scroll"><ReferencesPanel paperId={paperId} /></Panel></div>}
       </div>
       <PillBar
         label="Workspace panels"
         hideFrom="lg"
-        items={MOBILE_TABS.map(({ id, label, Icon }) => ({
+        items={MOBILE_TABS.filter((t) => shown(t.id)).map(({ id, label, Icon }) => ({
           key: id,
           label,
           icon: <Icon aria-hidden className="size-5" />,
-          active: mobile === id,
+          active: phone === id,
           onSelect: () => { setMobile(id); },
         }))}
       />

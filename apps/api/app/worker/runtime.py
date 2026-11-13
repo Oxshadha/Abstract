@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.pool import NullPool
 
 from app.adapters.scanner import build_scanner
+from app.adapters.scholar.semantic_scholar import SemanticScholar
 from app.adapters.storage.s3 import S3Storage
 from app.core.config import get_settings
 from app.core.db import build_sessionmaker, engine_options
@@ -32,6 +33,8 @@ async def worker_deps() -> AsyncIterator[Deps]:
     redis = Redis.from_url(settings.redis_url)
     maker = build_sessionmaker(engine)
     llm = build_llm(settings, maker, redis)
+    key = settings.semantic_scholar_api_key
+    scholar = SemanticScholar(key.get_secret_value() if key else None)
     try:
         await llm.check_registry(settings)  # D72: refuse free models in production
         yield Deps(
@@ -42,8 +45,10 @@ async def worker_deps() -> AsyncIterator[Deps]:
             enqueue=_enqueue,
             scanner=build_scanner(settings),
             tracer=llm.gateway.tracer,
+            scholar=scholar,
         )
     finally:
+        await scholar.aclose()
         await llm.flush()  # usage rows are written before the task's loop closes
         await redis.aclose()
         await engine.dispose()
