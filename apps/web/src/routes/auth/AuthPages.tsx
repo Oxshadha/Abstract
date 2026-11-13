@@ -1,43 +1,32 @@
 import { Navigate } from "@tanstack/react-router";
-import { FileText, Layers, MessageSquare } from "lucide-react";
 
-import { AuthPanel } from "@/auth/AuthPanel";
+import { AuthCard } from "@/auth/AuthCard";
 import { useAuthState } from "@/auth/state";
-import { Logo } from "@/components/brand/Logo";
 
-const FEATURES = [
-  { Icon: Layers, title: "Structured summaries", text: "Get clear, organized overviews from any paper." },
-  { Icon: MessageSquare, title: "Ask with citations", text: "Answers grounded in the paper, with page references." },
-  { Icon: FileText, title: "Custom templates", text: "Define what to extract and reuse it across papers." },
-];
+/** The Workspace, blurred behind the sign-in card on desktop, like the dialog over the app (D96). */
+function Backdrop() {
+  return (
+    <picture aria-hidden className="pointer-events-none absolute inset-0 hidden lg:block">
+      <source media="(prefers-color-scheme: dark)" type="image/webp" srcSet="/landing/workspace-dark-1600.webp" />
+      <img src="/landing/workspace-light-1600.webp" alt="" className="size-full scale-105 object-cover blur-md" />
+    </picture>
+  );
+}
 
-/** Full-page sign-in/up fallback with the split-screen mockup layout (D45). */
+/**
+ * Sign in and sign up as their own pages. Desktop: the two-column card (liquid wordmark and form)
+ * floats over the blurred Workspace. Phones: the form card on its own, as before.
+ */
 function AuthPage({ mode }: { mode: "sign-in" | "sign-up" }) {
   const { status } = useAuthState();
   if (status === "signed-in") return <Navigate to="/app/home" />;
   return (
-    <div className="grid min-h-dvh bg-bg text-text lg:grid-cols-2">
-      <section className="hidden flex-col justify-center gap-8 p-12 lg:flex">
-        <Logo />
-        <h1 className="text-5xl font-bold tracking-tight">Research papers, made clear.</h1>
-        <p className="max-w-lg text-lg text-text-secondary">
-          Turn complex papers into structured summaries, explore findings, and ask questions grounded in the source.
-        </p>
-        <ul className="grid gap-6 sm:grid-cols-3">
-          {FEATURES.map(({ Icon, title, text }) => (
-            <li key={title} className="flex flex-col gap-2">
-              <Icon aria-hidden className="size-6" />
-              <span className="font-medium">{title}</span>
-              <span className="text-sm text-text-secondary">{text}</span>
-            </li>
-          ))}
-        </ul>
-      </section>
-      <section className="flex items-center justify-center p-6">
-        <div className="w-full max-w-md rounded-xl bg-surface p-8 shadow-card">
-          <AuthPanel mode={mode} routing="path" />
-        </div>
-      </section>
+    <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-bg p-4 text-text sm:p-6">
+      <Backdrop />
+      <div aria-hidden className="absolute inset-0 hidden bg-text/30 lg:block" />
+      <main className="relative w-full max-w-md overflow-hidden rounded-xl bg-surface p-8 shadow-card lg:max-w-5xl lg:p-0 lg:shadow-overlay">
+        <AuthCard mode={mode} routing="path" />
+      </main>
     </div>
   );
 }

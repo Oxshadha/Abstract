@@ -30,10 +30,19 @@ export function clerkAppearance(theme: "light" | "dark") {
     },
     // Flat monochrome buttons like the rest of the app (no Clerk gradient).
     elements: {
+      // Our card is the card: Clerk's own box goes flat and full width, so there is no card
+      // inside a card on desktop and nothing spills past the edge on phones (D96).
+      rootBox: { width: "100%" },
+      cardBox: { width: "100%", maxWidth: "100%", boxShadow: "none", border: "none", borderRadius: 0 },
+      card: { boxShadow: "none", border: "none", backgroundColor: "transparent", paddingLeft: 0, paddingRight: 0 },
+      footer: { background: "transparent" },
+      // Clerk draws borders as box-shadow rings and ignores `border`, so outlines use a ring too.
       formButtonPrimary: { backgroundImage: "none", boxShadow: "none" },
-      socialButtonsBlockButton: { boxShadow: "none", border: `1px solid ${c.border}` },
-      formFieldInput: { border: `1px solid ${c["border-strong"]}`, boxShadow: "none" },
-      otpCodeFieldInput: { border: `1px solid ${c["border-strong"]}` },
+      // White on a white card was invisible: a strong ring and the muted fill make it a button.
+      socialButtonsBlockButton: { boxShadow: `0 0 0 1px ${c["border-strong"]}`, backgroundColor: c.muted },
+      socialButtonsBlockButtonText: { color: c.text, fontWeight: 500 },
+      // Inputs get their ring from index.css: Clerk's internal input rule outranks this object.
+      otpCodeFieldInput: { boxShadow: `0 0 0 1px ${c["border-strong"]}` },
     },
   };
 }
