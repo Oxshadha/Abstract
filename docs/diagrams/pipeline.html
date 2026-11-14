@@ -1,0 +1,83 @@
+<!doctype html>
+<!-- AI pipeline diagram for the README, same style as architecture.html. Render: docs/diagrams/render.mjs -->
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #fff; font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; color: #202020; }
+  #canvas { position: relative; width: 1640px; height: 640px; }
+  .title { position: absolute; left: 40px; top: 22px; font-size: 22px; font-weight: 700; }
+  .title span { font-weight: 400; color: #71716c; font-size: 16px; margin-left: 10px; }
+  .box { position: absolute; border-radius: 14px; border: 2px solid; }
+  .box > .head { position: absolute; left: 14px; top: 10px; font-size: 15px; font-weight: 700; }
+  .box > .head small { font-weight: 400; color: #5a5a55; font-size: 13px; margin-left: 6px; }
+  .node { position: absolute; width: 180px; margin-left: -90px; text-align: center; font-size: 13.5px; line-height: 1.3; }
+  .node img { width: 56px; height: 56px; object-fit: contain; display: block; margin: 0 auto 6px; }
+  .node b { display: block; font-size: 14.5px; }
+  .node span { color: #5a5a55; }
+  svg { position: absolute; inset: 0; overflow: visible; }
+  .tile { width: 56px; height: 56px; margin: 0 auto 6px; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: var(--c); background: color-mix(in srgb, var(--c) 13%, white); border: 1.5px solid color-mix(in srgb, var(--c) 35%, white); }
+  .tile svg, .hicon svg { position: static; }
+  .hicon { width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; color: var(--c); }
+  .hicon svg { width: 24px; height: 24px; stroke-width: 2; }
+  .tile svg { width: 30px; height: 30px; stroke-width: 1.9; }
+</style>
+</head>
+<body>
+<div id="canvas">
+  <div class="title">abstract. <span>from PDF to cited answers</span></div>
+
+  <div class="box" style="left:150px; top:80px; width:300px; height:530px; border-color:#8A8A85; background:#FAFAF8">
+    <div class="head">1 · Upload <small>seconds</small></div>
+  </div>
+  <div class="box" style="left:490px; top:80px; width:300px; height:530px; border-color:#2496ED; background:#F2F8FE">
+    <div class="head">2 · Index <small>fast worker</small></div>
+  </div>
+  <div class="box" style="left:850px; top:80px; width:760px; height:250px; border-color:#4285F4; background:#F3F7FF">
+    <div class="head">3 · Summary <small>streams field by field</small></div>
+  </div>
+  <div class="box" style="left:850px; top:360px; width:760px; height:250px; border-color:#00A86B; background:#F0FFF7">
+    <div class="head">4 · Ask Abstract <small>streams word by word</small></div>
+  </div>
+
+  <svg width="1640" height="640">
+    <defs>
+      <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+        <path d="M0,0 L10,5 L0,10 z" fill="#4a4a46"/>
+      </marker>
+    </defs>
+    <g stroke="#4a4a46" stroke-width="2" fill="none" marker-end="url(#a)">
+      <path d="M118 188 H 264"/>                  <!-- reader -> storage -->
+      <path d="M300 292 V 384"/>                  <!-- storage -> validate -->
+      <path d="M336 418 H 604"/>                  <!-- validate -> parse -->
+      <path d="M640 384 V 292"/>                  <!-- parse -> chunks -->
+      <path d="M676 188 H 954"/>                  <!-- chunks -> fill the template -->
+      <path d="M820 188 V 468 H 954"/>            <!-- chunks -> rewrite and search -->
+      <path d="M1026 188 H 1209"/>
+      <path d="M1281 188 H 1464"/>
+      <path d="M1026 468 H 1124"/>
+      <path d="M1196 468 H 1294"/>
+      <path d="M1366 468 H 1464"/>
+    </g>
+  </svg>
+
+  <div class="node" style="left:75px; top:160px"><div class="tile" style="--c:#6B6B66" data-icon="users"></div><b>Reader</b><span>uploads a PDF</span></div>
+
+  <div class="node" style="left:300px; top:160px"><div class="tile" style="--c:#6B6B66" data-icon="cloud-upload"></div><b>Private storage</b><span>presigned upload,<br>straight from the browser</span></div>
+  <div class="node" style="left:300px; top:390px"><div class="tile" style="--c:#6B6B66" data-icon="shield-check"></div><b>Validate · sanitize</b><span>type, size, pages,<br>active content removed</span></div>
+
+  <div class="node" style="left:640px; top:390px"><div class="tile" style="--c:#2496ED" data-icon="scan-text"></div><b>Parse</b><span>PyMuPDF layout: columns,<br>sections · OCR if needed</span></div>
+  <div class="node" style="left:640px; top:160px"><div class="tile" style="--c:#2496ED" data-icon="database"></div><b>Section-aware chunks</b><span>embeddings + full text<br>in Postgres (pgvector)</span></div>
+
+  <div class="node" style="left:990px; top:160px"><div class="tile" style="--c:#4285F4" data-icon="sparkles"></div><b>Fill the template</b><span>from the full paper</span></div>
+  <div class="node" style="left:1245px; top:160px"><div class="tile" style="--c:#4285F4" data-icon="badge-check"></div><b>Verify</b><span>every quote checked<br>on its page · gap-fill</span></div>
+  <div class="node" style="left:1500px; top:160px"><div class="tile" style="--c:#4285F4" data-icon="layout-list"></div><b>Summary cards</b><span>Verified · page sources<br>editable · versioned</span></div>
+
+  <div class="node" style="left:990px; top:440px"><div class="tile" style="--c:#00A86B" data-icon="search"></div><b>Rewrite · search</b><span>hybrid: vector +<br>keyword, reranked</span></div>
+  <div class="node" style="left:1160px; top:440px"><div class="tile" style="--c:#00A86B" data-icon="message-square-text"></div><b>Answer</b><span>only from the<br>retrieved passages</span></div>
+  <div class="node" style="left:1330px; top:440px"><div class="tile" style="--c:#00A86B" data-icon="quote"></div><b>Check citations</b><span>reject any not<br>retrieved</span></div>
+  <div class="node" style="left:1500px; top:440px"><div class="tile" style="--c:#00A86B" data-icon="text-quote"></div><b>Cited answer</b><span>chips open the exact<br>sentence in the PDF</span></div>
+</div>
+</body>
+</html>
