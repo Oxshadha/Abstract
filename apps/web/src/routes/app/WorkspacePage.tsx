@@ -14,7 +14,7 @@ import { CitationProvider } from "@/features/viewer/citations";
 import { useCitations } from "@/features/viewer/citation-context";
 import { FiguresPanel } from "@/features/viewer/FiguresPanel";
 import { PdfViewer } from "@/features/viewer/PdfViewer";
-import { useIsDesktop, useWorkspaceLayout } from "@/features/workspace/layout";
+import { MAX_CHAT, MIN_CHAT, useIsDesktop, useWorkspaceLayout } from "@/features/workspace/layout";
 import { PillBar } from "@/components/shell/PillBar";
 import { useFlag } from "@/features/flags/api";
 import { SummaryCardSkeleton } from "@/components/feedback/Skeleton";
@@ -146,8 +146,8 @@ function PaperPanel({ paperId }: { paperId: string }) {
 }
 
 function Panel({
-  label, children, className = "", width, bare,
-}: { label: string; children: ReactNode; className?: string; width?: number; bare?: "scroll" | "fill" | "under" }) {
+  label, children, className = "", width, pixels, bare,
+}: { label: string; children: ReactNode; className?: string; width?: number; pixels?: number; bare?: "scroll" | "fill" | "under" }) {
   // Phones: no card frame, the panel uses the whole screen and the pill bar floats over it
   // ("scroll" pages through its content; "fill" hands the height to a viewer or chat).
   const frame = bare
@@ -162,7 +162,7 @@ function Panel({
   return (
     <section
       aria-label={label}
-      style={width === undefined ? undefined : { flex: `0 0 ${String(width)}%` }}
+      style={pixels !== undefined ? { width: pixels } : width === undefined ? undefined : { flex: `0 0 ${String(width)}%` }}
       className={`${frame} ${className}`}
     >
       <ErrorBoundary name={`the ${label.toLowerCase()} panel`}>{children}</ErrorBoundary>
@@ -207,6 +207,43 @@ function Divider({ split, onChange }: { split: number; onChange: (value: number)
   );
 }
 
+/** Drag (or use the arrow keys) to widen or narrow the chat panel; remembered per device. */
+function ChatDivider({ width, onChange }: { width: number; onChange: (value: number) => void }) {
+  const dragging = useRef(false);
+  const move = (event: PointerEvent<HTMLDivElement>) => {
+    if (!dragging.current) return;
+    const chat = event.currentTarget.nextElementSibling?.getBoundingClientRect();
+    if (chat) onChange(chat.right - event.clientX);
+  };
+  const key = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === "ArrowLeft") onChange(width + 32);
+    if (event.key === "ArrowRight") onChange(width - 32);
+  };
+  return (
+    <div
+      role="separator"
+      aria-label="Resize Ask Abstract"
+      aria-orientation="vertical"
+      aria-valuemin={MIN_CHAT}
+      aria-valuemax={MAX_CHAT}
+      aria-valuenow={width}
+      tabIndex={0}
+      onKeyDown={key}
+      onPointerDown={(event) => {
+        dragging.current = true;
+        event.currentTarget.setPointerCapture(event.pointerId);
+      }}
+      onPointerMove={move}
+      onPointerUp={() => {
+        dragging.current = false;
+      }}
+      className="group -mx-3 flex w-3 shrink-0 cursor-col-resize touch-none items-stretch justify-center"
+    >
+      <span className="w-px bg-border group-hover:bg-border-strong group-focus-visible:bg-focus" />
+    </div>
+  );
+}
+
 function ToggleButton({ pressed, onClick, disabled, children }: { pressed: boolean; onClick: () => void; disabled?: boolean; children: ReactNode }) {
   return (
     <button
@@ -231,7 +268,7 @@ function ToggleButton({ pressed, onClick, disabled, children }: { pressed: boole
  */
 export default function WorkspacePage() {
   const { paperId } = useParams({ from: "/app/papers/$paperId" });
-  const { layout, toggle, setChat, setSplit, showPaper } = useWorkspaceLayout();
+  const { layout, toggle, setChat, setSplit, setChatWidth, showPaper } = useWorkspaceLayout();
   const [mobile, setMobile] = useState<PanelId>("summary");
   const [tab, setTab] = useState<TabId>("workspace");
   const notesOn = useFlag("notes"); // spec 014 AC8
@@ -339,9 +376,12 @@ export default function WorkspacePage() {
           )}
         </div>
         {view === "workspace" && layout.chat && (
-          <Panel label="Ask Abstract" className="w-96 shrink-0">
-            <ChatPanel paperId={paperId} onClose={() => { setChat(false); }} />
-          </Panel>
+          <>
+            <ChatDivider width={layout.chatWidth} onChange={setChatWidth} />
+            <Panel label="Ask Abstract" className="shrink-0" pixels={layout.chatWidth}>
+              <ChatPanel paperId={paperId} onClose={() => { setChat(false); }} />
+            </Panel>
+          </>
         )}
         </>
         )}

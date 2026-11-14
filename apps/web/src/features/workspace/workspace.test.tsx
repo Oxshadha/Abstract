@@ -11,7 +11,7 @@ import { getSummary, listSummaries, listTemplates } from "@/features/summaries/a
 import { QUICK_ID, summary, templates } from "@/features/summaries/fixtures";
 import { createAppRouter } from "@/router";
 
-import { clampSplit, DEFAULT_LAYOUT } from "./layout";
+import { clampChat, clampSplit, DEFAULT_LAYOUT } from "./layout";
 
 vi.mock("@/api/me", () => ({
   fetchMe: vi.fn(() => Promise.resolve({ user: { id: "u1", email: "a@b.c", display_name: "Ada", platform_role: "user" },
@@ -88,7 +88,12 @@ describe("D79: workspace layout", () => {
   it("keeps the split within bounds", () => {
     expect(clampSplit(5)).toBe(25);
     expect(clampSplit(99)).toBe(75);
-    expect(DEFAULT_LAYOUT).toEqual({ paper: true, summary: true, chat: false, split: 50 });
+    expect(DEFAULT_LAYOUT).toEqual({ paper: true, summary: true, chat: false, split: 50, chatWidth: 384 });
+  });
+
+  it("production feedback: the chat panel resizes too, within bounds", () => {
+    expect(clampChat(100)).toBe(320);
+    expect(clampChat(2000)).toBe(640);
   });
 });
 
