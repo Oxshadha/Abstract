@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | Approved (owner, 2026-11-14): free hosting on Oracle Cloud Always Free with Cloudflare R2, Neon free and Vercel free (D98, supersedes the EC2 and S3 parts of D18); deploys from a button in GitHub Actions; 7 days of backups; the owner buys a domain; a 7-day Recently deleted bin as spec 019 (D99) |
+| **Status** | Approved; hosting changed by D100 (owner, 2026-11-14): the owner's EC2 server with tables and figures off, Neon storage or S3, `abstract.gmora.dev`. Original approval: free hosting on Oracle Cloud Always Free with Cloudflare R2, Neon free and Vercel free (D98, supersedes the EC2 and S3 parts of D18); deploys from a button in GitHub Actions; 7 days of backups; the owner buys a domain; a 7-day Recently deleted bin as spec 019 (D99) |
 | **Week** | W4 |
-| **Decisions** | D7, D14, D37, D54, D63, D75, D76, D77, D98, D99 |
+| **Decisions** | D100, D7, D14, D37, D54, D63, D75, D76, D77, D98, D99 |
 | **Engineering practices (D67)** | Spec 017 items in `docs/engineering-practices.md` §3 and §2.4, included below as AC1 to AC19, adapted from AWS to the D98 hosts (SSM becomes GitHub secrets on the host, S3 becomes R2) |
 | **Feature flag** | none (infrastructure) |
 | **Mockup** | n/a |
