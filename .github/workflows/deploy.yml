@@ -63,6 +63,7 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
           pnpm build
+          find dist -name "*.map" -delete   # source maps are never published
           tar -C dist -cf "$RUNNER_TEMP/web.tar" .
 
       - name: Package the code
