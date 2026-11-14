@@ -36,3 +36,19 @@ describe("D96: Clerk's card never clips the fields", () => {
     expect(card.width).toBe("100%");
   });
 });
+
+describe("Production feedback: Clerk follows a theme change while open", () => {
+  it("useCurrentTheme updates when data-theme changes", async () => {
+    const { renderHook, act } = await import("@testing-library/react");
+    const { useCurrentTheme } = await import("./clerkAppearance");
+    document.documentElement.dataset.theme = "light";
+    const { result } = renderHook(() => useCurrentTheme());
+    expect(result.current).toBe("light");
+    await act(async () => {
+      document.documentElement.dataset.theme = "dark";
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    expect(result.current).toBe("dark");
+    delete document.documentElement.dataset.theme;
+  });
+});
