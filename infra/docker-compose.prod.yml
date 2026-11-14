@@ -17,7 +17,10 @@ x-hardening: &hardening
   restart: unless-stopped
 
 x-worker: &worker
-  <<: [*env, *hardening]
+  <<: *hardening
+  # Workers connect as abstract_worker, not the API's role (spec 002 AC6): the second file
+  # only overrides DATABASE_URL.
+  env_file: [/opt/abstract/.env.prod, /opt/abstract/.env.worker]
   build: { context: ./apps/api, target: prod }
   image: abstract-api:prod
   # Sandbox for untrusted PDFs (spec 004 AC13, D77): read-only root, scratch in memory.
