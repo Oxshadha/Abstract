@@ -26,6 +26,8 @@ Agents: add an entry **before** acting on a new assumption. When the owner confi
 | B5 | The brief's "AI assistance is an advantage" is satisfied by documenting the AI-assisted workflow (AGENTS.md, specs, Claude Code) in the README. | Assumed | Spec 017 / README |
 | B7 | Owner creates Sentry projects (React + FastAPI) and provides two DSNs, an auth token (project:releases) and the org slug; until then Sentry stays disabled (spec 003 AC12, D37). | Open | Spec 003, 017 |
 | B6 | The GitHub repository URL hasn't been provided; nothing is pushed until it is. | Open | Delivery |
+| B8 | No Semantic Scholar API key soon (owner, 2026-11-14): production runs without one; title lookups stay slower and back off on 429. Adding it later is one SSM parameter. | Confirmed | Spec 014, 017 |
+| B9 | The owner provides for production: an AWS account, a domain (Clerk production needs DNS records on it), Clerk production and Google OAuth credentials, Sentry DSNs (B7), an uptime-check account, OpenRouter credit (C12), a Neon production project and a Vercel project. | Open | Spec 017 |
 
 ## C. Technical assumptions (to be proved by the W1 benchmark or tests)
 | ID | Assumption | Status | Verify via |
@@ -54,6 +56,7 @@ Agents: add an entry **before** acting on a new assumption. When the owner confi
 | D9 | **Verified 2026-11-11:** tracing uses the official Langfuse Python SDK 5.0.4 (the raw ingestion endpoint is legacy; trace reads moved to `GET /api/public/v2/observations`, v1 trace reads removed 2026-11-16). Live traces fetched back and audited against the best-practices page. | SDK upgrades: pin, re-run the trace audit |
 | D8 | **Deployment checklist from spec 004:** production bucket CORS rule for the web origin (POST, GET); lifecycle rules for `quarantine/` orphans (24 h) and `infected/` (7 days); `S3_PUBLIC_ENDPOINT_URL` unset on AWS; `MALWARE_SCAN` set explicitly. | Uploads or retention break silently if missed (spec 017) |
 | D7 | **Verified 2026-11-11 (official AWS pricing):** GuardDuty Malware Protection for S3 has a free tier of 1,000 objects and 1 GB scanned per month per region (all accounts, not only the first year), then $0.09/GB and $0.215 per 1,000 objects in US East; small extra costs for S3 object tagging, GET requests and EventBridge. Needs AWS. | Cost of enabling scanning later (D77) |
+| D10 | EC2 on-demand prices used in spec 017 EDP 1 (about $60 a month for t3.large, $120 for t3.xlarge, us-east-1) are from memory, not checked on 2026-11-14. | Re-check on the AWS pricing page before choosing |
 
 ## E. Risks
 | ID | Risk | Mitigation |
