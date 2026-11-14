@@ -90,7 +90,7 @@ Screenshots follow your GitHub theme: switch GitHub to dark mode to see the app 
 
 **Home: drop a PDF to start**
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/home-dark.png"><img src="docs/images/home-light.png" alt="Home with the upload box and recently opened papers"></picture>
+<img src="docs/images/home-light.png" alt="Home with the upload box and recently opened papers">
 
 **Phone: Home, the summary, and a cited answer**
 
@@ -102,17 +102,23 @@ Screenshots follow your GitHub theme: switch GitHub to dark mode to see the app 
   <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/phone-chat-dark.png"><img src="docs/images/phone-chat-light.png" alt="A cited answer on a phone" width="250"></picture>
 </p>
 
+| Sign-in | Library |
+|---|---|
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/sign-in-dark.png"><img src="docs/images/sign-in-light.png" alt="Sign-in with the liquid wordmark"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/library-dark.png"><img src="docs/images/library-light.png" alt="Library with processed papers"></picture> |
+
 <sub>Figures and tables are from a local run: the current production host has them switched off for memory (see [Known limits](#known-limits-and-next-steps)).</sub>
 
 | Figures, extracted with captions | Tables, extracted as real tables |
 |---|---|
 | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/figures-dark.png"><img src="docs/images/figures-light.png" alt="Figures and tables view with the Transformer architecture figure"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/tables-dark.png"><img src="docs/images/tables-light.png" alt="Table 1 of the paper extracted as an HTML table"></picture> |
-| **Library** | **Sign-in** |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/library-dark.png"><img src="docs/images/library-light.png" alt="Library with processed papers"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/sign-in-dark.png"><img src="docs/images/sign-in-light.png" alt="Sign-in with the liquid wordmark"></picture> |
-| **Templates** | **Admin dashboard** |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/templates-dark.png"><img src="docs/images/templates-light.png" alt="Templates"></picture> | <img src="docs/images/admin.png" alt="Admin overview with usage charts"> |
 
-<p align="center"><img src="docs/images/references.png" alt="References matched on Semantic Scholar" width="80%"><br><sub>References from the paper, matched on Semantic Scholar</sub></p>
+| Templates | References, matched on Semantic Scholar |
+|---|---|
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/templates-dark.png"><img src="docs/images/templates-light.png" alt="Templates"></picture> | <img src="docs/images/references.png" alt="References matched on Semantic Scholar"> |
+
+**Admin dashboard: usage, spend against the cap, jobs and plans**
+
+<img src="docs/images/admin.png" alt="Admin overview with usage charts" width="100%">
 
 ---
 
