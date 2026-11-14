@@ -116,6 +116,18 @@ async def test_AC2_save_an_answer_with_its_question_and_sources(
     ]
     assert marks
     assert marks[0]["attrs"]["page"] == 1
+    # Production feedback: the message remembers it was saved, and a second save adds nothing.
+    again = await api.client.post(
+        f"/api/v1/papers/{paper}/notes/answers",
+        json={"message_id": done["message_id"]},
+        headers=bearer(user),
+    )
+    assert again.status_code == 200, again.text
+    assert len(again.json()["doc"]["content"]) == len(blocks)
+    listed = await api.client.get(f"/api/v1/conversations/{cid}/messages", headers=bearer(user))
+    answer = next(m for m in listed.json()["items"] if m["id"] == done["message_id"])
+    assert answer["saved_to_notes"] is True
+    assert all(not m["saved_to_notes"] for m in listed.json()["items"] if m["role"] == "user")
     other = await api.client.post(
         f"/api/v1/papers/{paper}/notes/answers",
         json={"message_id": str(uuid4())},

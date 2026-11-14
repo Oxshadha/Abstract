@@ -163,27 +163,30 @@ function Bubble({ role, children }: { role: Message["role"]; children: ReactNode
 }
 
 /** Spec 014 AC2: add this answer, with its question and page sources, to the paper's notes. */
-function SaveToNotes({ paperId, messageId }: { paperId: string; messageId: string }) {
+function SaveToNotes({ paperId, messageId, saved }: { paperId: string; messageId: string; saved: boolean }) {
   const queryClient = useQueryClient();
   const save = useMutation({
     mutationFn: () => saveAnswer(paperId, messageId),
     onSuccess: (notes) => {
       queryClient.setQueryData(notesKeys.forPaper(paperId), notes);
+      // The server remembers it on the message, so the button stays Saved after a reload.
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
       toast("Saved to your notes.");
     },
     onError: (err) => {
       toast(err.message);
     },
   });
+  const done = saved || save.isSuccess;
   return (
     <button
       type="button"
-      disabled={save.isPending || save.isSuccess}
+      disabled={save.isPending || done}
       onClick={() => { save.mutate(); }}
       className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-md px-2 text-sm text-text-secondary hover:bg-muted hover:text-text disabled:opacity-60"
     >
-      {save.isSuccess ? <Check aria-hidden className="size-4" /> : <NotebookPen aria-hidden className="size-4" />}
-      {save.isSuccess ? "Saved to notes" : "Save to notes"}
+      {done ? <Check aria-hidden className="size-4" /> : <NotebookPen aria-hidden className="size-4" />}
+      {save.isPending ? "Saving" : done ? "Saved to notes" : "Save to notes"}
     </button>
   );
 }
@@ -195,7 +198,7 @@ function AssistantMessage({ message, paperId, notes }: { message: Message; paper
       {message.retrieval_mode === "keyword" && <StatusPill status="neutral">Answered from a keyword search</StatusPill>}
       <Markdown>{withMarkers(message.content)}</Markdown>
       <Citations items={message.citations} />
-      {notes && message.content.trim() && <SaveToNotes paperId={paperId} messageId={message.id} />}
+      {notes && message.content.trim() && <SaveToNotes paperId={paperId} messageId={message.id} saved={message.saved_to_notes} />}
     </Bubble>
   );
 }

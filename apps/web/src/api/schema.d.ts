@@ -1585,6 +1585,11 @@ export interface components {
              */
             role: "user" | "assistant";
             /**
+             * Saved To Notes
+             * @default false
+             */
+            saved_to_notes: boolean;
+            /**
              * Status
              * @enum {string}
              */

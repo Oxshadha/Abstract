@@ -1261,6 +1261,11 @@
             "title": "Role",
             "type": "string"
           },
+          "saved_to_notes": {
+            "default": false,
+            "title": "Saved To Notes",
+            "type": "boolean"
+          },
           "status": {
             "enum": [
               "complete",

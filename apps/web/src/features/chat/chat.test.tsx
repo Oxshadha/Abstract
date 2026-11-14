@@ -47,9 +47,9 @@ const ANSWER: [string, unknown][] = [
 ];
 
 const saved: Message[] = [
-  { id: "u1", role: "user", content: "How does attention work?", status: "complete", retrieval_mode: null, citations: [], created_at: "" },
+  { id: "u1", role: "user", content: "How does attention work?", status: "complete", retrieval_mode: null, citations: [], created_at: "", saved_to_notes: false },
   { id: "a1", role: "assistant", content: "Self attention relates positions [S1].", status: "complete", retrieval_mode: "hybrid",
-    citations: [{ marker: 1, page_start: 2, page_end: 2, section: "2.1 Attention", quote: "Self attention relates positions of a sequence." }], created_at: "" },
+    citations: [{ marker: 1, page_start: 2, page_end: 2, section: "2.1 Attention", quote: "Self attention relates positions of a sequence." }], created_at: "", saved_to_notes: false },
 ];
 
 function renderPanel() {
@@ -376,5 +376,13 @@ describe("Production feedback (2026-11-14): sending waits for the conversation; 
     renderPanel();
     const group = await screen.findByRole("group", { name: "Suggested questions" });
     expect(within(group).getByRole("button", { name: "Which datasets are used for training?" })).toBeInTheDocument();
+  });
+});
+
+describe("Production feedback: Save to notes remembers", () => {
+  it("an answer saved before shows Saved to notes after a reload", async () => {
+    vi.mocked(listMessages).mockResolvedValue(saved.map((m) => (m.role === "assistant" ? { ...m, saved_to_notes: true } : m)));
+    renderPanel();
+    expect(await screen.findByRole("button", { name: "Saved to notes" })).toBeDisabled();
   });
 });
