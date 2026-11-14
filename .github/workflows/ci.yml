@@ -116,6 +116,77 @@ jobs:
           scripts/check-ui-text.sh --self-test
           scripts/check-ui-text.sh
 
+  secrets:
+    name: No secrets in git (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Scan the whole history (spec 017 AC18)
+        run: docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.30.1 git /repo --redact --no-banner
+
+  migrations:
+    name: Migrations on an empty database
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: apps/api } }
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.7-pg17
+        env: { POSTGRES_USER: abstract, POSTGRES_PASSWORD: abstract, POSTGRES_DB: abstract }
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U abstract" --health-interval 5s --health-retries 20
+    env:
+      MIGRATIONS_DATABASE_URL: postgresql+asyncpg://abstract:abstract@localhost:5432/abstract
+      DATABASE_URL: postgresql+asyncpg://abstract_app:abstract_app_dev@localhost:5432/abstract
+      REDIS_URL: redis://localhost:6379/0
+      S3_BUCKET: ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with: { enable-cache: true }
+      - run: uv sync --frozen
+      - name: Runtime roles, as on Neon (spec 002 AC6)
+        run: PGPASSWORD=abstract psql -h localhost -U abstract -d abstract -v ON_ERROR_STOP=1 -q -f ../../infra/postgres/roles.sql
+      - name: Upgrade an empty database to head (spec 017 AC9)
+        run: uv run alembic upgrade head
+      - name: Upgrading again is a no-op, and the database is at head
+        run: |
+          uv run alembic upgrade head
+          test "$(uv run alembic current 2>/dev/null | awk '{print $1}')" = "$(uv run alembic heads 2>/dev/null | awk '{print $1}')"
+
+  e2e:
+    name: Browser happy path (full stack)
+    runs-on: ubuntu-latest
+    needs: [api, web]
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start the stack with the fake AI provider
+        run: |
+          cp .env.example .env
+          docker compose -f infra/docker-compose.yml --project-directory . --env-file .env up --build -d --wait
+      - uses: pnpm/action-setup@v4
+        with: { package_json_file: apps/web/package.json }
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - name: Playwright (Chromium)
+        working-directory: apps/web
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm exec playwright install --with-deps chromium
+          pnpm exec playwright test --project desktop
+      - name: Logs on failure
+        if: failure()
+        run: docker compose -f infra/docker-compose.yml --project-directory . logs --tail 200 api worker web
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-results
+          path: apps/web/node_modules/.tmp/playwright
+
   contract:
     name: API client is up to date
     runs-on: ubuntu-latest
