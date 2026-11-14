@@ -38,7 +38,10 @@ function UserRow({ user, plans, self }: { user: AdminUser; plans: { value: strin
       <div className="min-w-0 flex-1">
         <p className="flex min-w-0 items-center gap-2">
           <span className="truncate font-medium" title={name}>{name}</span>
-          {user.platform_role === "admin" && <StatusPill status="neutral">Admin</StatusPill>}
+          {/* A role, not a status: the main colour (black in light, white in dark) so it stands out. */}
+          {user.platform_role === "admin" && (
+            <span className="inline-flex shrink-0 items-center rounded-pill bg-primary px-2.5 py-0.5 text-xs font-medium text-primary-text">Admin</span>
+          )}
           {user.disabled && <StatusPill status="error">Disabled</StatusPill>}
         </p>
         <p className="truncate text-xs text-text-secondary" title={user.email ?? undefined}>
