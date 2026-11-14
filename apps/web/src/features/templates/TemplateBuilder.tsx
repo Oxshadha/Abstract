@@ -309,8 +309,9 @@ function BuilderForm({ templateId, limits: limitValues, initial, initialVersion 
         <aside aria-labelledby="preview-heading" className="flex min-w-0 flex-col gap-3 rounded-lg border border-border bg-surface p-4 lg:sticky lg:top-4 lg:self-start">
           <h2 id="preview-heading" className="font-display text-lg font-bold">Try on a paper</h2>
           {papers.data && papers.data.length > 0 ? (
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex min-w-0 items-center gap-2">
               <Select
+                className="flex-1"
                 label="Paper"
                 value={paperId || papers.data[0]?.id || ""}
                 options={papers.data.map((p) => ({ value: p.id, label: p.title ?? p.filename }))}
@@ -318,7 +319,7 @@ function BuilderForm({ templateId, limits: limitValues, initial, initialVersion 
                 align="left"
                 width="w-72"
               />
-              <button type="button" disabled={previewing} onClick={() => void runPreview()} className={buttonSecondary}>
+              <button type="button" disabled={previewing} onClick={() => void runPreview()} className={`${buttonSecondary} shrink-0`}>
                 {previewing ? <Loader2 aria-hidden className="size-4 animate-spin motion-reduce:animate-none" /> : <Play aria-hidden className="size-4" />}
                 {previewing ? "Running" : "Run"}
               </button>
