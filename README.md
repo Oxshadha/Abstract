@@ -19,7 +19,7 @@ Upload a research paper, get a structured summary from a template you choose, an
 
 **[Live demo](https://abstract.oshadhakariyawasam.me)** · [Architecture](#architecture) · [Run it locally](#run-it-locally) · [How it was built](#how-it-was-built)
 
-<img src="docs/images/workspace-light.png" alt="The Abstract workspace: the paper on the left, its summary with Verified sources in the middle, and a cited answer in Ask Abstract on the right" width="100%">
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/workspace-dark.png"><img src="docs/images/workspace-light.png" alt="The Abstract workspace: the paper on the left, its summary with Verified sources in the middle, and a cited answer in Ask Abstract on the right" width="100%"></picture>
 
 </div>
 
@@ -86,19 +86,33 @@ The demo account already has *Attention Is All You Need*, *RAG*, *BERT* and *LoR
 
 ## Screenshots
 
-| Library | Workspace in dark mode |
-|---|---|
-| <img src="docs/images/library.png" alt="Library with five processed papers"> | <img src="docs/images/workspace-dark.png" alt="Workspace in dark mode"> |
-| **Sign-in** | **Admin dashboard** |
-| <img src="docs/images/sign-in.png" alt="Sign-in with the liquid wordmark"> | <img src="docs/images/admin.png" alt="Admin overview with usage charts"> |
-| **References, matched on Semantic Scholar** | **Templates** |
-| <img src="docs/images/references.png" alt="References tab"> | <img src="docs/images/templates.png" alt="Templates"> |
+Screenshots follow your GitHub theme: switch GitHub to dark mode to see the app in dark.
+
+**Home: drop a PDF to start**
+
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/home-dark.png"><img src="docs/images/home-light.png" alt="Home with the upload box and recently opened papers"></picture>
+
+**Phone: Home, the summary, and a cited answer**
 
 <p align="center">
-  <img src="docs/images/phone-summary.png" alt="Summary on a phone" width="260">
-  &nbsp;&nbsp;
-  <img src="docs/images/phone-chat.png" alt="A cited answer on a phone" width="260">
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/phone-home-dark.png"><img src="docs/images/phone-home-light.png" alt="Home on a phone" width="250"></picture>
+  &nbsp;
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/phone-summary-dark.png"><img src="docs/images/phone-summary-light.png" alt="Summary on a phone" width="250"></picture>
+  &nbsp;
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/phone-chat-dark.png"><img src="docs/images/phone-chat-light.png" alt="A cited answer on a phone" width="250"></picture>
 </p>
+
+<sub>Figures and tables are from a local run: the current production host has them switched off for memory (see [Known limits](#known-limits-and-next-steps)).</sub>
+
+| Figures, extracted with captions | Tables, extracted as real tables |
+|---|---|
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/figures-dark.png"><img src="docs/images/figures-light.png" alt="Figures and tables view with the Transformer architecture figure"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/tables-dark.png"><img src="docs/images/tables-light.png" alt="Table 1 of the paper extracted as an HTML table"></picture> |
+| **Library** | **Sign-in** |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/library-dark.png"><img src="docs/images/library-light.png" alt="Library with processed papers"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/sign-in-dark.png"><img src="docs/images/sign-in-light.png" alt="Sign-in with the liquid wordmark"></picture> |
+| **Templates** | **Admin dashboard** |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/templates-dark.png"><img src="docs/images/templates-light.png" alt="Templates"></picture> | <img src="docs/images/admin.png" alt="Admin overview with usage charts"> |
+
+<p align="center"><img src="docs/images/references.png" alt="References matched on Semantic Scholar" width="80%"><br><sub>References from the paper, matched on Semantic Scholar</sub></p>
 
 ---
 
