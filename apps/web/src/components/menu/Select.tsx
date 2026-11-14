@@ -83,7 +83,7 @@ export function Select<T extends string>({
   };
 
   return (
-    <div ref={root} className={`relative ${className}`}>
+    <div ref={root} className={`relative min-w-0 max-w-full ${className}`}>
       <button
         ref={trigger}
         type="button"
@@ -94,7 +94,7 @@ export function Select<T extends string>({
         onKeyDown={(event) => {
           if (event.key === "ArrowDown" || event.key === "ArrowUp") { event.preventDefault(); show(); }
         }}
-        className={`inline-flex min-h-11 min-w-0 items-center rounded-md border border-border bg-surface text-sm hover:bg-muted ${compact ? "gap-1 px-2" : "gap-2 px-3"}`}
+        className={`inline-flex min-h-11 min-w-0 max-w-full items-center rounded-md border border-border bg-surface text-sm hover:bg-muted ${compact ? "gap-1 px-2" : "gap-2 px-3"}`}
       >
         {icon}
         <span className="sr-only">{`${label}: `}</span>

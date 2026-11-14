@@ -438,6 +438,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/conversations/{conversation_id}/stop": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stop the answer being written in this conversation; what was written is kept
+         * @description Leaving the page no longer stops an answer (it finishes and is saved); Stop does (AC13).
+         */
+        post: operations["stop_answer_api_v1_conversations__conversation_id__stop_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/dev/token": {
         parameters: {
             query?: never;
@@ -1584,6 +1604,11 @@ export interface components {
              * @enum {string}
              */
             role: "user" | "assistant";
+            /**
+             * Saved To Notes
+             * @default false
+             */
+            saved_to_notes: boolean;
             /**
              * Status
              * @enum {string}
@@ -3459,6 +3484,35 @@ export interface operations {
             };
             /** @description Chat not ready, or this send is still being answered */
             409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stop_answer_api_v1_conversations__conversation_id__stop_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                conversation_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };

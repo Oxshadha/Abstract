@@ -1,7 +1,7 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { chatKeys, sendMessage, type Attachment, type Citation, type Message } from "./api";
+import { chatKeys, sendMessage, stopAnswer, type Attachment, type Citation, type Message } from "./api";
 
 export interface Draft {
   question: string;
@@ -105,7 +105,13 @@ export function useChat(conversationId: string | null) {
   );
 
   const stop = useCallback(() => {
-    controller.current?.abort();
+    // Tell the server first: closing the stream alone no longer stops the answer (it would
+    // finish and be saved, as when the reader leaves the page).
+    const target = active.current;
+    const abort = controller.current;
+    const close = () => { abort?.abort(); };
+    if (target) void stopAnswer(target).then(close, close);
+    else close();
   }, []);
 
   const busy = draft?.status === "streaming";

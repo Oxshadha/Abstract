@@ -1,3 +1,4 @@
+import contextlib
 import json
 from collections.abc import AsyncIterator
 from typing import Annotated, Any
@@ -277,15 +278,55 @@ async def send_message(
                 await _remember_answer(maker, identity, idempotency_key, done["message_id"])
             yield event
 
+    redis = state.redis
+    stop_key = _stop_key(conversation_id)
+    if redis is not None:  # a Stop pressed for an earlier answer must not end this one
+        with contextlib.suppress(Exception):
+            await redis.delete(stop_key)
+
+    async def should_stop() -> bool:
+        return bool(redis is not None and await redis.exists(stop_key))
+
+    if not hasattr(state, "chat_tasks"):
+        state.chat_tasks = set()
     settings = state.settings
     return StreamingResponse(
-        engine.with_heartbeat(events(), settings.sse_heartbeat_seconds),
+        engine.with_heartbeat(
+            engine.detach(events(), should_stop, state.chat_tasks), settings.sse_heartbeat_seconds
+        ),
         media_type="text/event-stream",
         headers=_STREAM_HEADERS,
     )
 
 
 _STREAM_HEADERS = {"Cache-Control": "no-store", "X-Accel-Buffering": "no"}  # AC12
+STOP_TTL_SECONDS = 120
+
+
+def _stop_key(conversation_id: UUID) -> str:
+    return f"chat:stop:{conversation_id}"
+
+
+@router.post(
+    "/conversations/{conversation_id}/stop",
+    status_code=204,
+    summary="Stop the answer being written in this conversation; what was written is kept",
+    dependencies=[Depends(user_rate_limit("write"))],
+)
+async def stop_answer(
+    conversation_id: UUID,
+    request: Request,
+    identity: Annotated[RequestContext, Depends(require_identity("chat.create"))],
+) -> Response:
+    """Leaving the page no longer stops an answer (it finishes and is saved); Stop does (AC13)."""
+    async with request.app.state.sessionmaker() as session, session.begin():
+        await set_tenant(session, identity.org_id)
+        await conversations.owned(session, identity.user_id, conversation_id)
+    try:
+        await request.app.state.redis.set(_stop_key(conversation_id), "1", ex=STOP_TTL_SECONDS)
+    except Exception as exc:
+        raise ProblemError(503, "stop-unavailable", "Could not stop the answer right now.") from exc
+    return Response(status_code=204)
 
 
 async def _reranker(llm: Any, settings: Any) -> Any:

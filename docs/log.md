@@ -15,6 +15,14 @@ Entry format:
 
 ---
 
+## 2026-11-14: Abstract is live for testing; production feedback fixed
+**Done:** Deployed to the owner's EC2 host (D100) at https://abstract.oshadhakariyawasam.me: docker-compose (API, two workers, Redis) behind the host's nginx and certbot, Neon database with RLS runtime roles, Neon S3-compatible storage (presigned POST verified), Clerk development instance, Vertex (location `global`). Tables and figures are off on this 3.7 GB host. Then fixed the owner's production feedback: Clerk colours follow the theme live; chat waits for the conversation list before sending (a race that cancelled answers); suggestions stay after answers and have padding; Stop is a filled button; Save to notes stays Saved and never duplicates (migration 0023); figures read as off where enrichment is disabled; long paper names truncate in every Select (fixed sideways scroll on phones); the chat panel resizes; an answer finishes and is saved when the reader leaves, Stop is explicit (D101, refines 007 AC13).
+**Verified on production:** Chromium, WebKit and Firefox: sign-in, upload, summary, chat with citations, PDF viewer, Clerk in dark mode, figures hidden, chat divider, Save to notes after reload, template page at 390 px, no console errors; leaving mid-answer keeps the answer (Chromium).
+**Found on the way:** the host's nginx had no `.mjs` type (pdf.js worker refused); `GCP_LOCATION` must be `global`; the root `.env` Sentry DSN leaked into the web build (now built with it empty); OpenRouter fallback has no credit (402).
+**Decisions:** D100, D101   **Specs:** 017 in progress (host running; deploy button, backups, runbook still to do), 007 AC13 refined
+**Next:** owner signs in once to be made admin; deploy button and nightly backup (017); PRs for feat/017-deploy and fix/prod-feedback.
+**Blockers / waiting on owner:** OpenRouter credit (optional fallback); resize the host to 8 GB if tables and figures are wanted.
+
 ## 2026-11-13: Spec 018 admin sidebar and charts implemented
 **Done:** Admins get their own sidebar inside Admin (Monitor and Manage groups, failed-jobs badge, Back to app, collapses to a remembered icon rail), adapted from the owner's reference without new libraries. The Overview gains hand-written SVG charts in new chart greys: spend, papers and questions, active users, sign-ups and AI errors per day (7, 30 or 90 days), and donuts for spend by task or model, jobs by state and users by plan. One read-only series endpoint (migration 0022 functions).
 **Verified:** Chromium, WebKit and Firefox, desktop and phone, light and dark, on the dev data. Fixed on the way: Firefox showed a hidden table caption over a chart; a $20 cap flattened cent-sized spend bars.

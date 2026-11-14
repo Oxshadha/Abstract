@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 
@@ -47,9 +47,9 @@ const ANSWER: [string, unknown][] = [
 ];
 
 const saved: Message[] = [
-  { id: "u1", role: "user", content: "How does attention work?", status: "complete", retrieval_mode: null, citations: [], created_at: "" },
+  { id: "u1", role: "user", content: "How does attention work?", status: "complete", retrieval_mode: null, citations: [], created_at: "", saved_to_notes: false },
   { id: "a1", role: "assistant", content: "Self attention relates positions [S1].", status: "complete", retrieval_mode: "hybrid",
-    citations: [{ marker: 1, page_start: 2, page_end: 2, section: "2.1 Attention", quote: "Self attention relates positions of a sequence." }], created_at: "" },
+    citations: [{ marker: 1, page_start: 2, page_end: 2, section: "2.1 Attention", quote: "Self attention relates positions of a sequence." }], created_at: "", saved_to_notes: false },
 ];
 
 function renderPanel() {
@@ -143,10 +143,14 @@ describe("AC9, AC10: Ask Abstract panel", () => {
     expect(input).toHaveAttribute("maxLength", "4000"); // AC16
   });
 
-  it("Stop aborts the answer stream", async () => {
+  it("Stop tells the server, then aborts the answer stream", async () => {
     let signal: AbortSignal | undefined;
+    const urls: string[] = [];
     fetchMock.mockImplementation((...args: unknown[]) => {
-      signal = (args[1] as RequestInit).signal ?? undefined;
+      const target = args[0];
+      urls.push(typeof target === "string" ? target : target instanceof Request ? target.url : String(target));
+      if (urls[urls.length - 1]?.endsWith("/stop")) return Promise.resolve(new Response(null, { status: 204 }));
+      signal ??= (args[1] as RequestInit | undefined)?.signal ?? undefined;
       return Promise.resolve(sse(ANSWER.slice(0, 2), true));
     });
     renderPanel();
@@ -155,7 +159,8 @@ describe("AC9, AC10: Ask Abstract panel", () => {
     fireEvent.keyDown(input, { key: "Enter" });
     expect(await screen.findByText("Searching the paper")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Stop" }));
-    expect(signal?.aborted).toBe(true);
+    await waitFor(() => { expect(signal?.aborted).toBe(true); });
+    expect(urls.some((u) => u.endsWith("/api/v1/conversations/c1/stop"))).toBe(true);
   });
 
   it("a failed send offers Retry with the same Idempotency-Key", async () => {
@@ -353,5 +358,36 @@ describe("Spec 014 AC2: Save to notes", () => {
     fireEvent.click(button);
     expect(await screen.findByRole("button", { name: "Saved to notes" })).toBeDisabled();
     expect(saveAnswer).toHaveBeenCalledWith("p1", "a1");
+  });
+});
+
+describe("Production feedback (2026-11-14): sending waits for the conversation; suggestions stay", () => {
+  it("does not let a question start a second conversation while the list is loading", async () => {
+    let resolveList: (v: (typeof CONVERSATION)[]) => void = () => undefined;
+    vi.mocked(listConversations).mockReturnValue(new Promise((r) => { resolveList = r; }));
+    renderPanel();
+    const input = await screen.findByLabelText("Ask about this paper");
+    expect(input).toBeDisabled();
+    await act(async () => {
+      resolveList([CONVERSATION]);
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    await waitFor(() => { expect(input).toBeEnabled(); });
+    expect(createConversation).not.toHaveBeenCalled();
+  });
+
+  it("after an answer, offers this paper's questions not asked yet", async () => {
+    vi.mocked(listMessages).mockResolvedValue(saved);
+    renderPanel();
+    const group = await screen.findByRole("group", { name: "Suggested questions" });
+    expect(within(group).getByRole("button", { name: "Which datasets are used for training?" })).toBeInTheDocument();
+  });
+});
+
+describe("Production feedback: Save to notes remembers", () => {
+  it("an answer saved before shows Saved to notes after a reload", async () => {
+    vi.mocked(listMessages).mockResolvedValue(saved.map((m) => (m.role === "assistant" ? { ...m, saved_to_notes: true } : m)));
+    renderPanel();
+    expect(await screen.findByRole("button", { name: "Saved to notes" })).toBeDisabled();
   });
 });

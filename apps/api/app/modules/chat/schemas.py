@@ -88,6 +88,7 @@ class MessageOut(BaseModel):
     created_at: datetime
     region: Region | None = None  # a question asked about a region of a page (AC10)
     quote: Quote | None = None  # a question about selected text (spec 015)
+    saved_to_notes: bool = False  # this answer was added to the paper's notes (spec 014 AC2)
 
 
 class MessagePage(BaseModel):

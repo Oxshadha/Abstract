@@ -1,3 +1,5 @@
+import { useSyncExternalStore } from "react";
+
 import { darkColors, fonts, lightColors, radius } from "@/styles/tokens";
 
 /** Clerk appearance from design tokens (spec 003 AC8, D43). Clerk needs literal values. */
@@ -53,5 +55,25 @@ export function clerkAppearance(theme: "light" | "dark") {
 export function currentTheme(): "light" | "dark" {
   const explicit = document.documentElement.dataset.theme;
   if (explicit === "light" || explicit === "dark") return explicit;
+  if (typeof window.matchMedia !== "function") return "light"; // test browsers and old engines
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function subscribeTheme(onChange: () => void): () => void {
+  const observer = new MutationObserver(onChange);
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+  const media = typeof window.matchMedia === "function" ? window.matchMedia("(prefers-color-scheme: dark)") : null;
+  media?.addEventListener("change", onChange);
+  return () => {
+    observer.disconnect();
+    media?.removeEventListener("change", onChange);
+  };
+}
+
+/**
+ * The theme in use, kept live. Clerk needs literal colours, so its appearance is rebuilt when
+ * the theme changes; reading it once left light text on our dark card.
+ */
+export function useCurrentTheme(): "light" | "dark" {
+  return useSyncExternalStore(subscribeTheme, currentTheme, () => "light");
 }

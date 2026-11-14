@@ -50,6 +50,10 @@ async def flags_for(request: Request, principal: Principal) -> dict[str, bool]:
     flags = {
         r.key: evaluate(r.enabled, r.audience, plan_id=plan_id, platform_role=role) for r in rows
     }
+    # A host without the table and figure reader (D100: ENRICHMENT_ENABLED=false) never runs
+    # the job, so the feature reads as off: the tab hides instead of waiting forever.
+    if not request.app.state.settings.enrichment_enabled:
+        flags["figures"] = False
     request.state.flags = flags
     return flags
 

@@ -9,15 +9,22 @@ export interface Layout {
   summary: boolean;
   chat: boolean;
   split: number; // Paper's share of the width, in percent
+  chatWidth: number; // the chat panel's width in px (production feedback: chat resizes too)
 }
 
-export const DEFAULT_LAYOUT: Layout = { paper: true, summary: true, chat: false, split: 50 };
+export const DEFAULT_LAYOUT: Layout = { paper: true, summary: true, chat: false, split: 50, chatWidth: 384 };
 export const MIN_SPLIT = 25;
 export const MAX_SPLIT = 75;
+export const MIN_CHAT = 320;
+export const MAX_CHAT = 640;
 const KEY = "abstract.workspace.layout";
 
 export function clampSplit(value: number): number {
   return Math.min(MAX_SPLIT, Math.max(MIN_SPLIT, Math.round(value)));
+}
+
+export function clampChat(value: number): number {
+  return Math.min(MAX_CHAT, Math.max(MIN_CHAT, Math.round(value)));
 }
 
 function load(): Layout {
@@ -30,6 +37,7 @@ function load(): Layout {
       summary: value.summary !== false,
       chat: value.chat === true,
       split: clampSplit(typeof value.split === "number" ? value.split : 50),
+      chatWidth: clampChat(typeof value.chatWidth === "number" ? value.chatWidth : DEFAULT_LAYOUT.chatWidth),
     };
     return layout.paper || layout.summary ? layout : DEFAULT_LAYOUT;
   } catch {
@@ -65,6 +73,9 @@ export function useWorkspaceLayout() {
     },
     setSplit: (split: number) => {
       setLayout((current) => ({ ...current, split: clampSplit(split) }));
+    },
+    setChatWidth: (chatWidth: number) => {
+      setLayout((current) => ({ ...current, chatWidth: clampChat(chatWidth) }));
     },
   };
 }

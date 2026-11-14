@@ -118,7 +118,7 @@ async def save_answer(
     answer = (
         await session.execute(
             text(
-                "SELECT m.content, m.seq, m.conversation_id FROM messages m"
+                "SELECT m.content, m.seq, m.conversation_id, m.saved_to_notes_at FROM messages m"
                 " JOIN conversations c ON c.id = m.conversation_id"
                 " WHERE m.id = :m AND m.role = 'assistant' AND c.paper_id = :p"
                 " AND c.owner_id = :o"
@@ -128,6 +128,8 @@ async def save_answer(
     ).first()
     if answer is None:
         raise ProblemError(404, "message-not-found", "This answer was not found.")
+    if answer.saved_to_notes_at is not None:  # saved before: never add it twice
+        return await get(session, owner_id, paper_id)
     question = (
         await session.execute(
             text(
@@ -151,6 +153,10 @@ async def save_answer(
     block = notes_doc.answer_block(question or "Saved answer", answer.content, citations)
     document = {"type": "doc", "content": [*current.doc.get("content", []), block]}
     try:
-        return await _write(session, org_id, owner_id, paper_id, document, current.version)
+        saved = await _write(session, org_id, owner_id, paper_id, document, current.version)
     except notes_doc.InvalidDocError as exc:
         raise ProblemError(413, "invalid-notes", str(exc)) from exc
+    await session.execute(
+        text("UPDATE messages SET saved_to_notes_at = now() WHERE id = :m"), {"m": message_id}
+    )
+    return saved

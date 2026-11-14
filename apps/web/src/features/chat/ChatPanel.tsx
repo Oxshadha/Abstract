@@ -162,28 +162,41 @@ function Bubble({ role, children }: { role: Message["role"]; children: ReactNode
   );
 }
 
+/**
+ * The newest message is a question with no answer yet, asked in the last few minutes: the
+ * server is still writing it (the reader left mid-answer and came back).
+ */
+function awaitingAnswer(items: Message[] | undefined): boolean {
+  const last = items?.[items.length - 1];
+  if (last?.role !== "user") return false;
+  return Date.now() - new Date(last.created_at).getTime() < 3 * 60_000;
+}
+
 /** Spec 014 AC2: add this answer, with its question and page sources, to the paper's notes. */
-function SaveToNotes({ paperId, messageId }: { paperId: string; messageId: string }) {
+function SaveToNotes({ paperId, messageId, saved }: { paperId: string; messageId: string; saved: boolean }) {
   const queryClient = useQueryClient();
   const save = useMutation({
     mutationFn: () => saveAnswer(paperId, messageId),
     onSuccess: (notes) => {
       queryClient.setQueryData(notesKeys.forPaper(paperId), notes);
+      // The server remembers it on the message, so the button stays Saved after a reload.
+      void queryClient.invalidateQueries({ queryKey: ["conversations"] });
       toast("Saved to your notes.");
     },
     onError: (err) => {
       toast(err.message);
     },
   });
+  const done = saved || save.isSuccess;
   return (
     <button
       type="button"
-      disabled={save.isPending || save.isSuccess}
+      disabled={save.isPending || done}
       onClick={() => { save.mutate(); }}
       className="mt-2 inline-flex min-h-9 items-center gap-1.5 rounded-md px-2 text-sm text-text-secondary hover:bg-muted hover:text-text disabled:opacity-60"
     >
-      {save.isSuccess ? <Check aria-hidden className="size-4" /> : <NotebookPen aria-hidden className="size-4" />}
-      {save.isSuccess ? "Saved to notes" : "Save to notes"}
+      {done ? <Check aria-hidden className="size-4" /> : <NotebookPen aria-hidden className="size-4" />}
+      {save.isPending ? "Saving" : done ? "Saved to notes" : "Save to notes"}
     </button>
   );
 }
@@ -195,7 +208,7 @@ function AssistantMessage({ message, paperId, notes }: { message: Message; paper
       {message.retrieval_mode === "keyword" && <StatusPill status="neutral">Answered from a keyword search</StatusPill>}
       <Markdown>{withMarkers(message.content)}</Markdown>
       <Citations items={message.citations} />
-      {notes && message.content.trim() && <SaveToNotes paperId={paperId} messageId={message.id} />}
+      {notes && message.content.trim() && <SaveToNotes paperId={paperId} messageId={message.id} saved={message.saved_to_notes} />}
     </Bubble>
   );
 }
@@ -307,10 +320,15 @@ export function ChatPanel({ paperId, onClose }: { paperId: string; onClose?: () 
   const conversations = useQuery({ queryKey: chatKeys.conversations(paperId), queryFn: () => listConversations(paperId), enabled: available });
   const [chosen, setChosen] = useState<string | null>(null);
   const conversationId = chosen ?? conversations.data?.[0]?.id ?? null;
+  // Sending before the list has loaded would start a second conversation, and switching to the
+  // loaded one would cancel the answer: wait until we know which conversation is current.
+  const ready = available && !conversations.isPending;
   const messages = useQuery({
     queryKey: chatKeys.messages(conversationId ?? "none"),
     queryFn: () => listMessages(conversationId ?? ""),
     enabled: conversationId !== null,
+    // Back after leaving mid-answer: the server is still writing it, so look again until it lands.
+    refetchInterval: (q) => (awaitingAnswer(q.state.data) ? 3000 : false),
   });
   const { draft, send, stop, busy, suggestions, retry } = useChat(conversationId);
   const [input, setInput] = useState("");
@@ -378,14 +396,14 @@ export function ChatPanel({ paperId, onClose }: { paperId: string; onClose?: () 
   // Spec 015 AC4: Explain asks at once, at the level chosen in the toolbar.
   const explain = viewerApi?.quote?.mode === "explain" ? viewerApi.quote : null;
   useEffect(() => {
-    if (!explain || !available || busy || create.isPending) return;
+    if (!explain || !ready || busy || create.isPending) return;
     viewerApi?.clearQuote();
     // The request comes from the Paper panel through context (the chat may only just have
     // opened for it), so sending it is this effect's job, once per request id.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void submit(EXPLAIN[explain.level], { quote: { page: explain.page, text: explain.text }, mode: "explain", level: explain.level });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [explain?.id, available, busy]);
+  }, [explain?.id, ready, busy]);
 
   const onKey = (event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.key === "Enter" && !event.shiftKey) {
@@ -396,6 +414,11 @@ export function ChatPanel({ paperId, onClose }: { paperId: string; onClose?: () 
 
   const items = messages.data ?? [];
   const empty = items.length === 0 && !draft;
+  const writing = !draft && awaitingAnswer(messages.data);
+  // Follow-ups after an answer: the ones it came with, otherwise this paper's questions not asked
+  // yet, so suggestions stay after a reload or a return visit instead of disappearing.
+  const asked = new Set(items.filter((m) => m.role === "user").map((m) => m.content.trim()));
+  const followUps = (suggestions.length > 0 ? suggestions : starters.filter((q) => !asked.has(q.trim()))).slice(0, 3);
 
   return (
     <div className="flex h-full min-h-96 flex-col">
@@ -426,7 +449,7 @@ export function ChatPanel({ paperId, onClose }: { paperId: string; onClose?: () 
           <div className="flex flex-col items-start gap-2">
             <p className="text-sm text-text-secondary">Ask anything about this paper. Answers come only from the paper, with sources.</p>
             {starters.map((q) => (
-              <button key={q} type="button" onClick={() => void ask(q)} className="min-h-9 rounded-md border border-border px-3 text-left text-sm hover:bg-muted">
+              <button key={q} type="button" disabled={!ready} onClick={() => void ask(q)} className="w-full rounded-lg border border-border bg-surface px-3.5 py-2.5 text-left text-sm leading-snug hover:bg-muted disabled:opacity-50">
                 {q}
               </button>
             ))}
@@ -444,10 +467,16 @@ export function ChatPanel({ paperId, onClose }: { paperId: string; onClose?: () 
           )
         )}
         {draft && <Pending draft={draft} onRetry={() => void retry(draft)} />}
-        {suggestions.length > 0 && !draft && (
-          <div className="flex flex-wrap gap-2">
-            {suggestions.map((q) => (
-              <button key={q} type="button" onClick={() => void ask(q)} className="min-h-9 rounded-md border border-border px-3 text-sm hover:bg-muted">
+        {writing && (
+          <p role="status" className="inline-flex items-center gap-2 text-sm text-text-secondary">
+            <Loader2 aria-hidden className="size-4 animate-spin motion-reduce:animate-none" />
+            Writing the answer
+          </p>
+        )}
+        {!empty && followUps.length > 0 && !draft && (
+          <div className="flex flex-col items-start gap-2" aria-label="Suggested questions" role="group">
+            {followUps.map((q) => (
+              <button key={q} type="button" disabled={!ready} onClick={() => void ask(q)} className="max-w-full rounded-lg border border-border bg-surface px-3.5 py-2 text-left text-sm leading-snug hover:bg-muted disabled:opacity-50">
                 {q}
               </button>
             ))}
@@ -479,7 +508,7 @@ export function ChatPanel({ paperId, onClose }: { paperId: string; onClose?: () 
         <textarea
           id={inputId}
           value={input}
-          disabled={!available}
+          disabled={!ready}
           maxLength={MAX_MESSAGE_CHARS}
           rows={Math.min(6, Math.max(1, input.split("\n").length))}
           placeholder={!available ? "Waiting for the paper to be indexed" : viewerApi?.quote?.mode === "ask" ? "Ask about this passage" : "Ask about this paper"}
@@ -490,11 +519,11 @@ export function ChatPanel({ paperId, onClose }: { paperId: string; onClose?: () 
           className="min-h-11 flex-1 resize-none bg-transparent px-2 py-2.5 font-reading focus:outline-none"
         />
         {busy ? (
-          <button type="button" aria-label="Stop" onClick={stop} className="inline-flex size-11 items-center justify-center rounded-md border border-border hover:bg-muted">
-            <Square aria-hidden className="size-4" />
+          <button type="button" aria-label="Stop" onClick={stop} className="inline-flex size-11 items-center justify-center rounded-md bg-primary text-primary-text hover:opacity-90">
+            <Square aria-hidden className="size-3.5 fill-current" />
           </button>
         ) : (
-          <button type="submit" aria-label="Send" disabled={!available || !input.trim()} className="inline-flex size-11 items-center justify-center rounded-md bg-primary text-primary-text disabled:opacity-50">
+          <button type="submit" aria-label="Send" disabled={!ready || !input.trim()} className="inline-flex size-11 items-center justify-center rounded-md bg-primary text-primary-text disabled:opacity-50">
             <ArrowUp aria-hidden className="size-5" />
           </button>
         )}

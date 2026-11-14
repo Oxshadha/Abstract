@@ -157,3 +157,16 @@ async def test_AC7_no_background_enrichment_while_figures_are_off(
         "SELECT count(*) FROM jobs WHERE paper_id = :p AND kind = 'enrich'", p=paper
     )
     assert jobs[0] == 0
+
+
+async def test_figures_read_as_off_when_the_host_has_no_table_reader(api: PapersApi) -> None:
+    """D100: with ENRICHMENT_ENABLED=false the figures feature is off, so its tab hides and
+    its routes refuse, instead of waiting for a job that never runs."""
+    user = new_user()
+    settings = api.app.state.settings
+    before = settings.enrichment_enabled
+    try:
+        settings.enrichment_enabled = False
+        assert (await my_flags(api, user))["figures"] is False
+    finally:
+        settings.enrichment_enabled = before
