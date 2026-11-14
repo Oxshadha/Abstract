@@ -1,0 +1,98 @@
+# Production stack on the owner's EC2 host (spec 017, D100). Shares the host with another app,
+# so every service has a memory limit and nothing listens outside localhost: the host's nginx
+# terminates TLS and proxies /api to 127.0.0.1:8000. Postgres is Neon and files are in Neon's
+# S3-compatible storage, so the host keeps no user data.
+#
+# Run from the repo root on the host:
+#   sudo docker compose -f infra/docker-compose.prod.yml --project-directory . up -d --build
+# Settings come from /opt/abstract/.env.prod (root only, never in git).
+name: abstract-prod
+
+x-env: &env
+  env_file: [/opt/abstract/.env.prod]
+
+x-hardening: &hardening
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  restart: unless-stopped
+
+x-worker: &worker
+  <<: *hardening
+  # Workers connect as abstract_worker, not the API's role (spec 002 AC6): the second file
+  # only overrides DATABASE_URL.
+  env_file: [/opt/abstract/.env.prod, /opt/abstract/.env.worker]
+  build: { context: ./apps/api, target: prod }
+  image: abstract-api:prod
+  # Sandbox for untrusted PDFs (spec 004 AC13, D77): read-only root, scratch in memory.
+  read_only: true
+  tmpfs: ["/tmp:size=256m,mode=1777"]
+  pids_limit: 256
+  secrets: [gcp_sa]
+  # Warm shutdown: unfinished tasks are requeued (task_acks_late) instead of lost (AC13).
+  stop_grace_period: 90s
+  depends_on:
+    redis: { condition: service_healthy }
+    migrate: { condition: service_completed_successfully }
+
+services:
+  redis:
+    <<: *hardening
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "96mb", "--maxmemory-policy", "noeviction"]
+    cap_add: [SETUID, SETGID]
+    mem_limit: 128m
+    volumes: ["redis:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    <<: [*env, *hardening]
+    build: { context: ./apps/api, target: prod }
+    image: abstract-api:prod
+    command: ["alembic", "upgrade", "head"]
+    mem_limit: 512m
+    restart: "no"
+
+  api:
+    <<: [*env, *hardening]
+    build: { context: ./apps/api, target: prod }
+    image: abstract-api:prod
+    # Drain in-flight streams on deploy; the client reconnects with Last-Event-ID (AC13).
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers",
+              "--forwarded-allow-ips", "*", "--timeout-graceful-shutdown", "20"]
+    ports: ["127.0.0.1:8000:8000"]
+    mem_limit: 768m
+    stop_grace_period: 30s
+    secrets: [gcp_sa]
+    depends_on:
+      redis: { condition: service_healthy }
+      migrate: { condition: service_completed_successfully }
+
+  worker:
+    <<: *worker
+    command: ["celery", "-A", "app.worker.celery_app", "worker", "--loglevel=INFO", "-Q", "fast", "--concurrency=2", "-n", "fast@%h"]
+    mem_limit: 1g
+    healthcheck: &celery-health
+      # A worker answers a ping through the broker (practices §2.4: worker healthcheck).
+      test: ["CMD-SHELL", "celery -A app.worker.celery_app inspect ping -t 10 | grep -q pong"]
+      interval: 60s
+      timeout: 20s
+      retries: 3
+
+  worker-bg:
+    <<: *worker
+    # Tables and figures are off on this host (D100: ENRICHMENT_ENABLED=false, Docling needs
+    # about 6 GB), so the light prod image serves the background queues.
+    command: ["celery", "-A", "app.worker.celery_app", "worker", "--loglevel=INFO", "-Q", "enrichment,scan,deletion,lookups", "--concurrency=1", "-n", "bg@%h"]
+    mem_limit: 640m
+    healthcheck: *celery-health
+
+secrets:
+  gcp_sa:
+    file: /opt/abstract/secrets/gcp_sa.json
+
+volumes:
+  redis:
