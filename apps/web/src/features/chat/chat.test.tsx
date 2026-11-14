@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 
@@ -353,5 +353,28 @@ describe("Spec 014 AC2: Save to notes", () => {
     fireEvent.click(button);
     expect(await screen.findByRole("button", { name: "Saved to notes" })).toBeDisabled();
     expect(saveAnswer).toHaveBeenCalledWith("p1", "a1");
+  });
+});
+
+describe("Production feedback (2026-11-14): sending waits for the conversation; suggestions stay", () => {
+  it("does not let a question start a second conversation while the list is loading", async () => {
+    let resolveList: (v: (typeof CONVERSATION)[]) => void = () => undefined;
+    vi.mocked(listConversations).mockReturnValue(new Promise((r) => { resolveList = r; }));
+    renderPanel();
+    const input = await screen.findByLabelText("Ask about this paper");
+    expect(input).toBeDisabled();
+    await act(async () => {
+      resolveList([CONVERSATION]);
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    await waitFor(() => { expect(input).toBeEnabled(); });
+    expect(createConversation).not.toHaveBeenCalled();
+  });
+
+  it("after an answer, offers this paper's questions not asked yet", async () => {
+    vi.mocked(listMessages).mockResolvedValue(saved);
+    renderPanel();
+    const group = await screen.findByRole("group", { name: "Suggested questions" });
+    expect(within(group).getByRole("button", { name: "Which datasets are used for training?" })).toBeInTheDocument();
   });
 });
