@@ -143,10 +143,14 @@ describe("AC9, AC10: Ask Abstract panel", () => {
     expect(input).toHaveAttribute("maxLength", "4000"); // AC16
   });
 
-  it("Stop aborts the answer stream", async () => {
+  it("Stop tells the server, then aborts the answer stream", async () => {
     let signal: AbortSignal | undefined;
+    const urls: string[] = [];
     fetchMock.mockImplementation((...args: unknown[]) => {
-      signal = (args[1] as RequestInit).signal ?? undefined;
+      const target = args[0];
+      urls.push(typeof target === "string" ? target : target instanceof Request ? target.url : String(target));
+      if (urls[urls.length - 1]?.endsWith("/stop")) return Promise.resolve(new Response(null, { status: 204 }));
+      signal ??= (args[1] as RequestInit | undefined)?.signal ?? undefined;
       return Promise.resolve(sse(ANSWER.slice(0, 2), true));
     });
     renderPanel();
@@ -155,7 +159,8 @@ describe("AC9, AC10: Ask Abstract panel", () => {
     fireEvent.keyDown(input, { key: "Enter" });
     expect(await screen.findByText("Searching the paper")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Stop" }));
-    expect(signal?.aborted).toBe(true);
+    await waitFor(() => { expect(signal?.aborted).toBe(true); });
+    expect(urls.some((u) => u.endsWith("/api/v1/conversations/c1/stop"))).toBe(true);
   });
 
   it("a failed send offers Retry with the same Idempotency-Key", async () => {

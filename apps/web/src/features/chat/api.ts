@@ -32,6 +32,14 @@ export async function listConversations(paperId: string): Promise<Conversation[]
   return data.items;
 }
 
+/** Stop the answer being written (leaving the page lets it finish and be saved instead). */
+export async function stopAnswer(conversationId: string): Promise<void> {
+  const { response } = await api.POST("/api/v1/conversations/{conversation_id}/stop", {
+    params: { path: { conversation_id: conversationId } },
+  });
+  if (!response.ok) throw await problem(response, "Could not stop the answer.");
+}
+
 export async function createConversation(paperId: string): Promise<Conversation> {
   const { data, response } = await api.POST("/api/v1/papers/{paper_id}/conversations", {
     params: { path: { paper_id: paperId } },

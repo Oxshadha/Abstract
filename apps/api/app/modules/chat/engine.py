@@ -16,7 +16,7 @@ import dataclasses
 import hashlib
 import json
 import re
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Any, Literal
 from uuid import UUID
@@ -763,6 +763,59 @@ async def _condense(deps: ChatDeps, turn: Turn) -> None:
             )
     except Exception as exc:
         log.warning("chat_condense_failed", error=type(exc).__name__)
+
+
+STOP_POLL_SECONDS = 0.5
+
+
+async def detach(
+    events: AsyncIterator[str],
+    should_stop: Callable[[], Awaitable[bool]],
+    tasks: set[asyncio.Task[None]],
+) -> AsyncIterator[str]:
+    """Run the answer in its own task, so leaving the page does not cancel it (owner decision
+    2026-11-14, refines 007 AC13). The browser reads events as they come; when it goes away the
+    task still finishes and saves the answer, which is there when the reader returns. Stop is
+    explicit: `should_stop` (a flag in Redis, so any API container can set it) cancels the task,
+    and the engine saves what was written as `stopped`."""
+    queue: asyncio.Queue[tuple[str, Any]] = asyncio.Queue()
+
+    async def produce() -> None:
+        try:
+            async for item in events:
+                queue.put_nowait(("item", item))
+            queue.put_nowait(("end", None))
+        except asyncio.CancelledError:
+            queue.put_nowait(("end", None))
+            raise
+        except Exception as exc:
+            queue.put_nowait(("error", exc))
+
+    async def run() -> None:
+        producer = asyncio.create_task(produce())
+        while not producer.done():
+            await asyncio.wait({producer}, timeout=STOP_POLL_SECONDS)
+            if producer.done():
+                break
+            try:
+                stop = await should_stop()
+            except Exception:
+                stop = False  # Redis away: the answer simply finishes
+            if stop:
+                producer.cancel()
+        with contextlib.suppress(BaseException):
+            await producer
+
+    task = asyncio.create_task(run())
+    tasks.add(task)  # held so it is not collected while the reader is gone
+    task.add_done_callback(tasks.discard)
+    while True:
+        kind, value = await queue.get()
+        if kind == "end":
+            return
+        if kind == "error":
+            raise value
+        yield value
 
 
 async def with_heartbeat(events: AsyncIterator[str], every: float) -> AsyncIterator[str]:

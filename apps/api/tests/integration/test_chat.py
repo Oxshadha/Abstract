@@ -320,6 +320,102 @@ async def test_AC13_stop_saves_the_partial_answer(
     assert 0 < len(saved.content) < len(ANSWER)
 
 
+async def _slow_turn(
+    api: PapersApi, worker: Worker
+) -> tuple[str, str, engine.ChatDeps, engine.Turn]:
+    user, paper = await ready_paper(api, worker)
+    cid = await conversation(api, user, paper)
+    org = await worker.row("SELECT org_id, owner_id FROM papers WHERE id = :p", p=paper)
+    deps = engine.ChatDeps(
+        sessionmaker=worker.deps.sessionmaker, gateway=ScriptedChat(delay=0.05), redis=None
+    )
+    turn = engine.Turn(
+        org_id=org.org_id,
+        user_id=org.owner_id,
+        paper_id=UUID(paper),
+        conversation_id=UUID(cid),
+        question="How does self attention work?",
+    )
+    return user, cid, deps, turn
+
+
+async def _answer(worker: Worker, cid: str) -> Any:
+    return await worker.row(
+        "SELECT status, content FROM messages WHERE conversation_id = :c AND role = 'assistant'",
+        c=cid,
+    )
+
+
+async def test_AC13_leaving_the_page_still_finishes_and_saves_the_answer(
+    api: PapersApi, worker: Worker, chat: ScriptedChat
+) -> None:
+    """Owner decision 2026-11-14: a reader who leaves mid-answer finds it complete later."""
+    _, cid, deps, turn = await _slow_turn(api, worker)
+    tasks: set[asyncio.Task[None]] = set()
+
+    async def never() -> bool:
+        return False
+
+    reader = engine.detach(engine.answer_stream(deps, turn), never, tasks)
+    async for event in reader:
+        if event.startswith("event: delta"):
+            break  # the browser goes away after the first words
+    await reader.aclose()
+    assert tasks, "the answer keeps running without a reader"
+    await asyncio.wait_for(asyncio.gather(*tasks), timeout=10)
+    saved = await _answer(worker, cid)
+    assert saved.status == "complete"
+    assert saved.content
+
+
+async def test_AC13_stop_still_ends_the_answer_and_keeps_what_was_written(
+    api: PapersApi, worker: Worker, chat: ScriptedChat
+) -> None:
+    _, cid, deps, turn = await _slow_turn(api, worker)
+    tasks: set[asyncio.Task[None]] = set()
+    pressed = False
+
+    async def stop() -> bool:
+        return pressed
+
+    reader = engine.detach(engine.answer_stream(deps, turn), stop, tasks)
+    seen = 0
+    async for event in reader:
+        if event.startswith("event: delta"):
+            seen += 1
+            if seen == 3:
+                pressed = True  # Stop pressed after a few words
+    await asyncio.wait_for(asyncio.gather(*tasks, return_exceptions=True), timeout=10)
+    saved = await _answer(worker, cid)
+    assert saved.status == "stopped"
+    assert 0 < len(saved.content) < len(ANSWER)
+
+
+async def test_AC13_the_stop_endpoint_is_for_the_owner_only(
+    api: PapersApi, worker: Worker, chat: ScriptedChat
+) -> None:
+    user, paper = await ready_paper(api, worker)
+    cid = await conversation(api, user, paper)
+
+    class FlagStore:
+        def __init__(self) -> None:
+            self.keys: dict[str, str] = {}
+
+        async def set(self, key: str, value: str, ex: int) -> None:
+            self.keys[key] = value
+
+    real, store = api.app.state.redis, FlagStore()
+    api.app.state.redis = store
+    try:
+        stopped = await api.client.post(f"/api/v1/conversations/{cid}/stop", headers=bearer(user))
+    finally:
+        api.app.state.redis = real
+    assert stopped.status_code == 204, stopped.text
+    assert store.keys == {f"chat:stop:{cid}": "1"}
+    other = await api.client.post(f"/api/v1/conversations/{cid}/stop", headers=bearer(new_user()))
+    assert other.status_code == 404
+
+
 async def test_AC12_quiet_streams_send_heartbeats() -> None:
     async def slow() -> AsyncIterator[str]:
         await asyncio.sleep(0.25)

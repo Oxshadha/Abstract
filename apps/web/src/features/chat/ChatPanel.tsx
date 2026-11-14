@@ -162,6 +162,16 @@ function Bubble({ role, children }: { role: Message["role"]; children: ReactNode
   );
 }
 
+/**
+ * The newest message is a question with no answer yet, asked in the last few minutes: the
+ * server is still writing it (the reader left mid-answer and came back).
+ */
+function awaitingAnswer(items: Message[] | undefined): boolean {
+  const last = items?.[items.length - 1];
+  if (last?.role !== "user") return false;
+  return Date.now() - new Date(last.created_at).getTime() < 3 * 60_000;
+}
+
 /** Spec 014 AC2: add this answer, with its question and page sources, to the paper's notes. */
 function SaveToNotes({ paperId, messageId, saved }: { paperId: string; messageId: string; saved: boolean }) {
   const queryClient = useQueryClient();
@@ -317,6 +327,8 @@ export function ChatPanel({ paperId, onClose }: { paperId: string; onClose?: () 
     queryKey: chatKeys.messages(conversationId ?? "none"),
     queryFn: () => listMessages(conversationId ?? ""),
     enabled: conversationId !== null,
+    // Back after leaving mid-answer: the server is still writing it, so look again until it lands.
+    refetchInterval: (q) => (awaitingAnswer(q.state.data) ? 3000 : false),
   });
   const { draft, send, stop, busy, suggestions, retry } = useChat(conversationId);
   const [input, setInput] = useState("");
@@ -402,6 +414,7 @@ export function ChatPanel({ paperId, onClose }: { paperId: string; onClose?: () 
 
   const items = messages.data ?? [];
   const empty = items.length === 0 && !draft;
+  const writing = !draft && awaitingAnswer(messages.data);
   // Follow-ups after an answer: the ones it came with, otherwise this paper's questions not asked
   // yet, so suggestions stay after a reload or a return visit instead of disappearing.
   const asked = new Set(items.filter((m) => m.role === "user").map((m) => m.content.trim()));
@@ -454,6 +467,12 @@ export function ChatPanel({ paperId, onClose }: { paperId: string; onClose?: () 
           )
         )}
         {draft && <Pending draft={draft} onRetry={() => void retry(draft)} />}
+        {writing && (
+          <p role="status" className="inline-flex items-center gap-2 text-sm text-text-secondary">
+            <Loader2 aria-hidden className="size-4 animate-spin motion-reduce:animate-none" />
+            Writing the answer
+          </p>
+        )}
         {!empty && followUps.length > 0 && !draft && (
           <div className="flex flex-col items-start gap-2" aria-label="Suggested questions" role="group">
             {followUps.map((q) => (

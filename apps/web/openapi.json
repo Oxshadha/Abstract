@@ -5181,6 +5181,43 @@
         ]
       }
     },
+    "/api/v1/conversations/{conversation_id}/stop": {
+      "post": {
+        "description": "Leaving the page no longer stops an answer (it finishes and is saved); Stop does (AC13).",
+        "operationId": "stop_answer_api_v1_conversations__conversation_id__stop_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "conversation_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Conversation Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Stop the answer being written in this conversation; what was written is kept",
+        "tags": [
+          "chat"
+        ]
+      }
+    },
     "/api/v1/dev/token": {
       "post": {
         "operationId": "dev_token_api_v1_dev_token_post",

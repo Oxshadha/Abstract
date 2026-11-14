@@ -37,7 +37,7 @@ The user asks questions about the open paper and gets a streamed answer, grounde
 **Practices (§3 Spec 007)**
 - [x] **AC11** — Sending carries an `Idempotency-Key`; a retried send does not create a second turn or a second LLM call (it replays the stored answer).
 - [x] **AC12** — The answer stream sends a `:` heartbeat every 15 s; the stream route is marked not to be buffered by proxies.
-- [x] **AC13** — When the client disconnects or presses Stop, the server cancels the provider request within 2 s, saves the partial answer marked `stopped`, and records usage for the tokens actually generated.
+- [x] **AC13** — When the reader presses Stop, the server cancels the provider request within 2 s, saves the partial answer marked `stopped`, and records usage for the tokens actually generated. *Refined by D101 (2026-11-14): a disconnect (closed tab, navigation) no longer cancels; the answer finishes and is saved. Stop is an explicit request.*
 - [x] **AC14** — The client aborts the in-flight stream when the paper or conversation changes and ignores events whose `conversation_id` does not match.
 - [x] **AC15** — Tokens are appended in batches per animation frame; the ARIA live region announces completed sentences, not every token.
 - [x] **AC16** — Messages are capped at 4,000 characters on the server and the client.
