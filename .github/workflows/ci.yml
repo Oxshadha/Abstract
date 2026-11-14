@@ -104,6 +104,8 @@ jobs:
       - run: pnpm build
       - name: Entry bundle within budget (spec 003 AC10)
         run: pnpm check:bundle
+      - name: Content security policy allows the page shells (spec 017 AC2)
+        run: pnpm check:csp
       - name: Built app never loads fonts from Google (spec 003 AC4)
         run: "! grep -rEl 'fonts\\.(googleapis|gstatic)\\.com' dist"
       - name: Design tokens are up to date (spec 003 AC1)
