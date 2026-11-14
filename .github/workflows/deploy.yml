@@ -1,0 +1,94 @@
+# Deploy to production (spec 017 AC12, D100). Started by hand: Actions -> Deploy -> Run workflow.
+# Only a commit on main whose CI passed can be deployed. Builds the web app here, sends it with
+# the code to the host over SSH, and runs infra/deploy/remote-deploy.sh there, which keeps the
+# old version serving if anything fails.
+#
+# Repository secrets: DEPLOY_HOST, DEPLOY_USER, DEPLOY_SSH_KEY (a key used only for deploys),
+# DEPLOY_KNOWN_HOSTS (the host's SSH host keys), VITE_CLERK_PUBLISHABLE_KEY.
+# Repository variable: SITE_URL.
+name: Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Commit or branch on main to deploy"
+        required: true
+        default: main
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 0
+
+      - name: Only commits on main whose CI passed
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          sha=$(git rev-parse HEAD)
+          git merge-base --is-ancestor "$sha" origin/main || { echo "::error::$sha is not on main"; exit 1; }
+          ok=$(gh run list --workflow ci.yml --commit "$sha" --json conclusion -q '[.[] | select(.conclusion=="success")] | length')
+          [ "$ok" -gt 0 ] || { echo "::error::CI has not passed for $sha"; exit 1; }
+          echo "RELEASE=$(git rev-parse --short=12 HEAD)" >> "$GITHUB_ENV"
+
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: apps/web/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+
+      - name: Build the web app
+        working-directory: apps/web
+        env:
+          VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
+          SITE_URL: ${{ vars.SITE_URL }}
+          VITE_SENTRY_DSN: ""
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+          tar -C dist -cf "$RUNNER_TEMP/web.tar" .
+
+      - name: Package the code
+        run: git archive --format=tar -o "$RUNNER_TEMP/src.tar" HEAD
+
+      - name: SSH setup
+        env:
+          KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$KEY" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
+          printf '%s\n' "$KNOWN" > ~/.ssh/known_hosts
+
+      - name: Deploy
+        env:
+          HOST: ${{ secrets.DEPLOY_HOST }}
+          USER: ${{ secrets.DEPLOY_USER }}
+        run: |
+          ssh -i ~/.ssh/deploy "$USER@$HOST" 'rm -rf /tmp/abstract-release && mkdir -m 700 /tmp/abstract-release'
+          scp -q -i ~/.ssh/deploy "$RUNNER_TEMP/src.tar" "$RUNNER_TEMP/web.tar" infra/deploy/remote-deploy.sh "$USER@$HOST:/tmp/abstract-release/"
+          ssh -i ~/.ssh/deploy "$USER@$HOST" "sudo bash /tmp/abstract-release/remote-deploy.sh $RELEASE"
+
+      - name: Check the live site
+        env:
+          SITE: ${{ vars.SITE_URL }}
+        run: |
+          curl -fsS "$SITE/api/v1/readyz"
+          curl -fsS -o /dev/null "$SITE/"
