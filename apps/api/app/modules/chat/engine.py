@@ -16,7 +16,7 @@ import dataclasses
 import hashlib
 import json
 import re
-from collections.abc import AsyncIterator, Awaitable, Callable
+from collections.abc import AsyncGenerator, AsyncIterator, Awaitable, Callable
 from dataclasses import dataclass, field
 from typing import Any, Literal
 from uuid import UUID
@@ -772,7 +772,7 @@ async def detach(
     events: AsyncIterator[str],
     should_stop: Callable[[], Awaitable[bool]],
     tasks: set[asyncio.Task[None]],
-) -> AsyncIterator[str]:
+) -> AsyncGenerator[str, None]:
     """Run the answer in its own task, so leaving the page does not cancel it (owner decision
     2026-11-14, refines 007 AC13). The browser reads events as they come; when it goes away the
     task still finishes and saves the answer, which is there when the reader returns. Stop is

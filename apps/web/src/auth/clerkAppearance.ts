@@ -55,6 +55,7 @@ export function clerkAppearance(theme: "light" | "dark") {
 export function currentTheme(): "light" | "dark" {
   const explicit = document.documentElement.dataset.theme;
   if (explicit === "light" || explicit === "dark") return explicit;
+  if (typeof window.matchMedia !== "function") return "light"; // test browsers and old engines
   return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
 }
 
