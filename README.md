@@ -19,7 +19,7 @@ Upload a research paper, get a structured summary from a template you choose, an
 
 **[Live demo](https://abstract.oshadhakariyawasam.me)** · [Architecture](#architecture) · [Run it locally](#run-it-locally) · [How it was built](#how-it-was-built)
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/workspace-dark.png"><img src="docs/images/workspace-light.png" alt="The Abstract workspace: the paper on the left, its summary with Verified sources in the middle, and a cited answer in Ask Abstract on the right" width="100%"></picture>
+<picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/workspace-dark.png"><img src="docs/images/workspace-light.png" alt="The Abstract workspace: the paper on the left, its summary with Verified sources and Listen in the middle, and a cited answer in Ask Abstract with the microphone on the right" width="100%"></picture>
 
 </div>
 

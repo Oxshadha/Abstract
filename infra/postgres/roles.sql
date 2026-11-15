@@ -7,11 +7,11 @@ DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'abstract_app') THEN
     CREATE ROLE abstract_app LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS
-      PASSWORD 'abstract_app_dev';
+      PASSWORD 'dev_example_app';
   END IF;
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'abstract_worker') THEN
     CREATE ROLE abstract_worker LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS
-      PASSWORD 'abstract_worker_dev';
+      PASSWORD 'dev_example_worker';
   END IF;
 END
 $$;

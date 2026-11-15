@@ -33,8 +33,8 @@ def database() -> Iterator[dict[str, str]]:
         )
         yield {
             "admin": admin_url,
-            "app": f"postgresql+asyncpg://abstract_app:abstract_app_dev@{host}:{port}/{db}",
-            "worker": f"postgresql+asyncpg://abstract_worker:abstract_worker_dev@{host}:{port}/{db}",
+            "app": f"postgresql+asyncpg://abstract_app:dev_example_app@{host}:{port}/{db}",
+            "worker": f"postgresql+asyncpg://abstract_worker:dev_example_worker@{host}:{port}/{db}",
         }
 
 

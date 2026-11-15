@@ -5,7 +5,7 @@ x-api-env: &api-env
   ENV: development
   LOG_LEVEL: ${LOG_LEVEL:-INFO}
   # Runtime role: never the table owner, so RLS always applies (spec 002 AC6).
-  DATABASE_URL: postgresql+asyncpg://abstract_app:abstract_app_dev@postgres:5432/${POSTGRES_DB:-abstract}
+  DATABASE_URL: postgresql+asyncpg://abstract_app:dev_example_app@postgres:5432/${POSTGRES_DB:-abstract}
   REDIS_URL: redis://redis:6379/0
   S3_ENDPOINT_URL: http://s3:8333
   S3_PUBLIC_ENDPOINT_URL: http://localhost:${S3_PORT:-8333}
@@ -132,7 +132,7 @@ services:
     mem_limit: 1g
     environment: &worker-env
       <<: *api-env
-      DATABASE_URL: postgresql+asyncpg://abstract_worker:abstract_worker_dev@postgres:5432/${POSTGRES_DB:-abstract}
+      DATABASE_URL: postgresql+asyncpg://abstract_worker:dev_example_worker@postgres:5432/${POSTGRES_DB:-abstract}
     volumes: ["./apps/api/app:/app/app"]
     secrets: [gcp_sa]
     depends_on: &worker-deps
