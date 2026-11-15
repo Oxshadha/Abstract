@@ -10,16 +10,17 @@ from starlette.background import BackgroundTask
 
 from app.adapters.pdf.text import page_sizes
 from app.core import idempotency
+from app.core.auth import CurrentPrincipal
 from app.core.context import Context
 from app.core.errors import ProblemError
 from app.core.policy import require, require_identity
 from app.core.ratelimit import user_rate_limit
 from app.modules.entitlements import service as entitlements
-from app.modules.flags.service import require_flag
+from app.modules.flags.service import flags_for, require_flag
 from app.modules.identity.service import RequestContext
 from app.modules.library import collections
 from app.modules.llm.gateway import set_context as set_llm_context
-from app.modules.papers import deletion, elements, events, finalize, queries, service
+from app.modules.papers import deletion, elements, events, finalize, queries, service, trash
 from app.modules.papers.enrich import MAX_PAGES
 from app.modules.papers.ingest import ENRICH_TASK
 from app.modules.papers.schemas import (
@@ -246,14 +247,20 @@ async def paper_events(
 @router.delete(
     "/{paper_id}",
     status_code=204,
-    summary="Delete a paper and everything derived from it",
+    summary="Move a paper to Recently deleted (or delete it at once while that is switched off)",
     dependencies=[Depends(user_rate_limit("write"))],
 )
 async def delete_paper(
     paper_id: UUID,
     request: Request,
     ctx: Annotated[Context, Depends(require("paper.delete"))],
+    principal: CurrentPrincipal,
 ) -> Response:
+    if (await flags_for(request, principal)).get("recently_deleted", True):  # spec 019 AC1
+        if not await trash.trash(ctx.session, ctx.identity.org_id, ctx.identity.user_id, paper_id):
+            raise ProblemError(404, "paper-not-found", "This paper was not found.")
+        await ctx.session.commit()
+        return Response(status_code=204)
     deleted = await deletion.delete_rows(
         ctx.session,
         org_id=ctx.identity.org_id,

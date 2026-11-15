@@ -42,7 +42,7 @@ async def search(
                 "SELECT p.id, coalesce(p.title, p.filename) AS title, p.authors, p.year,"  # noqa: S608 (constant clauses; input is bound)
                 " ts_rank(p.search, websearch_to_tsquery('simple', :q))"
                 " + word_similarity(lower(:q), lower(coalesce(p.title, p.filename))) AS score"
-                " FROM papers p WHERE p.owner_id = :o"
+                " FROM papers p WHERE p.owner_id = :o AND p.deleted_at IS NULL"
                 " AND (p.search @@ websearch_to_tsquery('simple', :q)"
                 " OR lower(coalesce(p.title, p.filename)) LIKE :like"
                 " OR lower(:q) <% lower(coalesce(p.title, p.filename)))"
@@ -58,7 +58,8 @@ async def search(
                 " SELECT c.paper_id, c.page_start, c.text,"
                 " ts_rank_cd(c.tsv, websearch_to_tsquery('english', :q)) AS score"
                 " FROM chunks c JOIN papers p ON p.id = c.paper_id"
-                " WHERE p.owner_id = :o AND c.tsv @@ websearch_to_tsquery('english', :q)"
+                " WHERE p.owner_id = :o AND p.deleted_at IS NULL"
+                " AND c.tsv @@ websearch_to_tsquery('english', :q)"
                 f"{scope} ORDER BY score DESC LIMIT {PASSAGE_LIMIT})"
                 " SELECT h.paper_id, coalesce(p.title, p.filename) AS paper_title,"
                 " h.page_start AS page,"

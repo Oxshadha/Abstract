@@ -1,8 +1,10 @@
 """Spec 004 AC15: deleting a paper, and account deletion, remove everything."""
 
+from collections.abc import AsyncIterator
 from uuid import UUID
 
 import pytest
+from sqlalchemy import text
 
 from app.modules.papers.deletion import delete_account_content, delete_objects
 from tests.fakes.auth import bearer
@@ -11,6 +13,18 @@ from tests.integration.papers_fixtures import PapersApi, Worker
 from tests.integration.papers_helpers import PAGE, new_user, start_upload, upload_pdf
 
 pytestmark = [pytest.mark.integration, pytest.mark.enable_socket]
+
+
+@pytest.fixture(autouse=True)
+async def bin_off(worker: Worker) -> AsyncIterator[None]:
+    """These are the immediate-delete rules (004 AC15): Recently deleted (spec 019) off."""
+    flag = "UPDATE feature_flags SET enabled = :on WHERE key = 'recently_deleted'"
+    async with worker.admin.begin() as conn:
+        await conn.execute(text(flag), {"on": False})
+    yield
+    async with worker.admin.begin() as conn:
+        await conn.execute(text(flag), {"on": True})
+
 
 COUNTS = (
     "SELECT (SELECT count(*) FROM papers WHERE id = :p) AS papers,"

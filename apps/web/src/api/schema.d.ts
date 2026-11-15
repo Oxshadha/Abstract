@@ -583,6 +583,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/papers/trash": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Papers in Recently deleted, newest first */
+        get: operations["list_trash_api_v1_papers_trash_get"];
+        put?: never;
+        post?: never;
+        /** Empty Recently deleted */
+        delete: operations["empty_trash_api_v1_papers_trash_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/papers/uploads": {
         parameters: {
             query?: never;
@@ -611,7 +629,7 @@ export interface paths {
         get: operations["get_paper_api_v1_papers__paper_id__get"];
         put?: never;
         post?: never;
-        /** Delete a paper and everything derived from it */
+        /** Move a paper to Recently deleted (or delete it at once while that is switched off) */
         delete: operations["delete_paper_api_v1_papers__paper_id__delete"];
         options?: never;
         head?: never;
@@ -773,6 +791,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/papers/{paper_id}/forever": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a paper in Recently deleted for good */
+        delete: operations["delete_forever_api_v1_papers__paper_id__forever_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/papers/{paper_id}/notes": {
         parameters: {
             query?: never;
@@ -853,6 +888,23 @@ export interface paths {
         get: operations["get_references_api_v1_papers__paper_id__references_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/papers/{paper_id}/restore": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Restore a paper from Recently deleted */
+        post: operations["restore_paper_api_v1_papers__paper_id__restore_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1362,6 +1414,11 @@ export interface components {
             status: string | null;
             /** Tables */
             tables: components["schemas"]["TableOut"][];
+        };
+        /** Emptied */
+        Emptied: {
+            /** Deleted */
+            deleted: number;
         };
         /** EvidenceOut */
         EvidenceOut: {
@@ -2442,6 +2499,33 @@ export interface components {
              * Format: uuid
              */
             user_id: string;
+        };
+        /** TrashPage */
+        TrashPage: {
+            /** Items */
+            items: components["schemas"]["TrashedPaper"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /** TrashedPaper */
+        TrashedPaper: {
+            /**
+             * Deleted At
+             * Format: date-time
+             */
+            deleted_at: string;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Purge At
+             * Format: date-time
+             */
+            purge_at: string;
+            /** Title */
+            title: string;
         };
         /** UploadRequest */
         UploadRequest: {
@@ -3762,6 +3846,58 @@ export interface operations {
             };
         };
     };
+    list_trash_api_v1_papers_trash_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrashPage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    empty_trash_api_v1_papers_trash_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Emptied"];
+                };
+            };
+        };
+    };
     create_upload_api_v1_papers_uploads_post: {
         parameters: {
             query?: never;
@@ -4237,6 +4373,35 @@ export interface operations {
             };
         };
     };
+    delete_forever_api_v1_papers__paper_id__forever_delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_notes_api_v1_papers__paper_id__notes_get: {
         parameters: {
             query?: never;
@@ -4416,6 +4581,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["References"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    restore_paper_api_v1_papers__paper_id__restore_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                paper_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaperOut"];
                 };
             };
             /** @description Validation Error */
