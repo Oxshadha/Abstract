@@ -1582,6 +1582,10 @@
             "title": "Paid Calls Enabled",
             "type": "boolean"
           },
+          "papers_in_bin": {
+            "title": "Papers In Bin",
+            "type": "integer"
+          },
           "provider_errors": {
             "items": {
               "$ref": "#/components/schemas/ProviderErrors"
@@ -1643,7 +1647,8 @@
           "top_month",
           "queues",
           "provider_errors",
-          "jobs"
+          "jobs",
+          "papers_in_bin"
         ],
         "title": "Overview",
         "type": "object"

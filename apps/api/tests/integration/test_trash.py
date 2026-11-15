@@ -17,6 +17,7 @@ from tests.fakes.pdfs import make_pdf
 from tests.integration.papers_fixtures import PapersApi, Worker
 from tests.integration.papers_helpers import PAGE, finalize, new_user, start_upload, upload_pdf
 from tests.integration.test_chat import ScriptedChat, ask, conversation, ready_paper
+from tests.integration.test_flags import an_admin
 
 pytestmark = [pytest.mark.integration, pytest.mark.enable_socket]
 
@@ -301,3 +302,19 @@ async def test_AC12_flag_off_deletes_at_once(api: PapersApi, worker: Worker) -> 
     assert (await worker.row("SELECT count(*) AS n FROM papers WHERE id = :p", p=paper)).n == 0
     listed = await api.client.get("/api/v1/papers/trash", headers=bearer(user))
     assert listed.status_code == 403
+
+
+async def test_AC9_admin_counts_binned_papers_apart_and_never_shows_their_titles(
+    api: PapersApi, worker: Worker, chat: ScriptedChat
+) -> None:
+    admin = await an_admin(api, worker)
+    user, paper = await ready_paper(api, worker)
+    before = (await api.client.get("/api/v1/admin/overview", headers=bearer(admin))).json()
+    await trash(api, user, paper)
+    after = await api.client.get("/api/v1/admin/overview", headers=bearer(admin))
+    assert after.json()["papers_in_bin"] == before["papers_in_bin"] + 1
+    rows = await api.client.get(f"/api/v1/admin/users?q={user}@example.org", headers=bearer(admin))
+    (row,) = rows.json()["items"]
+    assert row["papers"] == 0  # a binned paper is not a library paper
+    title = (await worker.row("SELECT title FROM papers WHERE id = :p", p=paper)).title
+    assert not title or title not in after.text + rows.text

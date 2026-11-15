@@ -12,7 +12,7 @@ import { OverviewCharts } from "./OverviewCharts";
 import { count, money } from "./format";
 import { Card, NumberField, Switch } from "./ui";
 
-function Stat({ label, value, detail, to }: { label: string; value: string; detail?: string; to?: "/app/admin/jobs" }) {
+function Stat({ label, value, detail, to, className = "" }: { label: string; value: string; detail?: string; to?: "/app/admin/jobs"; className?: string }) {
   const body = (
     <>
       <span className="truncate text-sm text-text-secondary">{label}</span>
@@ -20,7 +20,7 @@ function Stat({ label, value, detail, to }: { label: string; value: string; deta
       {detail && <span className="truncate text-xs text-text-secondary">{detail}</span>}
     </>
   );
-  const cls = "flex min-w-0 flex-col gap-0.5 rounded-lg border border-border bg-surface p-4";
+  const cls = `flex min-w-0 flex-col gap-0.5 rounded-lg border border-border bg-surface p-4 ${className}`;
   // Each card opens its detail where there is one (spec 018 AC4).
   return to ? <Link to={to} className={`${cls} hover:bg-muted/50`}>{body}</Link> : <div className={cls}>{body}</div>;
 }
@@ -117,7 +117,7 @@ export function OverviewPage() {
   const d = overview.data;
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <Stat
           label="Spend today"
           value={money(d.spend_today_usd)}
@@ -131,6 +131,8 @@ export function OverviewPage() {
           detail={`Last 24 hours, ${count((d.jobs.queued ?? 0) + (d.jobs.held ?? 0))} waiting, ${count(d.jobs.running ?? 0)} running`}
           to="/app/admin/jobs"
         />
+        {/* Spec 019 AC9: a count only, never titles (D76). */}
+        <Stat label="Recently deleted" value={count(d.papers_in_bin)} detail="Papers waiting to be deleted" className="col-span-2 lg:col-span-1" />
       </div>
       <OverviewCharts capUsd={d.cap_usd} />
       <div className="grid items-start gap-4 lg:grid-cols-2">

@@ -1770,6 +1770,8 @@ export interface components {
             };
             /** Paid Calls Enabled */
             paid_calls_enabled: boolean;
+            /** Papers In Bin */
+            papers_in_bin: number;
             /** Provider Errors */
             provider_errors: components["schemas"]["ProviderErrors"][];
             /** Queues */
