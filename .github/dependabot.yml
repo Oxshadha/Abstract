@@ -1,22 +1,43 @@
-# Weekly dependency updates (spec 017 AC18). Grouped so a week's updates arrive as a few PRs,
-# each of which must pass CI before it can merge.
+# Weekly dependency updates (spec 017 AC18). Each must pass CI before it can merge.
+#
+# - Minor and patch updates arrive grouped (one PR per ecosystem a week); a major version comes as
+#   its own PR, so one breaking upgrade (TypeScript 7 in the first run) cannot block the rest.
+# - Only releases at least 14 days old are proposed (supply-chain rule: a compromised release is
+#   usually caught and pulled within days).
+# - The Python and Node runtimes in the Dockerfiles stay on their pinned lines (3.12, 22 LTS):
+#   changing a runtime is a decision, not a routine bump.
 version: 2
 updates:
   - package-ecosystem: uv
     directory: /apps/api
     schedule: { interval: weekly, day: monday }
+    cooldown: { default-days: 14 }
     groups:
-      python: { patterns: ["*"] }
+      python:
+        update-types: [minor, patch]
+
   - package-ecosystem: npm
     directory: /apps/web
     schedule: { interval: weekly, day: monday }
+    cooldown: { default-days: 14 }
     groups:
-      web: { patterns: ["*"] }
+      web:
+        update-types: [minor, patch]
+
   - package-ecosystem: github-actions
     directory: /
     schedule: { interval: weekly, day: monday }
+    cooldown: { default-days: 14 }
     groups:
-      actions: { patterns: ["*"] }
+      actions:
+        patterns: ["*"]
+
   - package-ecosystem: docker
     directories: [/apps/api, /apps/web]
     schedule: { interval: weekly, day: monday }
+    cooldown: { default-days: 14 }
+    ignore:
+      - dependency-name: python
+        update-types: [version-update:semver-major, version-update:semver-minor]
+      - dependency-name: node
+        update-types: [version-update:semver-major, version-update:semver-minor]
