@@ -139,7 +139,7 @@ jobs:
         options: --health-cmd "pg_isready -U abstract" --health-interval 5s --health-retries 20
     env:
       MIGRATIONS_DATABASE_URL: postgresql+asyncpg://abstract:abstract@localhost:5432/abstract
-      DATABASE_URL: postgresql+asyncpg://abstract_app:abstract_app_dev@localhost:5432/abstract
+      DATABASE_URL: postgresql+asyncpg://abstract_app:dev_example_app@localhost:5432/abstract
       REDIS_URL: redis://localhost:6379/0
       S3_BUCKET: ci
     steps:
