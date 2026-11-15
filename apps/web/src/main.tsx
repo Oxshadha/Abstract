@@ -7,6 +7,7 @@ import "./index.css";
 import { initSentry } from "./observability/sentry";
 import { AuthBoundary } from "./auth/AuthBoundary";
 import { ErrorBoundary } from "./components/feedback/ErrorBoundary";
+import { Toaster } from "./components/status/Toaster";
 import { createQueryClient } from "./lib/queryClient";
 import { router } from "./router";
 
@@ -23,6 +24,8 @@ createRoot(rootElement).render(
     <AuthBoundary>
       <QueryClientProvider client={queryClient}>
         <RouterProvider router={router} />
+        {/* Toasts were only mounted in tests, so none ever showed in the app. */}
+        <Toaster />
       </QueryClientProvider>
     </AuthBoundary>
     </ErrorBoundary>
