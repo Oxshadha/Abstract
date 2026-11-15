@@ -60,15 +60,14 @@ export class PaperInTrashError extends Error {
 }
 
 export async function finalizeUpload(uploadId: string, idempotencyKey: string): Promise<FinalizeResponse> {
-  const { data, response } = await api.POST("/api/v1/papers", {
+  const { data, error, response } = await api.POST("/api/v1/papers", {
     body: { upload_id: uploadId },
     params: { header: { "Idempotency-Key": idempotencyKey } },
   });
   if (!data) {
-    if (response.status === 409) {
-      const body = (await response.clone().json().catch(() => ({}))) as { type?: string; paper_id?: string; title?: string };
-      if (body.type?.endsWith("/paper-in-trash") && body.paper_id) throw new PaperInTrashError(uploadId, body.paper_id, body.title ?? "This paper");
-    }
+    // The client has already read the body into `error`; reading the response again would fail.
+    const body = error as { type?: string; paper_id?: string; title?: string };
+    if (response.status === 409 && body.type?.endsWith("/paper-in-trash") && body.paper_id) throw new PaperInTrashError(uploadId, body.paper_id, body.title ?? "This paper");
     throw await problem(response, "Could not finish the upload.");
   }
   return data;

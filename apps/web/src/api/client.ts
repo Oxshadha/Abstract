@@ -16,6 +16,24 @@ export const authMiddleware: Middleware = {
 };
 
 /**
+ * openapi-fetch reads an error response's body itself, so it cannot be read again afterwards.
+ * Keep an unread copy of every error response for `problem()` to show its detail.
+ */
+const errorCopies = new WeakMap<Response, Response>();
+
+export const errorBodyMiddleware: Middleware = {
+  onResponse({ response }) {
+    if (!response.ok) errorCopies.set(response, response.clone());
+    return response;
+  },
+};
+
+/** An unread copy of an error response (or the response itself if none was kept). */
+export function readableError(response: Response): Response {
+  return (errorCopies.get(response) ?? response).clone();
+}
+
+/**
  * On a 401, get a fresh token once and retry; end the session only if the retry is also
  * rejected. A transient 401 (expired cached token, clock skew) never signs the user out.
  */
@@ -44,4 +62,4 @@ export const api = createClient<paths>({
   // Resolved at call time (not import time) so polyfills and test stubs are honoured.
   fetch: fetchWithAuthRetry,
 });
-api.use(authMiddleware);
+api.use(authMiddleware, errorBodyMiddleware);
