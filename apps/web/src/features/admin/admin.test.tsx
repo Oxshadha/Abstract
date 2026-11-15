@@ -61,6 +61,7 @@ const OVERVIEW: Overview = {
   queues: { fast: 0, enrichment: 2, scan: 0, deletion: 0 }, provider_errors: [{ provider: "vertex", calls: 100, errors: 3 }],
   jobs: { queued: 1, held: 1, running: 2, failed_24h: 1 },
   papers_in_bin: 3,
+  voice: { "browser.listen_started": 12, "browser.listen_finished": 7, "browser.dictation_sent": 9, "browser.dictation_edited": 3 },
 };
 function seriesFixture(days = 30, empty = false): OverviewSeries {
   return {

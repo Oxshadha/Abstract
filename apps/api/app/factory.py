@@ -38,6 +38,7 @@ from app.modules.papers import router as papers_router
 from app.modules.papers import trash_router
 from app.modules.references import router as references_router
 from app.modules.summaries import router as summaries_router
+from app.modules.voice import router as voice_router
 from app.ports.auth import AuthProvider
 from app.ports.storage import Storage
 
@@ -142,6 +143,7 @@ def create_app(
     app.include_router(flags_router.router, prefix=API_PREFIX)
     app.include_router(notes_router.router, prefix=API_PREFIX)
     app.include_router(references_router.router, prefix=API_PREFIX)
+    app.include_router(voice_router.router, prefix=API_PREFIX)
     app.include_router(llm_admin.router, prefix=API_PREFIX)
     if not settings.is_production:
         app.include_router(debug.router, prefix=API_PREFIX)

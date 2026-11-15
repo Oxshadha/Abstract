@@ -221,6 +221,7 @@ class Overview(BaseModel):
     provider_errors: list[ProviderErrors]
     jobs: dict[str, int]
     papers_in_bin: int  # spec 019 AC9: a count, never titles (D76)
+    voice: dict[str, int]  # spec 020 AC9: "<engine>.<event>" counts this month
 
 
 def _lines(rows: Sequence[Any], key: str) -> list[UsageLine]:
@@ -288,6 +289,11 @@ async def overview(
     ).all()
     jobs = (await ctx.session.execute(text("SELECT * FROM admin_job_counts()"))).one()
     binned = (await ctx.session.execute(text("SELECT admin_trash_count()"))).scalar_one()
+    voice = (
+        await ctx.session.execute(
+            text("SELECT * FROM admin_voice_counts(CAST(:since AS date))"), {"since": month.date()}
+        )
+    ).all()
     budget = request.app.state.llm.budget
     cap = await budget.platform_cap()
     today = float(totals.today)
@@ -309,6 +315,7 @@ async def overview(
         ],
         jobs={k: int(getattr(jobs, k)) for k in ("queued", "held", "running", "failed_24h")},
         papers_in_bin=int(binned),
+        voice={f"{v.engine}.{v.event}": int(v.total) for v in voice},
     )
 
 

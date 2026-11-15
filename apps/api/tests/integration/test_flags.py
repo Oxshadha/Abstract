@@ -83,6 +83,8 @@ async def test_AC6_AC7_turning_search_off_hides_it_and_refuses_the_api(
         "recently_deleted": True,
         "references": True,
         "search": True,
+        "voice_listen": True,
+        "voice_speak": True,
     }
     response = await flag(api, admin, "search", False)
     assert response.status_code == 200, response.text
