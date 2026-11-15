@@ -277,6 +277,7 @@ function SummaryBody({ summary, paperId }: { summary: Summary; paperId: string }
         {summary.status === "ready" && (
           <span className="flex flex-wrap items-center justify-end gap-2">
           {canListen && !editing && <ListenControls owner={owner} variant="summary" segments={() => listenSegments(summary, paper.data)} />}
+          {readerState.owner !== owner && (
           <button
             type="button"
             aria-pressed={editing}
@@ -288,6 +289,7 @@ function SummaryBody({ summary, paperId }: { summary: Summary; paperId: string }
             <Pencil aria-hidden className="size-4" />
             {editing ? "Done" : "Edit"}
           </button>
+          )}
           </span>
         )}
       </div>

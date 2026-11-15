@@ -148,9 +148,13 @@ describe("Listen controls (AC3, AC4, AC5b)", () => {
     const bar = await screen.findByRole("toolbar", { name: "Reading controls" });
     expect(within(bar).getByRole("button", { name: "Pause" })).toBeInTheDocument();
     expect(within(bar).getByRole("button", { name: "Next section" })).toBeEnabled();
-    fireEvent.click(within(bar).getByRole("button", { name: /^Voice/ }));
-    expect(screen.getByRole("option", { name: /Samantha/ })).toBeInTheDocument();
-    expect(screen.queryByRole("option", { name: /Google UK/ })).toBeNull(); // AC4: online voices hidden
+    fireEvent.click(within(bar).getByRole("button", { name: "Voice" }));
+    expect(screen.getByRole("menuitemcheckbox", { name: /Samantha/ })).toBeInTheDocument();
+    expect(screen.queryByRole("menuitemcheckbox", { name: /Google UK/ })).toBeNull(); // AC4: online voices hidden
+    fireEvent.click(screen.getByRole("menuitemcheckbox", { name: /Show online voices/ }));
+    fireEvent.click(within(bar).getByRole("button", { name: "Voice" }));
+    expect(screen.getByRole("menuitemcheckbox", { name: /Google UK \(online\)/ })).toBeInTheDocument();
+    expect(screen.getByText(/Online voices send the text/)).toBeInTheDocument();
     fireEvent.keyDown(document.activeElement ?? document.body, { key: "Escape" });
     fireEvent.click(within(bar).getByRole("button", { name: /^Speed/ }));
     fireEvent.click(screen.getByRole("option", { name: "1.5×" }));
