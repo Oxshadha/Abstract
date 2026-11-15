@@ -48,12 +48,29 @@ export async function createUpload(file: File, sha256: string): Promise<UploadTi
   return data;
 }
 
+/** The PDF matches a paper in Recently deleted (spec 019 AC8): the reader chooses what to do. */
+export class PaperInTrashError extends Error {
+  constructor(
+    readonly uploadId: string,
+    readonly paperId: string,
+    readonly title: string,
+  ) {
+    super("This paper is in Recently deleted.");
+  }
+}
+
 export async function finalizeUpload(uploadId: string, idempotencyKey: string): Promise<FinalizeResponse> {
   const { data, response } = await api.POST("/api/v1/papers", {
     body: { upload_id: uploadId },
     params: { header: { "Idempotency-Key": idempotencyKey } },
   });
-  if (!data) throw await problem(response, "Could not finish the upload.");
+  if (!data) {
+    if (response.status === 409) {
+      const body = (await response.clone().json().catch(() => ({}))) as { type?: string; paper_id?: string; title?: string };
+      if (body.type?.endsWith("/paper-in-trash") && body.paper_id) throw new PaperInTrashError(uploadId, body.paper_id, body.title ?? "This paper");
+    }
+    throw await problem(response, "Could not finish the upload.");
+  }
   return data;
 }
 

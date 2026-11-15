@@ -134,7 +134,8 @@ async def _check_both(
         await session.execute(
             text(
                 "SELECT EXISTS (SELECT 1 FROM collections WHERE id = :c AND owner_id = :o) AS c,"
-                " EXISTS (SELECT 1 FROM papers WHERE id = :p AND owner_id = :o) AS p"
+                " EXISTS (SELECT 1 FROM papers WHERE id = :p AND owner_id = :o"
+                " AND deleted_at IS NULL) AS p"
             ),
             {"c": collection_id, "p": paper_id, "o": owner_id},
         )

@@ -670,6 +670,19 @@
         "title": "ElementsOut",
         "type": "object"
       },
+      "Emptied": {
+        "properties": {
+          "deleted": {
+            "title": "Deleted",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "deleted"
+        ],
+        "title": "Emptied",
+        "type": "object"
+      },
       "EvidenceOut": {
         "properties": {
           "page": {
@@ -1569,6 +1582,10 @@
             "title": "Paid Calls Enabled",
             "type": "boolean"
           },
+          "papers_in_bin": {
+            "title": "Papers In Bin",
+            "type": "integer"
+          },
           "provider_errors": {
             "items": {
               "$ref": "#/components/schemas/ProviderErrors"
@@ -1630,7 +1647,8 @@
           "top_month",
           "queues",
           "provider_errors",
-          "jobs"
+          "jobs",
+          "papers_in_bin"
         ],
         "title": "Overview",
         "type": "object"
@@ -3610,6 +3628,66 @@
         "title": "TopUser",
         "type": "object"
       },
+      "TrashPage": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TrashedPaper"
+            },
+            "title": "Items",
+            "type": "array"
+          },
+          "next_cursor": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Next Cursor"
+          }
+        },
+        "required": [
+          "items",
+          "next_cursor"
+        ],
+        "title": "TrashPage",
+        "type": "object"
+      },
+      "TrashedPaper": {
+        "properties": {
+          "deleted_at": {
+            "format": "date-time",
+            "title": "Deleted At",
+            "type": "string"
+          },
+          "id": {
+            "format": "uuid",
+            "title": "Id",
+            "type": "string"
+          },
+          "purge_at": {
+            "format": "date-time",
+            "title": "Purge At",
+            "type": "string"
+          },
+          "title": {
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "deleted_at",
+          "purge_at"
+        ],
+        "title": "TrashedPaper",
+        "type": "object"
+      },
       "UploadRequest": {
         "additionalProperties": false,
         "properties": {
@@ -5568,6 +5646,87 @@
         ]
       }
     },
+    "/api/v1/papers/trash": {
+      "delete": {
+        "operationId": "empty_trash_api_v1_papers_trash_delete",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Emptied"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Empty Recently deleted",
+        "tags": [
+          "papers"
+        ]
+      },
+      "get": {
+        "operationId": "list_trash_api_v1_papers_trash_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "default": 50,
+              "maximum": 50,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Cursor"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TrashPage"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Papers in Recently deleted, newest first",
+        "tags": [
+          "papers"
+        ]
+      }
+    },
     "/api/v1/papers/uploads": {
       "post": {
         "operationId": "create_upload_api_v1_papers_uploads_post",
@@ -5639,7 +5798,7 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Delete a paper and everything derived from it",
+        "summary": "Move a paper to Recently deleted (or delete it at once while that is switched off)",
         "tags": [
           "papers"
         ]
@@ -6209,6 +6368,42 @@
         ]
       }
     },
+    "/api/v1/papers/{paper_id}/forever": {
+      "delete": {
+        "operationId": "delete_forever_api_v1_papers__paper_id__forever_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Delete a paper in Recently deleted for good",
+        "tags": [
+          "papers"
+        ]
+      }
+    },
     "/api/v1/papers/{paper_id}/notes": {
       "get": {
         "operationId": "get_notes_api_v1_papers__paper_id__notes_get",
@@ -6475,6 +6670,49 @@
         "summary": "The paper's reference list, with Semantic Scholar matches as they arrive",
         "tags": [
           "references"
+        ]
+      }
+    },
+    "/api/v1/papers/{paper_id}/restore": {
+      "post": {
+        "operationId": "restore_paper_api_v1_papers__paper_id__restore_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "paper_id",
+            "required": true,
+            "schema": {
+              "format": "uuid",
+              "title": "Paper Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaperOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Restore a paper from Recently deleted",
+        "tags": [
+          "papers"
         ]
       }
     },

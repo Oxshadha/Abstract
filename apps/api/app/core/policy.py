@@ -30,6 +30,9 @@ POLICY: dict[str, frozenset[str]] = {
     "paper.create": MEMBERS,
     "paper.delete": MEMBERS,
     "paper.update": MEMBERS,
+    "paper.trash.read": MEMBERS,  # spec 019: the caller's own bin (owner checked by the service)
+    "paper.restore": MEMBERS,
+    "paper.delete_forever": MEMBERS,
     "collection.read": MEMBERS,
     "collection.create": MEMBERS,
     "collection.update": MEMBERS,

@@ -220,6 +220,7 @@ class Overview(BaseModel):
     queues: dict[str, int] | None  # None while Redis is unavailable
     provider_errors: list[ProviderErrors]
     jobs: dict[str, int]
+    papers_in_bin: int  # spec 019 AC9: a count, never titles (D76)
 
 
 def _lines(rows: Sequence[Any], key: str) -> list[UsageLine]:
@@ -286,6 +287,7 @@ async def overview(
         )
     ).all()
     jobs = (await ctx.session.execute(text("SELECT * FROM admin_job_counts()"))).one()
+    binned = (await ctx.session.execute(text("SELECT admin_trash_count()"))).scalar_one()
     budget = request.app.state.llm.budget
     cap = await budget.platform_cap()
     today = float(totals.today)
@@ -306,6 +308,7 @@ async def overview(
             for e in errors
         ],
         jobs={k: int(getattr(jobs, k)) for k in ("queued", "held", "running", "failed_24h")},
+        papers_in_bin=int(binned),
     )
 
 

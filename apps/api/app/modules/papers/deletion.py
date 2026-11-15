@@ -1,9 +1,9 @@
 """Deleting papers and a user's whole library (spec 004 AC15).
 
-Rows go first, in one transaction: jobs are cancelled and the paper row is deleted, which
-cascades to pages, chunks and jobs (and, later, summaries and chats). Storage objects are removed
-afterwards on the deletion queue; removal is idempotent, and a worker still processing the paper
-stops and cleans up on its own (PaperGoneError). Every deletion is audited.
+Rows go first, in one transaction, binned papers included (spec 019): jobs are cancelled and
+the paper row is deleted, which cascades to pages, chunks, jobs, summaries and chats. Storage
+objects are removed afterwards on the deletion queue; removal is idempotent, and a worker still
+processing the paper stops and cleans up on its own (PaperGoneError). Every deletion is audited.
 """
 
 from collections.abc import Callable
@@ -57,8 +57,10 @@ async def delete_rows(
     paper_ids: list[UUID] | None = None,
     reason: str = "paper.delete",
 ) -> list[DeletedPaper]:
-    """Delete the owner's papers (all, or `paper_ids`). Call with the tenant context set."""
+    """Delete the owner's papers (all, or `paper_ids`), binned ones included (spec 019): this
+    is the final deletion. Call with the tenant context set."""
     params: dict[str, Any] = {"owner": owner_id, "ids": paper_ids}
+    await session.execute(text("SELECT set_config('app.include_trashed', 'on', true)"))
     await session.execute(_CANCEL_JOBS, params)
     rows = (await session.execute(_DELETE_PAPERS, params)).all()
     for row in rows:

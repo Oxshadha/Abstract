@@ -80,6 +80,7 @@ async def test_AC6_AC7_turning_search_off_hides_it_and_refuses_the_api(
         "figures": True,
         "notes": True,
         "reading_aids": True,
+        "recently_deleted": True,
         "references": True,
         "search": True,
     }

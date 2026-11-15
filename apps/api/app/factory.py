@@ -35,6 +35,7 @@ from app.modules.llm import admin as llm_admin
 from app.modules.llm.factory import build_llm
 from app.modules.notes import router as notes_router
 from app.modules.papers import router as papers_router
+from app.modules.papers import trash_router
 from app.modules.references import router as references_router
 from app.modules.summaries import router as summaries_router
 from app.ports.auth import AuthProvider
@@ -132,6 +133,7 @@ def create_app(
     app.include_router(identity_webhooks.router, prefix=API_PREFIX)
     app.include_router(admin_router.router, prefix=API_PREFIX)
     app.include_router(admin_console.router, prefix=API_PREFIX)
+    app.include_router(trash_router.router, prefix=API_PREFIX)  # before /papers/{paper_id}
     app.include_router(papers_router.router, prefix=API_PREFIX)
     app.include_router(summaries_router.router, prefix=API_PREFIX)
     app.include_router(chat_router.router, prefix=API_PREFIX)

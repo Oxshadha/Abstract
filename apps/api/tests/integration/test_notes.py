@@ -84,6 +84,13 @@ async def test_AC3_notes_are_the_owners_only_and_go_with_the_paper(
     assert (
         await api.client.delete(f"/api/v1/papers/{paper}", headers=bearer(user))
     ).status_code == 204
+    # Spec 019: Delete moves the paper to Recently deleted (the note is kept for a restore);
+    # deleting it for good takes the note with it.
+    kept = await worker.row("SELECT count(*) FROM paper_notes WHERE paper_id = :p", p=paper)
+    assert kept[0] == 1
+    assert (
+        await api.client.delete(f"/api/v1/papers/{paper}/forever", headers=bearer(user))
+    ).status_code == 204
     left = await worker.row("SELECT count(*) FROM paper_notes WHERE paper_id = :p", p=paper)
     assert left[0] == 0
 

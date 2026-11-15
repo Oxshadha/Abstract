@@ -119,6 +119,18 @@ async def finalize(
     if await storage.read_prefix(key, len(PDF_MAGIC), etag=info.etag) != PDF_MAGIC:
         raise await _reject(storage, key, 400, "not-a-pdf", "This file is not a PDF.")
 
+    from app.modules.papers import trash  # trash imports this module's columns
+
+    binned = await trash.binned_match(session, identity.user_id, upload.declared_sha256)
+    if binned is not None:
+        # Spec 019 AC8: the reader chooses Restore or Upload as new; the upload is kept for the
+        # second (the quarantine rule removes it after 24 hours otherwise).
+        raise ProblemError(
+            409,
+            "paper-in-trash",
+            "This paper is in Recently deleted.",
+            extra={"paper_id": str(binned.id), "title": binned.title},
+        )
     existing = await _existing(session, identity.user_id, upload.declared_sha256)
     if existing is not None and existing.status == "failed":
         # A failed earlier attempt must not block a retry of the same file.

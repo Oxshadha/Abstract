@@ -1,12 +1,14 @@
 import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { useNavigate, useSearch } from "@tanstack/react-router";
-import { ArrowDownUp, FileUp, LayoutGrid, List, Plus, X } from "lucide-react";
+import { ArrowDownUp, FileUp, LayoutGrid, List, Plus, Trash2, X } from "lucide-react";
 import { useEffect, useRef, useState, type RefObject } from "react";
 
 import { EmptyState } from "@/components/feedback/EmptyState";
 import { ListRowSkeleton, Loading } from "@/components/feedback/Skeleton";
 import { Select } from "@/components/menu/Select";
 import { FieldError } from "@/components/status/FieldError";
+import { useFlag } from "@/features/flags/api";
+import { InTrashDialog } from "@/features/papers/InTrashDialog";
 import { useUploadFlow } from "@/features/papers/useUploadFlow";
 import { useMediaQuery } from "@/features/workspace/layout";
 
@@ -14,8 +16,18 @@ import { libraryKeys, listCollections, listLibrary, type LibraryParams, type Sor
 import { PaperCard, PaperRow } from "./PaperItems";
 import { CollectionChips } from "./SidebarCollections";
 import { withDefaults, type LibrarySearch } from "./search-params";
+import { TrashView } from "./TrashView";
 
-const FILTERS: { label: string; starred?: boolean }[] = [{ label: "All" }, { label: "Starred", starred: true }];
+type Filter = "all" | "starred" | "trash";
+const FILTERS: { key: Filter; label: string }[] = [
+  { key: "all", label: "All" },
+  { key: "starred", label: "Starred" },
+  { key: "trash", label: "Recently deleted" },
+];
+
+function activeFilter(params: LibraryParams): Filter {
+  return params.trash ? "trash" : params.starred ? "starred" : "all";
+}
 
 const SORTS: { value: Sort; label: string }[] = [
   { value: "added", label: "Recently added" },
@@ -105,6 +117,7 @@ function AddPaper({ dropTarget }: { dropTarget: RefObject<HTMLDivElement | null>
         }}
       />
       <FieldError id="add-paper-error" message={flow.error} />
+      <InTrashDialog flow={flow} />
       {dragging && (
         <div aria-hidden className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-text/40">
           <div className="flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-primary-text bg-surface px-10 py-8">
@@ -119,27 +132,38 @@ function AddPaper({ dropTarget }: { dropTarget: RefObject<HTMLDivElement | null>
 
 function Toolbar({ params, view, onView }: { params: LibraryParams; view: View; onView: (v: View) => void }) {
   const navigate = useNavigate({ from: "/app/library" });
+  const bin = useFlag("recently_deleted");
   const set = (change: LibrarySearch) => {
     void navigate({ search: (prev: LibrarySearch) => ({ ...prev, ...change }) });
   };
   return (
     <div className="flex flex-wrap items-center gap-2">
       <div role="group" aria-label="Filter papers" className="flex max-w-full overflow-x-auto rounded-pill border border-border p-1">
-        {FILTERS.map((f) => {
-          const active = f.starred ? Boolean(params.starred) : !params.starred;
+        {FILTERS.filter((f) => f.key !== "trash" || bin).map((f) => {
+          const active = activeFilter(params) === f.key;
           return (
             <button
-              key={f.label}
+              key={f.key}
               type="button"
               aria-pressed={active}
-              onClick={() => { set({ starred: f.starred }); }}
-              className={`min-h-9 shrink-0 rounded-pill px-3 text-sm ${active ? "bg-primary text-primary-text" : "text-text-secondary hover:text-text"}`}
+              aria-label={f.key === "trash" ? f.label : undefined}
+              onClick={() => { set({ starred: f.key === "starred" ? true : undefined, trash: f.key === "trash" ? true : undefined }); }}
+              className={`inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-pill px-3 text-sm ${active ? "bg-primary text-primary-text" : "text-text-secondary hover:text-text"}`}
             >
-              {f.label}
+              {f.key === "trash" ? (
+                <>
+                  <Trash2 aria-hidden className="size-4" />
+                  {/* Phones: the icon alone keeps the filters on one line (icons over words). */}
+                  <span aria-hidden className="hidden sm:inline">{f.label}</span>
+                </>
+              ) : (
+                f.label
+              )}
             </button>
           );
         })}
       </div>
+      {params.trash ? null : (
       <span className="ml-auto flex items-center gap-2">
         <Select
           label="Sort"
@@ -158,6 +182,7 @@ function Toolbar({ params, view, onView }: { params: LibraryParams; view: View; 
           </button>
         </span>
       </span>
+      )}
     </div>
   );
 }
@@ -178,6 +203,7 @@ export function LibraryView() {
   const papers = useInfiniteQuery({
     queryKey: libraryKeys.list(params),
     queryFn: ({ pageParam, signal }) => listLibrary(params, pageParam, signal),
+    enabled: !params.trash,
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.next_cursor,
     staleTime: 30_000, // cached between visits; uploads, stars and edits refresh it (AC10)
@@ -212,7 +238,7 @@ export function LibraryView() {
     <div ref={page} className="flex h-full min-h-0 flex-col gap-4 px-4 pt-4 sm:pt-6 md:px-8">
       <header className="flex flex-wrap items-start gap-4">
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-3xl font-bold tracking-tight">{collection?.name ?? "Your Library"}</h1>
+          <h1 className="truncate text-3xl font-bold tracking-tight">{params.trash ? "Recently deleted" : (collection?.name ?? "Your Library")}</h1>
           <p className="mt-1 hidden text-text-secondary sm:block">
             {collection ? `${String(collection.paper_count)} ${collection.paper_count === 1 ? "paper" : "papers"} in this collection.` : "Upload, organize, summarize, and explore your research papers."}
           </p>
@@ -226,7 +252,9 @@ export function LibraryView() {
           <CollectionChips />
           <Toolbar params={params} view={view} onView={changeView} />
           <div className="-mx-4 flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto overscroll-contain px-4 pt-1 pb-28 md:-mx-8 md:px-8 md:pb-10">
-          {papers.isPending ? (
+          {params.trash ? (
+            <TrashView />
+          ) : papers.isPending ? (
             <Loading label="Loading your papers">
               <ListRowSkeleton />
               <ListRowSkeleton />
@@ -258,7 +286,7 @@ export function LibraryView() {
             </ul>
           )}
           <div ref={sentinel} aria-hidden />
-          {hasNextPage && (
+          {!params.trash && hasNextPage && (
             <button
               type="button"
               disabled={isFetchingNextPage}

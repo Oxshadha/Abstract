@@ -5,6 +5,7 @@ import { problem } from "@/lib/problem";
 
 export type Collection = components["schemas"]["CollectionOut"];
 export type SearchResults = components["schemas"]["SearchResults"];
+export type TrashedPaper = components["schemas"]["TrashedPaper"];
 export type Sort = "added" | "opened" | "title";
 export type DocType = "paper" | "report" | "article";
 
@@ -13,6 +14,7 @@ export interface LibraryParams {
   type?: DocType;
   starred?: boolean;
   collection?: string;
+  trash?: boolean; // Recently deleted (spec 019); its own list, not a filter of this one
 }
 
 export const PAGE_SIZE = 30;
@@ -21,6 +23,7 @@ export const PAGE_SIZE = 30;
 export const libraryKeys = {
   list: (params: LibraryParams) => ["papers", "list", params] as const,
   recent: ["papers", "list", "recent"] as const,
+  trash: ["papers", "trash"] as const,
   collections: ["collections"] as const,
   paperCollections: (paperId: string) => ["collections", "paper", paperId] as const,
   search: (q: string, collection: string | null) => ["search", q, collection] as const,
@@ -101,4 +104,28 @@ export async function searchPapers(q: string, collection: string | null, signal?
   });
   if (!data) throw await problem(response, "Search is not available right now.");
   return data;
+}
+
+/** Recently deleted (spec 019): the caller's binned papers, newest first. */
+export async function listTrash(signal?: AbortSignal): Promise<TrashedPaper[]> {
+  const { data, response } = await api.GET("/api/v1/papers/trash", { signal });
+  if (!data) throw await problem(response, "Could not load Recently deleted.");
+  return data.items;
+}
+
+export async function restorePaper(paperId: string): Promise<Paper> {
+  const { data, response } = await api.POST("/api/v1/papers/{paper_id}/restore", { params: { path: { paper_id: paperId } } });
+  if (!data) throw await problem(response, "Could not restore the paper.");
+  return data;
+}
+
+export async function deleteForever(paperId: string): Promise<void> {
+  const { response } = await api.DELETE("/api/v1/papers/{paper_id}/forever", { params: { path: { paper_id: paperId } } });
+  if (!response.ok) throw await problem(response, "Could not delete the paper.");
+}
+
+export async function emptyTrash(): Promise<number> {
+  const { data, response } = await api.DELETE("/api/v1/papers/trash");
+  if (!data) throw await problem(response, "Could not empty Recently deleted.");
+  return data.deleted;
 }

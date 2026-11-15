@@ -60,7 +60,7 @@ async def list_papers(
     """One statement whatever the filters (AC9): filters are WHERE clauses, never extra reads."""
     key, direction = SORTS[sort]
     params: dict[str, Any] = {"owner": owner_id, "limit": limit + 1}
-    where = ["owner_id = :owner"]
+    where = ["owner_id = :owner", "deleted_at IS NULL"]  # binned papers: spec 019
     if doc_type:
         where.append("doc_type = :type")
         params["type"] = doc_type
@@ -106,7 +106,8 @@ async def update_paper(
                 "UPDATE papers SET title = COALESCE(CAST(:title AS text), title),"  # noqa: S608
                 " title_edited = title_edited OR CAST(:title AS text) IS NOT NULL,"
                 " starred = COALESCE(CAST(:starred AS boolean), starred)"
-                f" WHERE id = :id AND owner_id = :owner RETURNING {PAPER_COLUMNS}"
+                " WHERE id = :id AND owner_id = :owner AND deleted_at IS NULL"
+                f" RETURNING {PAPER_COLUMNS}"
             ),
             {"title": title, "starred": starred, "id": paper_id, "owner": owner_id},
         )
@@ -118,7 +119,10 @@ async def update_paper(
 
 async def mark_opened(session: AsyncSession, owner_id: UUID, paper_id: UUID) -> None:
     result = await session.execute(
-        text("UPDATE papers SET last_opened_at = now() WHERE id = :id AND owner_id = :owner"),
+        text(
+            "UPDATE papers SET last_opened_at = now()"
+            " WHERE id = :id AND owner_id = :owner AND deleted_at IS NULL"
+        ),
         {"id": paper_id, "owner": owner_id},
     )
     if result.rowcount == 0:  # type: ignore[attr-defined]
@@ -128,7 +132,10 @@ async def mark_opened(session: AsyncSession, owner_id: UUID, paper_id: UUID) -> 
 async def get_paper(session: AsyncSession, owner_id: UUID, paper_id: UUID) -> PaperOut:
     row = (
         await session.execute(
-            text(f"SELECT {PAPER_COLUMNS} FROM papers WHERE id = :id AND owner_id = :owner"),  # noqa: S608
+            text(
+                f"SELECT {PAPER_COLUMNS} FROM papers"  # noqa: S608
+                " WHERE id = :id AND owner_id = :owner AND deleted_at IS NULL"
+            ),
             {"id": paper_id, "owner": owner_id},
         )
     ).first()
@@ -186,7 +193,7 @@ async def paper_status(session: AsyncSession, owner_id: UUID, paper_id: UUID) ->
         await session.execute(
             text(
                 "SELECT id, status, text_status, error_message FROM papers"
-                " WHERE id = :id AND owner_id = :owner"
+                " WHERE id = :id AND owner_id = :owner AND deleted_at IS NULL"
             ),
             {"id": paper_id, "owner": owner_id},
         )

@@ -3,6 +3,7 @@ import { useId, useRef, useState, type DragEvent } from "react";
 
 import { FieldError } from "@/components/status/FieldError";
 
+import { InTrashDialog } from "./InTrashDialog";
 import type { UploadPhase } from "./upload";
 import { useUploadFlow } from "./useUploadFlow";
 
@@ -106,6 +107,7 @@ export function DropZone({ compact = false }: { compact?: boolean }) {
           <FieldError id={errorId} message={error} />
         </>
       )}
+      <InTrashDialog flow={flow} />
     </div>
   );
 }

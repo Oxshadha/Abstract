@@ -6,6 +6,7 @@ import { Dialog, buttonPrimary, buttonSecondary, inputClass } from "@/components
 import { Menu } from "@/components/menu/Menu";
 import { FieldError } from "@/components/status/FieldError";
 import { toast } from "@/components/status/toast";
+import { useFlag } from "@/features/flags/api";
 import type { Paper } from "@/features/papers/api";
 
 import { libraryKeys, listCollections, paperCollections } from "./api";
@@ -207,6 +208,7 @@ function RenameDialog({ paper, onClose }: { paper: Paper; onClose: () => void })
 
 function DeleteDialog({ paper, onClose }: { paper: Paper; onClose: () => void }) {
   const remove = useDeletePaper();
+  const bin = useFlag("recently_deleted");
   return (
     <Dialog
       open
@@ -229,7 +231,15 @@ function DeleteDialog({ paper, onClose }: { paper: Paper; onClose: () => void })
       }
     >
       <p>
-        <span className="font-medium">{paperName(paper)}</span> and its summaries, chats and notes will be deleted. They are gone from the app at once and from backups within 7 days. This cannot be undone.
+        {bin ? (
+          <>
+            <span className="font-medium">{paperName(paper)}</span> moves to Recently deleted with its summaries, chats and notes. It stays there for 7 days, then it is deleted for good and gone from backups within 7 days after that.
+          </>
+        ) : (
+          <>
+            <span className="font-medium">{paperName(paper)}</span> and its summaries, chats and notes will be deleted. They are gone from the app at once and from backups within 7 days. This cannot be undone.
+          </>
+        )}
       </p>
     </Dialog>
   );
