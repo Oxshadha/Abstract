@@ -5,7 +5,7 @@ import { Suspense, lazy, useCallback, useEffect, useRef, useState, type Keyboard
 
 import { ErrorBoundary } from "@/components/feedback/ErrorBoundary";
 import { getPaper, paperKeys } from "@/features/papers/api";
-import { listSummaries, summaryKeys, type Summary } from "@/features/summaries/api";
+import { getSummary, listSummaries, summaryKeys, type Summary } from "@/features/summaries/api";
 import { ChatPanel } from "@/features/chat/ChatPanel";
 import { SummaryPanel } from "@/features/summaries/SummaryPanel";
 import { markOpened } from "@/features/library/api";
@@ -283,7 +283,9 @@ export default function WorkspacePage() {
   const summaries = useQuery({ queryKey: summaryKeys.forPaper(paperId), queryFn: () => listSummaries(paperId) });
   const headerSummary = useQuery<Summary>({
     queryKey: summaryKeys.detail(summaries.data?.[0]?.id ?? "none"),
-    enabled: false, // filled by the Summary panel's live query
+    // Filled by the Summary panel's live query; the fetch is there so a refresh never errors.
+    queryFn: () => getSummary(summaries.data?.[0]?.id ?? ""),
+    enabled: false,
   });
   // Notes sit beside the paper, so a source opens next to the note (D95).
   const paperShown = view === "notes" || layout.paper;
