@@ -15,7 +15,7 @@ Agents: add an entry **before** acting on a new assumption. When the owner confi
 | A5 | Dark-mode divider border is **`#333333`** (the owner's paste was cut off at `#3`). | Confirmed (owner, 2026-11-11) | D34, tokens | Owner confirms |
 | A6 | The mockups' **"Key Takeaways"** tab (landing mockup) is not a separate feature; Quick Summary's Key Results covers it. The Summary panel tabs are **Summary · Figures**. | Confirmed (owner, 2026-11-11) | D27, spec 009 | Owner confirms |
 | A7 | **Overall design approval** ("confirmed") has *not* been given yet. Implementation code must not start before it. | Confirmed (owner, 2026-11-11) | Everything | Owner says "confirmed" |
-| A8 | Spec 019 Q2, owner answer "ask first and automatically restore so new not counted": read as **ask first; Restore is not counted as an upload; Upload as new counts as a normal upload** (it processes and costs again). | Assumed | 019 AC8, D103 | Owner confirms |
+| A8 | Spec 019 Q2, owner answer "ask first and automatically restore so new not counted": read as **ask first; Restore is not counted as an upload; Upload as new counts as a normal upload** (it processes and costs again). | Confirmed (owner, 2026-11-15) | 019 AC8, D103 | Done |
 
 ## B. Product & scope assumptions
 | ID | Assumption | Status | Affects |

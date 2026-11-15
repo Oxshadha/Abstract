@@ -21,7 +21,7 @@ Entry format:
 **Artifacts:** `app/modules/papers/trash*.py`, `app/modules/voice/`, `features/library/TrashView.tsx`, `features/voice/`, migrations 0024 to 0026
 **Browser check (local stack, three engines, phone and desktop):** passed after fixing what it found: toasts were never mounted in the app (no toast had ever shown), error messages always fell back to generic text (openapi-fetch reads the body first), a binned re-upload errored instead of asking, the voice bar overflowed at 390 px, Add Paper crowded the bin title, and a Workspace query logged an error.
 **Next:** owner merges #41 then #42; deploy; try Listen and Speak on a real phone (audio cannot be checked headless).
-**Blockers / waiting on owner:** A8 confirmation.
+**Blockers / waiting on owner:** none (A8 confirmed: Upload as new is counted).
 
 ## 2026-11-15: Spec 017 production checks done; security review; README
 **Done:** Security review on production (cross-account access 404, admin APIs 403 to users, strict bodies 422 and 413, forged and missing tokens 401, prompt-injection attempts refused, rate limit 429, generic errors, no keys in the repo or web build); fixed what it found: the API schema and docs are off in production, source maps and dot-files return 404, an enforcing CSP checked in CI. Deploy button used for real; nightly cleanup cron installed and run; Langfuse checked after the SDK update; deploy-while-streaming test; rollback tried; 20-answer load check; migration safety check in CI (AC9); delete dialogs state the 7-day backup horizon (AC17). README rewritten with diagrams and screenshots. Spec 020 voice approved (D102). Dependabot set up and its first PRs handled.
