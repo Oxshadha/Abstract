@@ -1,5 +1,6 @@
 """Spec 017 AC11: old operational rows are pruned, and nothing a paper depends on is."""
 
+from collections.abc import Iterator
 from uuid import uuid4
 
 import pytest
@@ -12,6 +13,16 @@ from tests.integration.test_chat import ScriptedChat, ready_paper
 pytestmark = [pytest.mark.integration, pytest.mark.enable_socket]
 
 MODEL = "prune-test-model"
+
+
+@pytest.fixture
+def chat(api: PapersApi) -> Iterator[ScriptedChat]:
+    """The fake model, so making a ready paper never calls a real one (same as test_notes)."""
+    scripted = ScriptedChat()
+    real = api.app.state.llm.gateway
+    api.app.state.llm.gateway = scripted
+    yield scripted
+    api.app.state.llm.gateway = real
 
 
 async def test_AC11_prunes_expired_rows_and_keeps_what_papers_need(
