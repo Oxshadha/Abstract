@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | Draft (2026-11-15). Waiting on the owner |
+| **Status** | Approved (owner, 2026-11-15): browser-engine baseline with the upgrade path; a speaker icon on chat answers is in scope (D102) |
 | **Week** | after 017 and 019 |
-| **Decisions** | D88 (reading aids), D101 (chat); adds D102 on approval |
+| **Decisions** | D88 (reading aids), D101 (chat), D102 |
 | **Engineering practices (D67)** | No new §3 items; accessibility (WCAG 2.1 AA) applies |
 | **Feature flag** | `voice_listen`, `voice_speak` (on by default where the browser supports them) |
 | **Mockup** | none; controls follow `docs/design-principles.md` (icons with names, no native controls) |
@@ -14,7 +14,7 @@ A reader can **listen** to a paper's summary instead of reading it, and **ask** 
 
 ## Scope
 **In:**
-- **Listen:** a Listen control on the Summary panel that reads the summary aloud, field by field, with the sentence being read highlighted.
+- **Listen:** a Listen control on the Summary panel that reads the summary aloud, field by field, with the sentence being read highlighted; and a small speaker icon on each Ask Abstract answer.
 - **Speak:** a microphone button in the Ask Abstract composer that turns speech into text in the box; the reader reviews it and presses Send.
 - Two frontend interfaces, `SpeechOutput` and `SpeechInput`, with browser adapters (Web Speech API) as the baseline.
 - Paper-aware correction of dictated research terms, in the browser.
@@ -22,7 +22,7 @@ A reader can **listen** to a paper's summary instead of reading it, and **ask** 
 **Out (later, each a new adapter behind the same interface, owner decision when needed):**
 - Natural AI voices for listening (Kokoro or Piper in the browser, a 40 to 80 MB first download).
 - Better recognition for speaking (Gemini transcription through the LLM gateway, about $0.001 a question, or Whisper in the browser).
-- Reading chat answers or notes aloud (a speaker icon on each answer is a small follow-up).
+- Reading notes aloud.
 - Voice conversations (speaking answers back automatically).
 
 ## Why the browser engines first
@@ -43,6 +43,8 @@ The baseline validates the feature at no cost; usage numbers (AC9) decide when a
 - [ ] **AC2** — **Follow along.** The sentence being read is highlighted and kept in view; the field being read is marked. Highlighting is off with reduced motion turned on (the text stays readable).
 - [ ] **AC3** — **Controls.** Play, pause and resume, stop, skip to the next or previous field, and speed from 0.75× to 2×. Keyboard reachable with visible names; the chosen speed and voice are remembered on the device.
 - [ ] **AC4** — **Private by default.** Only voices that run on the device are offered (`localService`), so the summary text does not leave the device; online voices appear only after the reader turns on "Show online voices", with a one-line note that the text is sent to the browser's speech service.
+- [ ] **AC5b** — **Listen to an answer.** Each Ask Abstract answer has a small speaker icon (named "Listen to this answer") that reads that answer with the same controls and voice settings; starting one stops any other reading.
+- [ ] **AC5c** — **Sounds like a person, not a machine.** Before anything is spoken, the text is prepared: citation markers ([1], [S1], [1, 4, 5]), source chips, status labels and Markdown symbols are removed; maths is read in words where short (for example "d k equals d v") and as "formula" where long; code, URLs and table markup are skipped; abbreviations with dots (e.g., et al.) do not end a sentence. Unit tests cover each rule on real answers from the dev library.
 - [ ] **AC5** — **Reliable on long summaries.** Text is spoken sentence by sentence, so long summaries do not stop part way (a Chrome limit), pause and resume work, and leaving the paper stops speech.
 
 ### Speak
@@ -77,6 +79,6 @@ $0 running cost. Listen starts within 300 ms of pressing play; dictated words ap
 - Component: controls, remembered settings, highlighting, hidden when unsupported, nothing sent without Send.
 - Browser checks (Playwright, by hand for audio): Chromium, WebKit, Firefox on desktop and phone sizes.
 
-## Open questions for the owner
-- **Q1:** Approve the browser-engine baseline (no cost) with the upgrade path above?
-- **Q2:** Include a speaker icon on chat answers in this spec, or keep it for a follow-up?
+## Owner answers (2026-11-15)
+- **Q1:** approved: the browser-engine baseline, with better engines later as new adapters.
+- **Q2:** yes: a small speaker icon on chat answers, read without citation markers or other machine-like text (AC5b, AC5c).

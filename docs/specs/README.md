@@ -25,7 +25,7 @@ This is lightweight spec-driven development. Each feature gets a one-to-two page
 | 016 | [Landing page (prerendered)](016-landing.md) (D93) | W4 | Implemented | [practices §3 Spec 016](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 017 | [Deploy and production hardening](017-deploy.md) | W4 | Approved (D98) | [practices §3 Spec 017](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 018 | [Admin dashboard: sidebar and charts](018-admin-dashboard.md) | W4 | Implemented | none new (011 items re-tested) |
-| 020 | [Voice: listen to the summary, ask by speaking](020-voice.md) | after 017, 019 | Draft (owner questions Q1, Q2) | none new |
+| 020 | [Voice: listen to the summary, ask by speaking](020-voice.md) | after 017, 019 | Approved (D102) | none new |
 
 **Owner requirements for chat (D74)** are additional binding inputs to spec 007: no queue in the chat path, streamed progress steps, guardrails with an injection test set, and answer/retrieval caching.
 
