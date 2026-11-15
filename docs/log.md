@@ -15,6 +15,18 @@ Entry format:
 
 ---
 
+## 2026-11-15: Spec 017 production checks done; security review; README
+**Done:** Security review on production (cross-account access 404, admin APIs 403 to users, strict bodies 422 and 413, forged and missing tokens 401, prompt-injection attempts refused, rate limit 429, generic errors, no keys in the repo or web build); fixed what it found: the API schema and docs are off in production, source maps and dot-files return 404, an enforcing CSP checked in CI. Deploy button used for real; nightly cleanup cron installed and run; Langfuse checked after the SDK update; deploy-while-streaming test; rollback tried; 20-answer load check; migration safety check in CI (AC9); delete dialogs state the 7-day backup horizon (AC17). README rewritten with diagrams and screenshots. Spec 020 voice approved (D102). Dependabot set up and its first PRs handled.
+**Measured on production:**
+- Deploy during a summary and an answer: both completed; new requests saw a 502 for about 8 s while the single API container was replaced.
+- Rollback to `fc2fa62` and forward to `9b5fe09`: about a minute each.
+- 20 answers at once plus a paper upload: 20 of 20 finished, the paper chat-ready in 28 s, first token p50 9.9 s and p95 19.1 s (the 8-call bulkhead), host peak 1.56 GB with no swap.
+**Found:** four reference jobs from 2026-11-14 stuck `running` with their tasks gone (R12; Retry in Admin → Jobs). The fake provider is refused in production, so AC19 ran on Vertex (a few cents). The site's `Permissions-Policy` blocks the microphone that spec 020 needs (noted in the spec).
+**Decisions:** D102   **Assumptions:** D9 re-verified (Langfuse 5.2.0), R12 and R13 added   **Specs:** 017 Implemented in part (AC15 alerts and AC16's rehearsed rebuild open), 020 Approved
+**Artifacts:** `app/scripts/check_migrations.py`, `docs/runbook.md`, `docs/specs/017-deploy.md`, `README.md`, `docs/diagrams/`, `docs/images/`
+**Next:** owner presses Retry on the four stuck jobs; spec 019 (Recently deleted) to draft; spec 020 build; AC15 when the owner wants Sentry and an uptime check.
+**Blockers / waiting on owner:** Sentry and uptime accounts (AC15); whether to build an automatic sweep for stuck jobs (R12).
+
 ## 2026-11-14: Abstract is live for testing; production feedback fixed
 **Done:** Deployed to the owner's EC2 host (D100) at https://abstract.oshadhakariyawasam.me: docker-compose (API, two workers, Redis) behind the host's nginx and certbot, Neon database with RLS runtime roles, Neon S3-compatible storage (presigned POST verified), Clerk development instance, Vertex (location `global`). Tables and figures are off on this 3.7 GB host. Then fixed the owner's production feedback: Clerk colours follow the theme live; chat waits for the conversation list before sending (a race that cancelled answers); suggestions stay after answers and have padding; Stop is a filled button; Save to notes stays Saved and never duplicates (migration 0023); figures read as off where enrichment is disabled; long paper names truncate in every Select (fixed sideways scroll on phones); the chat panel resizes; an answer finishes and is saved when the reader leaves, Stop is explicit (D101, refines 007 AC13).
 **Verified on production:** Chromium, WebKit and Firefox: sign-in, upload, summary, chat with citations, PDF viewer, Clerk in dark mode, figures hidden, chat divider, Save to notes after reload, template page at 390 px, no console errors; leaving mid-answer keeps the answer (Chromium).
