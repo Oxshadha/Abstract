@@ -166,6 +166,7 @@ jobs:
       - name: Start the stack with the fake AI provider
         run: |
           cp .env.example .env
+          mkdir -p infra/secrets && echo '{}' > infra/secrets/gcp-placeholder.json  # git-ignored; no Vertex in CI
           docker compose -f infra/docker-compose.yml --project-directory . --env-file .env up --build -d --wait
       - uses: pnpm/action-setup@v4
         with: { package_json_file: apps/web/package.json }
