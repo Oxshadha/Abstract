@@ -72,7 +72,7 @@ function useLevels(active: boolean): number[] | null {
 function Waveform({ levels }: { levels: number[] | null }) {
   const bars = levels ?? Array.from({ length: BARS }, () => 0);
   return (
-    <span aria-hidden className="flex h-8 min-w-0 flex-1 items-center justify-center gap-[3px] overflow-hidden">
+    <span aria-hidden className="flex h-8 w-0 min-w-0 flex-1 items-center justify-end gap-[3px] overflow-hidden">
       {bars.map((level, i) => (
         <span
           key={i}
@@ -191,9 +191,9 @@ export function Dictation({ paperId, disabled, onReview, onSend, onDictated, onS
   return (
     <>
       {listening ? (
-        <div className="flex basis-full flex-col gap-1.5">
+        <div className="flex min-w-0 basis-full flex-col gap-1.5">
           <p aria-live="polite" className="min-h-6 px-2 font-reading text-text-secondary">{heard || "Listening"}</p>
-          <div role="group" aria-label="Speaking" className="flex items-center gap-2">
+          <div role="group" aria-label="Speaking" className="flex min-w-0 items-center gap-2">
             <button type="button" aria-label="Cancel" onClick={() => { end("cancel"); }} className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-muted hover:opacity-80">
               <X aria-hidden className="size-5" />
             </button>
