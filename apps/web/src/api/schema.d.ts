@@ -1153,6 +1153,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/usage/voice": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Count one voice event (no text or audio) */
+        post: operations["count_voice_api_v1_usage_voice_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/webhooks/clerk": {
         parameters: {
             query?: never;
@@ -1788,6 +1805,10 @@ export interface components {
             top_month: components["schemas"]["TopUser"][];
             /** Top Today */
             top_today: components["schemas"]["TopUser"][];
+            /** Voice */
+            voice: {
+                [key: string]: number;
+            };
         };
         /** OverviewSeries */
         OverviewSeries: {
@@ -2635,6 +2656,16 @@ export interface components {
             msg: string;
             /** Error Type */
             type: string;
+        };
+        /** VoiceUsage */
+        VoiceUsage: {
+            /** Engine */
+            engine: string;
+            /**
+             * Event
+             * @enum {string}
+             */
+            event: "listen_started" | "listen_finished" | "dictation_sent" | "dictation_edited";
         };
     };
     responses: never;
@@ -5247,6 +5278,37 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    count_voice_api_v1_usage_voice_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VoiceUsage"];
+            };
+        };
         responses: {
             /** @description Successful Response */
             204: {

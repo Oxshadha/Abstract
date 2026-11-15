@@ -1,3 +1,5 @@
+import { readableError } from "@/api/client";
+
 import { HttpError } from "./queryClient";
 
 interface ProblemBody {
@@ -22,7 +24,7 @@ export function localReset(detail: string, resetsAt: string, locale?: string): s
 /** The error to show for a failed API response: its problem detail, or the fallback. */
 export async function problem(response: Response, fallback: string): Promise<HttpError> {
   try {
-    const body = (await response.clone().json()) as ProblemBody;
+    const body = (await readableError(response).json()) as ProblemBody;
     if (typeof body.detail === "string" && body.detail) {
       const detail = typeof body.resets_at === "string" ? localReset(body.detail, body.resets_at) : body.detail;
       return new HttpError(response.status, detail);

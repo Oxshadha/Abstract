@@ -33,6 +33,7 @@ POLICY: dict[str, frozenset[str]] = {
     "paper.trash.read": MEMBERS,  # spec 019: the caller's own bin (owner checked by the service)
     "paper.restore": MEMBERS,
     "paper.delete_forever": MEMBERS,
+    "voice.count": MEMBERS,  # spec 020 AC9: counts only
     "collection.read": MEMBERS,
     "collection.create": MEMBERS,
     "collection.update": MEMBERS,

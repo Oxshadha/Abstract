@@ -243,7 +243,8 @@ export function LibraryView() {
             {collection ? `${String(collection.paper_count)} ${collection.paper_count === 1 ? "paper" : "papers"} in this collection.` : "Upload, organize, summarize, and explore your research papers."}
           </p>
         </div>
-        <AddPaper dropTarget={page} />
+        {/* Nothing is added inside Recently deleted; the title gets the room on phones. */}
+        {!params.trash && <AddPaper dropTarget={page} />}
       </header>
 
       {(

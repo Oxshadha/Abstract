@@ -25,6 +25,35 @@ function Stat({ label, value, detail, to, className = "" }: { label: string; val
   return to ? <Link to={to} className={`${cls} hover:bg-muted/50`}>{body}</Link> : <div className={cls}>{body}</div>;
 }
 
+function percent(part: number, whole: number): string {
+  return whole > 0 ? `${String(Math.round((part / whole) * 100))}%` : "No data";
+}
+
+/** Spec 020 AC9: when a better voice engine is worth it. Counts per engine, never words. */
+function VoiceRows({ counts }: { counts: Record<string, number> }) {
+  const engines = [...new Set(Object.keys(counts).map((k) => k.split(".")[0] ?? ""))].filter(Boolean);
+  const n = (engine: string, event: string) => counts[`${engine}.${event}`] ?? 0;
+  return (
+    <Rows
+      label="Voice this month"
+      rows={engines.flatMap((engine) => [
+        {
+          key: `${engine}-listen`,
+          name: `Listen (${engine})`,
+          value: percent(n(engine, "listen_finished"), n(engine, "listen_started")),
+          detail: `${count(n(engine, "listen_finished"))} of ${count(n(engine, "listen_started"))} heard to the end`,
+        },
+        {
+          key: `${engine}-speak`,
+          name: `Speak (${engine})`,
+          value: percent(n(engine, "dictation_edited"), n(engine, "dictation_sent") + n(engine, "dictation_edited")),
+          detail: `edited before sending, ${count(n(engine, "dictation_sent") + n(engine, "dictation_edited"))} dictated`,
+        },
+      ])}
+    />
+  );
+}
+
 function Rows({ label, rows }: { label: string; rows: { key: string; name: string; value: string; detail?: string }[] }) {
   if (rows.length === 0) return <p className="text-sm text-text-secondary">Nothing yet.</p>;
   return (
@@ -138,6 +167,9 @@ export function OverviewPage() {
       <div className="grid items-start gap-4 lg:grid-cols-2">
         <SpendCard key={d.cap_usd} data={d} />
         <KillSwitchCard enabled={d.paid_calls_enabled} />
+        <Card title="Voice this month">
+          <VoiceRows counts={d.voice} />
+        </Card>
         <Card title="Top users today">
           <Rows label="Top users today" rows={d.top_today.map((u) => ({ key: u.user_id, name: u.email ?? u.display_name ?? "Unknown", value: money(u.spend_usd), detail: `${count(u.calls)} calls` }))} />
         </Card>

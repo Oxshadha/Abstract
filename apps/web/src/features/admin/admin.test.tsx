@@ -61,6 +61,7 @@ const OVERVIEW: Overview = {
   queues: { fast: 0, enrichment: 2, scan: 0, deletion: 0 }, provider_errors: [{ provider: "vertex", calls: 100, errors: 3 }],
   jobs: { queued: 1, held: 1, running: 2, failed_24h: 1 },
   papers_in_bin: 3,
+  voice: { "browser.listen_started": 12, "browser.listen_finished": 7, "browser.dictation_sent": 9, "browser.dictation_edited": 3 },
 };
 function seriesFixture(days = 30, empty = false): OverviewSeries {
   return {
@@ -276,6 +277,13 @@ describe("Spec 018 AC4 to AC8, AC11: the Overview charts", () => {
     expect(screen.getByText("Over 80% of the cap")).toBeInTheDocument(); // cap_warning in the fixture
     expect(screen.getByText("Spend this month")).toBeInTheDocument();
     expect(screen.getByText("Tokens today")).toBeInTheDocument();
+  });
+
+  it("020 AC9: the Overview shows how often Listen is finished and dictation edited", async () => {
+    await renderAt("/app/admin");
+    const voice = await screen.findByRole("list", { name: "Voice this month" });
+    expect(within(voice).getByText("58%")).toBeInTheDocument(); // 7 of 12 finished
+    expect(within(voice).getByText("25%")).toBeInTheDocument(); // 3 of 12 edited
   });
 
   it("019 AC9: the Overview shows how many papers are in Recently deleted, as a count", async () => {

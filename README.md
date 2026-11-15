@@ -60,6 +60,8 @@ Reading a paper well takes hours: finding the problem, the method, what was actu
 
 - **Template builder**: design your own summary (up to 10 fields, each with an instruction and a type), drag to reorder, and try it on a paper before saving.
 - **Reading aids**: select any passage to have it explained (plain or expert) or to ask about it.
+- **Listen and speak**: hear any summary or answer read aloud, field by field, with the sentence being read highlighted and citation markers left out; or ask a question by speaking, with the paper's own terms corrected (*blue score* becomes *BLEU score*). It uses the speech built into the browser, so it costs nothing to run, and the engine can be swapped later.
+- **Recently deleted**: a deleted paper stays in a bin for 7 days with its summaries, chats and notes, and can be restored in one tap.
 - **Notes**: a notes page per paper, autosaved, and **Save to notes** on any answer keeps it with its sources.
 - **References**: the paper's own reference list, matched on Semantic Scholar with authors, year, venue, citation count and open-access PDF links.
 - **Library**: search across titles, authors and passages, collections, starring, grid or list.
@@ -92,14 +94,14 @@ Screenshots follow your GitHub theme: switch GitHub to dark mode to see the app 
 
 <img src="docs/images/home-light.png" alt="Home with the upload box and recently opened papers">
 
-**Phone: Home, the summary, and a cited answer**
+**Phone: Home, listening to the summary, and asking by voice**
 
 <p align="center">
   <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/phone-home-dark.png"><img src="docs/images/phone-home-light.png" alt="Home on a phone" width="250"></picture>
   &nbsp;
-  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/phone-summary-dark.png"><img src="docs/images/phone-summary-light.png" alt="Summary on a phone" width="250"></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/phone-summary-dark.png"><img src="docs/images/phone-summary-light.png" alt="The summary being read aloud on a phone, with the sentence being read highlighted" width="250"></picture>
   &nbsp;
-  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/phone-chat-dark.png"><img src="docs/images/phone-chat-light.png" alt="A cited answer on a phone" width="250"></picture>
+  <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/phone-chat-dark.png"><img src="docs/images/phone-chat-light.png" alt="Asking Abstract by voice on a phone, with the live waveform and the recognized words" width="250"></picture>
 </p>
 
 | Sign-in | Library |
@@ -180,6 +182,7 @@ The API, workers and Redis run with Docker Compose; the host keeps no user data 
 | Model choice | The **model registry** in Postgres maps each *task* to a model; admins can change it in the Admin panel without a deploy |
 | Tests and CI | A deterministic **fake provider**: no test ever calls a paid model |
 | Tracing | **Langfuse**: one trace per pipeline run, with tokens, cost and latency |
+| Voice | The **browser's own speech engines** (Web Speech API), no AI call and no cost; only counts are recorded, never words or audio |
 
 Models in production today:
 
@@ -357,6 +360,7 @@ I developed Abstract with the assistance of **Claude Code**, working to the same
 
 ## Known limits
 
+- **Voice depends on the browser.** Listening works in all major browsers; speaking is not available in Firefox, and voice quality varies by device. On iPhone, locking the screen stops reading.
 - **Tables and figures are off on the current host** (3.7 GB RAM; Docling needs about 6 GB). They return by moving to an 8 GB instance and setting `ENRICHMENT_ENABLED=true`.
 
 <sub>Diagrams: `docs/diagrams/*.html`, rendered with `node docs/diagrams/render.mjs` (from `apps/web`). Icons from the `diagrams` project, Simple Icons and Lucide.</sub>

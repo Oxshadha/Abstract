@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Implemented (2026-11-15) except AC12's browser checks, which wait for the local stack; approved by the owner 2026-11-15 (D103) |
+| **Status** | Implemented (2026-11-15); approved by the owner 2026-11-15 (D103) |
 | **Week** | after 017 |
 | **Decisions** | D99 (the bin), D103 (design), D16 (tenancy and caching), D76 (metadata only), 004 AC15 (deletion), 017 AC17 (deletion horizon wording) |
 | **Engineering practices (D67)** | No §3 items are mapped to 019; tenancy (§2.1) and the RLS conformance test apply |
@@ -34,7 +34,7 @@ Deleting a paper is no longer final on the spot. It moves to **Recently deleted*
 
 ### Quality
 - [x] **AC11** — **Isolation tested.** Another user cannot list, restore or delete forever someone else's binned paper (404), including through Admin; the RLS conformance test covers the new policy.
-- [ ] **AC12** — **Quality bar.** Phones from 360 px and desktop, light and dark, Chromium, WebKit and Firefox; keyboard reachable; axe passes; no em or en dashes in new UI text; flag off hides the filter and Undo, and Delete is immediate as today.
+- [x] **AC12** — **Quality bar.** Phones from 360 px and desktop, light and dark, Chromium, WebKit and Firefox; keyboard reachable; axe passes; no em or en dashes in new UI text; flag off hides the filter and Undo, and Delete is immediate as today. *Checked 2026-11-15 on the local stack in Chromium, WebKit and Firefox, desktop light and phone dark: delete with Undo, the bin, Restore, no sideways scroll, no console errors. The check found that toasts were never mounted in the app and that a binned re-upload showed a body-already-used error; both fixed. Axe runs in the component tests.*
 
 ## API contract
 | Method | Path | Request | Response | Errors |

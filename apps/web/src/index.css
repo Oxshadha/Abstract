@@ -33,6 +33,11 @@
   color: transparent;
 }
 
+/* The sentence being read aloud (spec 020 AC2): the same highlight token as citations. */
+::highlight(voice-sentence) {
+  background-color: color-mix(in srgb, var(--color-highlight) 60%, transparent);
+}
+
 /* Scrolls without showing a scrollbar (sidebar collections, owner review). */
 .scrollbar-none {
   scrollbar-width: none;

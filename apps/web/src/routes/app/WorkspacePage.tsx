@@ -5,7 +5,7 @@ import { Suspense, lazy, useCallback, useEffect, useRef, useState, type Keyboard
 
 import { ErrorBoundary } from "@/components/feedback/ErrorBoundary";
 import { getPaper, paperKeys } from "@/features/papers/api";
-import { listSummaries, summaryKeys, type Summary } from "@/features/summaries/api";
+import { getSummary, listSummaries, summaryKeys, type Summary } from "@/features/summaries/api";
 import { ChatPanel } from "@/features/chat/ChatPanel";
 import { SummaryPanel } from "@/features/summaries/SummaryPanel";
 import { markOpened } from "@/features/library/api";
@@ -19,6 +19,7 @@ import { PillBar } from "@/components/shell/PillBar";
 import { useFlag } from "@/features/flags/api";
 import { SummaryCardSkeleton } from "@/components/feedback/Skeleton";
 import { ReferencesPanel } from "@/features/references/ReferencesPanel";
+import { useStopReadingOnLeave } from "@/features/voice/hooks";
 
 // The editor (TipTap) loads only when Notes is opened, keeping the Workspace light.
 const NotesPanel = lazy(() => import("@/features/notes/NotesPanel").then((m) => ({ default: m.NotesPanel })));
@@ -268,6 +269,7 @@ function ToggleButton({ pressed, onClick, disabled, children }: { pressed: boole
  */
 export default function WorkspacePage() {
   const { paperId } = useParams({ from: "/app/papers/$paperId" });
+  useStopReadingOnLeave(paperId); // spec 020 AC5
   const { layout, toggle, setChat, setSplit, setChatWidth, showPaper } = useWorkspaceLayout();
   const [mobile, setMobile] = useState<PanelId>("summary");
   const [tab, setTab] = useState<TabId>("workspace");
@@ -281,7 +283,9 @@ export default function WorkspacePage() {
   const summaries = useQuery({ queryKey: summaryKeys.forPaper(paperId), queryFn: () => listSummaries(paperId) });
   const headerSummary = useQuery<Summary>({
     queryKey: summaryKeys.detail(summaries.data?.[0]?.id ?? "none"),
-    enabled: false, // filled by the Summary panel's live query
+    // Filled by the Summary panel's live query; the fetch is there so a refresh never errors.
+    queryFn: () => getSummary(summaries.data?.[0]?.id ?? ""),
+    enabled: false,
   });
   // Notes sit beside the paper, so a source opens next to the note (D95).
   const paperShown = view === "notes" || layout.paper;

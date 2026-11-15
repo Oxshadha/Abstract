@@ -1632,6 +1632,13 @@
             },
             "title": "Top Today",
             "type": "array"
+          },
+          "voice": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "title": "Voice",
+            "type": "object"
           }
         },
         "required": [
@@ -1648,7 +1655,8 @@
           "queues",
           "provider_errors",
           "jobs",
-          "papers_in_bin"
+          "papers_in_bin",
+          "voice"
         ],
         "title": "Overview",
         "type": "object"
@@ -3941,6 +3949,33 @@
           "type"
         ],
         "title": "ValidationError",
+        "type": "object"
+      },
+      "VoiceUsage": {
+        "additionalProperties": false,
+        "properties": {
+          "engine": {
+            "maxLength": 10000,
+            "pattern": "^[a-z][a-z0-9_-]{1,30}$",
+            "title": "Engine",
+            "type": "string"
+          },
+          "event": {
+            "enum": [
+              "listen_started",
+              "listen_finished",
+              "dictation_sent",
+              "dictation_edited"
+            ],
+            "title": "Event",
+            "type": "string"
+          }
+        },
+        "required": [
+          "engine",
+          "event"
+        ],
+        "title": "VoiceUsage",
         "type": "object"
       }
     }
@@ -7596,6 +7631,40 @@
         "summary": "Save a new version of a custom template (from its base version)",
         "tags": [
           "summaries"
+        ]
+      }
+    },
+    "/api/v1/usage/voice": {
+      "post": {
+        "operationId": "count_voice_api_v1_usage_voice_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VoiceUsage"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Count one voice event (no text or audio)",
+        "tags": [
+          "voice"
         ]
       }
     },
