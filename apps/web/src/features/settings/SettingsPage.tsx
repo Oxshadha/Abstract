@@ -101,7 +101,7 @@ function DeleteAccount({ email, onDeleted }: { email: string; onDeleted: () => v
         }
       >
         <p className="text-sm">
-          This removes every paper, summary, conversation, collection and template you have. It cannot be undone.
+          This removes every paper, summary, conversation, collection and template you have. It is gone from the app at once and from backups within 7 days. It cannot be undone.
         </p>
         <div className="flex flex-col gap-1.5">
           <label htmlFor={inputId} className="text-sm font-medium">{`Type ${email} to confirm`}</label>
