@@ -41,7 +41,7 @@ Upload a research paper, get a structured summary from a template you choose, an
 - [Security and privacy](#security-and-privacy)
 - [Project structure](#project-structure)
 - [How it was built](#how-it-was-built)
-- [Known limits and next steps](#known-limits-and-next-steps)
+- [Known limits](#known-limits)
 
 ---
 
@@ -80,7 +80,7 @@ Sign up with Google or email, or use the shared demo account:
 | Email | `demo.user+clerk_test@example.com` |
 | Sign-in | **Use another method → Email code**, then `424242` |
 
-The demo account already has *Attention Is All You Need*, *RAG*, *BERT* and *LoRA* processed. Sign-in currently runs on Clerk's development instance, so the form shows a small "Development mode" label.
+The demo account already has *Attention Is All You Need*, *RAG*, *BERT* and *LoRA* processed.
 
 ---
 
@@ -90,7 +90,7 @@ Screenshots follow your GitHub theme: switch GitHub to dark mode to see the app 
 
 **Home: drop a PDF to start**
 
-<picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/home-dark.png"><img src="docs/images/home-light.png" alt="Home with the upload box and recently opened papers"></picture>
+<img src="docs/images/home-light.png" alt="Home with the upload box and recently opened papers">
 
 **Phone: Home, the summary, and a cited answer**
 
@@ -102,17 +102,23 @@ Screenshots follow your GitHub theme: switch GitHub to dark mode to see the app 
   <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/phone-chat-dark.png"><img src="docs/images/phone-chat-light.png" alt="A cited answer on a phone" width="250"></picture>
 </p>
 
-<sub>Figures and tables are from a local run: the current production host has them switched off for memory (see [Known limits](#known-limits-and-next-steps)).</sub>
+| Sign-in | Library |
+|---|---|
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/sign-in-dark.png"><img src="docs/images/sign-in-light.png" alt="Sign-in with the liquid wordmark"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/library-dark.png"><img src="docs/images/library-light.png" alt="Library with processed papers"></picture> |
+
+<sub>Figures and tables are from a local run: the current production host has them switched off for memory (see [Known limits](#known-limits)).</sub>
 
 | Figures, extracted with captions | Tables, extracted as real tables |
 |---|---|
 | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/figures-dark.png"><img src="docs/images/figures-light.png" alt="Figures and tables view with the Transformer architecture figure"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/tables-dark.png"><img src="docs/images/tables-light.png" alt="Table 1 of the paper extracted as an HTML table"></picture> |
-| **Library** | **Sign-in** |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/library-dark.png"><img src="docs/images/library-light.png" alt="Library with processed papers"></picture> | <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/sign-in-dark.png"><img src="docs/images/sign-in-light.png" alt="Sign-in with the liquid wordmark"></picture> |
-| **Templates** | **Admin dashboard** |
-| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/templates-dark.png"><img src="docs/images/templates-light.png" alt="Templates"></picture> | <img src="docs/images/admin.png" alt="Admin overview with usage charts"> |
 
-<p align="center"><img src="docs/images/references.png" alt="References matched on Semantic Scholar" width="80%"><br><sub>References from the paper, matched on Semantic Scholar</sub></p>
+| Templates | References, matched on Semantic Scholar |
+|---|---|
+| <picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/templates-dark.png"><img src="docs/images/templates-light.png" alt="Templates"></picture> | <img src="docs/images/references.png" alt="References matched on Semantic Scholar"> |
+
+**Admin dashboard: usage, spend against the cap, jobs and plans**
+
+<img src="docs/images/admin.png" alt="Admin overview with usage charts" width="100%">
 
 ---
 
@@ -128,7 +134,7 @@ From the client brief *"Use Case Document: Research Assistant for PDFs"* (the PD
 | R4 | Readable summary | Section cards, streamed, with Verified / Inferred / Not reported status and page sources |
 | R5 | Natural-language questions, RAG welcome | Hybrid retrieval (vector + keyword), reranking, streamed answers with validated citations |
 | R6 | React + Python | React 19 + Vite + TypeScript, Python 3.12 + FastAPI |
-| R7 | AI assistance during development | Built with Claude Code under written rules ([`AGENTS.md`](AGENTS.md)), specs and a decision log; see [How it was built](#how-it-was-built) |
+| R7 | AI assistance during development | Developed with Claude Code assistance, under written rules ([`AGENTS.md`](AGENTS.md)), specs and a decision log; see [How it was built](#how-it-was-built) |
 | R8 | Extra features | Template builder, reading aids, notes, references, library search and collections, tables and figures, plans, admin dashboard |
 | R9 | Complete codebase on GitHub with commit history | This repository; Conventional Commits, one acceptance criterion per commit, merged by pull request |
 | R10 | Setup instructions | [Run it locally](#run-it-locally): `cp .env.example .env && make dev` |
@@ -173,7 +179,7 @@ The API, workers and Redis run with Docker Compose; the host keeps no user data 
 | Gateway | Our own `LLMGateway` (no LangChain or LlamaIndex): one place for routing, retries, fallbacks, timeouts, spend caps and usage logging |
 | Model choice | The **model registry** in Postgres maps each *task* to a model; admins can change it in the Admin panel without a deploy |
 | Tests and CI | A deterministic **fake provider**: no test ever calls a paid model |
-| Tracing | **Langfuse**: one trace per pipeline run, with tokens, cost and latency (metadata only, no paper text) |
+| Tracing | **Langfuse**: one trace per pipeline run, with tokens, cost and latency |
 
 Models in production today:
 
@@ -221,6 +227,16 @@ make dev                # builds and starts web, api, workers, postgres, redis a
 
 Open the web app and choose **Continue as demo user**. Upload any PDF: with the fake provider the summary and answers are placeholders, but every screen and step works. `make down` stops everything (data is kept); `make help` lists every command.
 
+**Optional heavy parts.** `make dev` runs on an ordinary laptop: give Docker about 4 GB of memory. Two parts are left out because they are large, and you can switch them on if your machine has room:
+
+| Command | Adds | Docker memory | First build |
+|---|---|---|---|
+| `make dev` | Everything except the two below | about 4 GB | a few minutes |
+| `make dev-tables` | **Docling**: tables and figures extracted from PDFs, with "Ask about this region" | about 10 GB | longer (downloads the layout and table models) |
+| `make dev-full` | Docling plus **ClamAV** virus scanning of uploads | about 13 GB | longer still (ClamAV loads its virus database) |
+
+Without Docling, the *Figures & tables* tab is simply hidden; summaries, chat, citations and everything else work the same. Without ClamAV, every upload is still validated and sanitized (scripts, launch actions and embedded files removed), which is how production runs. Switching back is just `make dev` again.
+
 **With real models.** In `.env`, set `LLM_PROVIDER=vertex` with `GCP_SA_FILE` (path to a service-account JSON, mounted read-only and never committed) and `GCP_PROJECT_ID`, and `GCP_LOCATION=global`. Add `OPENROUTER_API_KEY` for the fallback, or use `LLM_PROVIDER=openrouter` on its own. Restart with `make dev`.
 
 **With real sign-in.** Create a Clerk application, then set `VITE_CLERK_PUBLISHABLE_KEY` and `CLERK_ISSUER`. Make yourself an admin with `make account ID=user_... EMAIL=you@example.org ROLE=admin PLAN=internal`.
@@ -233,7 +249,8 @@ make hooks       # git hooks: lint on commit, Conventional Commit messages
 make test        # backend (with real Postgres) and frontend tests, fake AI
 make lint        # ruff, mypy --strict, eslint, tsc
 make api-client  # regenerate the typed TypeScript client from the API schema
-make dev-full    # like dev, plus real ClamAV virus scanning (about 3 GB more RAM)
+make dev-tables  # like dev, plus tables and figures (Docling)
+make dev-full    # like dev-tables, plus ClamAV virus scanning
 ```
 
 ---
@@ -253,7 +270,7 @@ All settings are environment variables, read from `.env` locally and from a root
 | `OPENROUTER_API_KEY` | OpenRouter (fallback or primary) |
 | `VITE_CLERK_PUBLISHABLE_KEY`, `CLERK_ISSUER`, `CLERK_AUTHORIZED_PARTIES` | Sign-in; empty means local development sign-in |
 | `MALWARE_SCAN` | `fake`, `clamav`, `guardduty`, or `disabled-with-sanitization` in production |
-| `ENRICHMENT_ENABLED` | Tables and figures (needs about 6 GB RAM for Docling) |
+| `ENRICHMENT_ENABLED` | Tables and figures with Docling; off by default locally (`make dev-tables` switches it on) |
 | `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | Tracing; off when empty |
 | `SENTRY_DSN`, `VITE_SENTRY_DSN` | Error reporting; off when empty |
 
@@ -288,7 +305,7 @@ Everything an operator needs (commands, rollback, restore, rebuilding the server
 - **Tenancy:** every row has an `org_id`; every route calls `authorize(principal, action, resource)`; Postgres row-level security is the second line of defence. The app never connects as the table owner.
 - **Untrusted input:** request schemas forbid unknown fields and bound every string and list; rate limits per user and route group; PDFs are sanitized before processing.
 - **Secrets** are never in git or images: locally `.env` (ignored), in production a root-only file on the host and GitHub encrypted secrets.
-- **Data:** no paper text is sent to tracing or error tools (metadata only). Deleting a paper deletes its summaries, chats, notes and files; backups expire after 7 days.
+- **Data:** tracing and error tools receive timings, token counts and costs, never paper text. Deleting a paper deletes its summaries, chats, notes and files; backups expire after 7 days.
 - **AI providers:** OpenRouter calls ask for no data collection; Vertex is called under our own Google Cloud project.
 
 ---
@@ -318,12 +335,12 @@ docs/                     architecture, decisions, specs, runbook, diagrams
 
 ## How it was built
 
-Abstract was built in four weeks by one developer working with **Claude Code** as an AI pair, under the same written rules a human contributor follows ([`AGENTS.md`](AGENTS.md)):
+I developed Abstract with the assistance of **Claude Code**, working to the same written rules any contributor follows ([`AGENTS.md`](AGENTS.md)). The way I worked:
 
-1. **Decide first.** Design questions were settled up front and recorded with their reasons: 101 numbered decisions in [`docs/decisions.md`](docs/decisions.md). Changing one needs a new entry, never a silent edit.
-2. **Spec before code.** Each feature has a short spec with testable acceptance criteria, approved before any code: 19 specs in [`docs/specs/`](docs/specs/).
-3. **Build in small steps.** One acceptance criterion per commit, with its test, every commit green, then a pull request per feature merged with its history kept (Conventional Commits).
-4. **Check like a user.** UI changes are verified in Chromium, WebKit and Firefox at desktop and phone sizes, and the screenshots are looked at.
+1. **Decide first.** I settled design questions up front and recorded each with its reasons in [`docs/decisions.md`](docs/decisions.md). Changing a decision means adding a new entry, never editing the old one.
+2. **Spec before code.** Every feature has a short spec with testable acceptance criteria, approved before any code was written ([`docs/specs/`](docs/specs/)).
+3. **Build in small steps.** One acceptance criterion per commit, with its test, every commit green, and a pull request per feature merged with its history kept (Conventional Commits).
+4. **Check like a user.** I verify UI changes in Chromium, WebKit and Firefox at desktop and phone sizes, and look at the screenshots, not just the test results.
 5. **Write it down.** Assumptions with their evidence, a development log, and a runbook for production.
 
 | Document | What it holds |
@@ -338,10 +355,8 @@ Abstract was built in four weeks by one developer working with **Claude Code** a
 
 ---
 
-## Known limits and next steps
+## Known limits
 
 - **Tables and figures are off on the current host** (3.7 GB RAM; Docling needs about 6 GB). They return by moving to an 8 GB instance and setting `ENRICHMENT_ENABLED=true`.
-- **Sign-in uses Clerk's development instance** for now; switching to production keys is configuration only.
-- **Next:** a *Recently deleted* bin that keeps deleted papers for 7 days (spec 019), a content security policy, and the remaining production checks in spec 017.
 
 <sub>Diagrams: `docs/diagrams/*.html`, rendered with `node docs/diagrams/render.mjs` (from `apps/web`). Icons from the `diagrams` project, Simple Icons and Lucide.</sub>

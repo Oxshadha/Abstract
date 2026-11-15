@@ -49,6 +49,16 @@ Make someone an admin (audited):
 $C run --rm migrate python -m app.scripts.account <clerk_user_id> <email> --role admin --plan internal
 ```
 
+## Cleanup of old records
+
+Nightly at 03:00 UTC, `/etc/cron.d/abstract-prune` runs the retention task (spec 017 AC11):
+
+```
+0 3 * * * root cd /opt/abstract/src && docker compose -f infra/docker-compose.prod.yml --project-directory . run --rm migrate python -m app.scripts.prune >> /var/log/abstract-prune.log 2>&1
+```
+
+It deletes idempotency keys after 24 hours, AI usage rows after 13 months, and finished jobs after 13 months when a newer job of the same kind exists for that paper. The audit log is never pruned. Periods: `RETENTION_*` in `.env.prod`.
+
 ## Backups and restore
 
 - **Nightly** at 02:30 UTC: `/opt/abstract/backup.sh` (from `/etc/cron.d/abstract-backup`) dumps the database and uploads it to `backups/`. Log: `/var/log/abstract-backup.log`.

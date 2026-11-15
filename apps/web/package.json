@@ -17,7 +17,8 @@
     "e2e": "playwright test",
     "gen:api": "openapi-typescript openapi.json -o src/api/schema.d.ts",
     "tokens": "node scripts/build-tokens.mjs",
-    "check:bundle": "node scripts/check-bundle.mjs"
+    "check:bundle": "node scripts/check-bundle.mjs",
+    "check:csp": "node scripts/check-csp.mjs"
   },
   "dependencies": {
     "@clerk/react": "^6.18.6",

@@ -104,6 +104,8 @@ jobs:
       - run: pnpm build
       - name: Entry bundle within budget (spec 003 AC10)
         run: pnpm check:bundle
+      - name: Content security policy allows the page shells (spec 017 AC2)
+        run: pnpm check:csp
       - name: Built app never loads fonts from Google (spec 003 AC4)
         run: "! grep -rEl 'fonts\\.(googleapis|gstatic)\\.com' dist"
       - name: Design tokens are up to date (spec 003 AC1)
@@ -115,6 +117,44 @@ jobs:
         run: |
           scripts/check-ui-text.sh --self-test
           scripts/check-ui-text.sh
+
+  secrets:
+    name: No secrets in git (gitleaks)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Scan the whole history (spec 017 AC18)
+        run: docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.30.1 git /repo --redact --no-banner
+
+  migrations:
+    name: Migrations on an empty database
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: apps/api } }
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.7-pg17
+        env: { POSTGRES_USER: abstract, POSTGRES_PASSWORD: abstract, POSTGRES_DB: abstract }
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U abstract" --health-interval 5s --health-retries 20
+    env:
+      MIGRATIONS_DATABASE_URL: postgresql+asyncpg://abstract:abstract@localhost:5432/abstract
+      DATABASE_URL: postgresql+asyncpg://abstract_app:abstract_app_dev@localhost:5432/abstract
+      REDIS_URL: redis://localhost:6379/0
+      S3_BUCKET: ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with: { enable-cache: true }
+      - run: uv sync --frozen
+      - name: Runtime roles, as on Neon (spec 002 AC6)
+        run: PGPASSWORD=abstract psql -h localhost -U abstract -d abstract -v ON_ERROR_STOP=1 -q -f ../../infra/postgres/roles.sql
+      - name: Upgrade an empty database to head (spec 017 AC9)
+        run: uv run alembic upgrade head
+      - name: Upgrading again is a no-op, and the database is at head
+        run: |
+          uv run alembic upgrade head
+          test "$(uv run alembic current 2>/dev/null | awk '{print $1}')" = "$(uv run alembic heads 2>/dev/null | awk '{print $1}')"
 
   contract:
     name: API client is up to date

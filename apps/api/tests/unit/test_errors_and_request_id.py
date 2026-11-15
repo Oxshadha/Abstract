@@ -52,3 +52,13 @@ def test_AC6_request_id_generated_when_missing_or_invalid(
     assert len(generated) == 32
     injected = client.get("/api/v1/healthz", headers={"x-request-id": "bad id\nwith newline"})
     assert injected.headers["x-request-id"] != "bad id\nwith newline"
+
+
+def test_production_publishes_neither_docs_nor_schema(
+    client_factory: Callable[..., TestClient],
+) -> None:
+    """Security review 2026-11-14: the API map is not handed to strangers in production."""
+    client = client_factory(env="production", clerk_issuer="https://x.clerk.accounts.dev")
+    for path in ("/api/v1/openapi.json", "/api/v1/docs", "/api/v1/redoc"):
+        assert client.get(path).status_code == 404, path
+    assert client_factory().get("/api/v1/openapi.json").status_code == 200  # still there in dev

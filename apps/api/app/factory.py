@@ -107,7 +107,8 @@ def create_app(
         title="Abstract. API",
         version="0.1.0",
         lifespan=lifespan,
-        openapi_url=f"{API_PREFIX}/openapi.json",
+        # Production serves neither the docs nor the schema (security review 2026-11-14).
+        openapi_url=None if settings.is_production else f"{API_PREFIX}/openapi.json",
         docs_url=None if settings.is_production else f"{API_PREFIX}/docs",
         redoc_url=None,
     )

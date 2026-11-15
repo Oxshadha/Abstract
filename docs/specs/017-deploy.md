@@ -71,7 +71,7 @@ Abstract runs on the internet for a few real users at no hosting cost: the web a
 - [ ] **AC17** — **Deletion horizon stated.** Settings and the delete confirmations say that deleted papers are gone from the app at once and from backups within 7 days (until spec 019 adds Recently deleted, after which the wording follows it).
 
 ### Supply chain and a quick load check
-- [ ] **AC18** — **CI and dependencies.** CI adds the Playwright happy path against the compose stack (fake LLM), gitleaks on every push, and Dependabot for pip, npm, GitHub Actions and Docker base images.
+- [ ] **AC18** — **CI and dependencies.** CI adds the Playwright happy path against the compose stack (fake LLM), gitleaks on every push, and Dependabot for pip, npm, GitHub Actions and Docker base images. *As built: gitleaks, the empty-database migration check and Dependabot run in CI. The Playwright happy path runs by hand before a release (`make dev` then `make e2e`): in CI it failed before any test ran and GitHub kept no logs, and it is a v1 "should", not a "must" (owner, 2026-11-15).*
 - [ ] **AC19** — **Load sanity check.** 20 concurrent chat streams against the fake provider on the production server, plus one real paper processed at the same time, finish without errors; p95 time to first token and peak memory are logged (informs C3). 009 AC14's production timing is measured in the same session.
 
 ## Owner tasks (needed before the first deploy)

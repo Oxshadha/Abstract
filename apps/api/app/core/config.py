@@ -67,6 +67,10 @@ class Settings(BaseSettings):
     # Upload limits (spec 004, D57). Plan-specific limits move to entitlements in spec 012.
     upload_max_bytes: int = 50 * 1024 * 1024
     upload_url_ttl_seconds: int = 600
+    # Retention for operational rows (spec 017 AC11); the audit log is never pruned.
+    retention_idempotency_hours: int = Field(default=24, ge=1)
+    retention_jobs_days: int = Field(default=395, ge=30)
+    retention_usage_days: int = Field(default=395, ge=30)
     upload_max_pages: int = 300
 
     # Malware scanning (D77, spec 004 AC16). Unset: fake in development/test; production must
