@@ -71,6 +71,7 @@ class Settings(BaseSettings):
     retention_idempotency_hours: int = Field(default=24, ge=1)
     retention_jobs_days: int = Field(default=395, ge=30)
     retention_usage_days: int = Field(default=395, ge=30)
+    trash_retention_days: int = Field(default=7, ge=1, le=90)  # spec 019 AC6
     upload_max_pages: int = 300
 
     # Malware scanning (D77, spec 004 AC16). Unset: fake in development/test; production must

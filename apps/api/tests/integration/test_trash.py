@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import create_async_engine
 from app.core.tenancy import set_tenant
 from app.modules.papers.deletion import delete_account_content
 from app.modules.papers.trash import STOPPED
+from app.scripts.prune import purge_trash
 from tests.fakes.auth import bearer
 from tests.fakes.pdfs import make_pdf
 from tests.integration.papers_fixtures import PapersApi, Worker
@@ -165,6 +166,35 @@ async def test_AC5_delete_forever_and_empty(
         "SELECT count(*) AS n FROM papers WHERE id IN (:a, :b, :c)", a=first, b=second, c=live
     )
     assert left.n == 1  # the live paper stays
+
+
+async def test_AC6_purge_removes_only_expired_binned_papers(
+    api: PapersApi, worker: Worker, chat: ScriptedChat
+) -> None:
+    user, old = await ready_paper(api, worker)
+    recent = (await upload_pdf(api, user, make_pdf([PAGE, PAGE]))).json()["paper"]["id"]
+    live = (await upload_pdf(api, user, make_pdf([PAGE, PAGE, PAGE]))).json()["paper"]["id"]
+    await trash(api, user, old)
+    await trash(api, user, recent)
+    async with worker.admin.begin() as conn:
+        await conn.execute(
+            text("UPDATE papers SET deleted_at = now() - interval '8 days' WHERE id = :p"),
+            {"p": old},
+        )
+    async with worker.admin.begin() as conn:
+        purged = await purge_trash(conn, days=7)
+    assert [str(p.paper_id) for p in purged] == [old]
+    async with worker.admin.begin() as conn:
+        assert await purge_trash(conn, days=7) == []  # idempotent
+    left = await worker.row(
+        "SELECT count(*) AS n FROM papers WHERE id IN (:a, :b, :c)", a=old, b=recent, c=live
+    )
+    assert left.n == 2
+    audit = await worker.row(
+        "SELECT count(*) AS n FROM audit_log WHERE resource_id = :p AND action = 'paper.purge'",
+        p=old,
+    )
+    assert audit.n == 1
 
 
 async def test_AC7_rls_hides_binned_papers_without_the_query_filter(
