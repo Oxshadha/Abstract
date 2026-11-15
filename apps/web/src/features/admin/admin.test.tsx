@@ -279,6 +279,13 @@ describe("Spec 018 AC4 to AC8, AC11: the Overview charts", () => {
     expect(screen.getByText("Tokens today")).toBeInTheDocument();
   });
 
+  it("020 AC9: the Overview shows how often Listen is finished and dictation edited", async () => {
+    await renderAt("/app/admin");
+    const voice = await screen.findByRole("list", { name: "Voice this month" });
+    expect(within(voice).getByText("58%")).toBeInTheDocument(); // 7 of 12 finished
+    expect(within(voice).getByText("25%")).toBeInTheDocument(); // 3 of 12 edited
+  });
+
   it("019 AC9: the Overview shows how many papers are in Recently deleted, as a count", async () => {
     await renderAt("/app/admin");
     const tile = (await screen.findByText("Recently deleted")).parentElement as HTMLElement;
