@@ -149,6 +149,8 @@ jobs:
       - run: uv sync --frozen
       - name: Runtime roles, as on Neon (spec 002 AC6)
         run: PGPASSWORD=abstract psql -h localhost -U abstract -d abstract -v ON_ERROR_STOP=1 -q -f ../../infra/postgres/roles.sql
+      - name: No migration drops or renames what the running API uses (spec 017 AC9)
+        run: uv run python -m app.scripts.check_migrations
       - name: Upgrade an empty database to head (spec 017 AC9)
         run: uv run alembic upgrade head
       - name: Upgrading again is a no-op, and the database is at head

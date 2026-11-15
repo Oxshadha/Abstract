@@ -69,6 +69,7 @@ None for the baseline (AC9 reuses usage counters, or one counts table if needed;
 - Recognition errors or network loss (Chrome's service): the box keeps what was recognized; a short message says to try again or type.
 - Very long summaries: sentence queue with pause and resume; stopping clears the queue.
 - Switching paper or tab: speech stops; recognition stops.
+- The site's `Permissions-Policy` turns the microphone off (`microphone=()`, 017 AC2), which blocks Speak even after the reader allows it. The Speak build changes it to `microphone=(self)` on every nginx location, in the same commit, with `check:csp` extended to expect it.
 - Mixed languages: the voice follows the browser language; papers in other languages are read with the closest available voice.
 
 ## Latency / cost budget

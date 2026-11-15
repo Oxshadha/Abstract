@@ -229,7 +229,7 @@ function DeleteDialog({ paper, onClose }: { paper: Paper; onClose: () => void })
       }
     >
       <p>
-        <span className="font-medium">{paperName(paper)}</span> and its summaries, chats and notes will be deleted. This cannot be undone.
+        <span className="font-medium">{paperName(paper)}</span> and its summaries, chats and notes will be deleted. They are gone from the app at once and from backups within 7 days. This cannot be undone.
       </p>
     </Dialog>
   );

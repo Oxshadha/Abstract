@@ -96,6 +96,13 @@ describe("Settings (spec 012 AC11 to AC16)", () => {
     await waitFor(() => { expect(signOut).toHaveBeenCalled(); });
     expect(deleteAccount).toHaveBeenCalledWith("ADA@example.org");
   });
+
+  it("017 AC17: the delete dialog states the backup horizon", async () => {
+    await renderSettings();
+    fireEvent.click(await screen.findByRole("button", { name: "Delete account" }));
+    const dialog = screen.getByRole("dialog", { name: "Delete your account?" });
+    expect(within(dialog).getByText(/gone from the app at once and from backups within 7 days/)).toBeInTheDocument();
+  });
 });
 
 describe("Spec 012 AC3: limits in the reader's own words", () => {

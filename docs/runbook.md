@@ -27,9 +27,9 @@ How Abstract runs in production and what to do when something needs attention. D
 3. The workflow builds the web app, sends it with the code, and runs `infra/deploy/remote-deploy.sh` on the server:
    build image → migrate → switch → wait for `/readyz`. If the new version is not ready in 2 minutes it puts the previous image and web files back.
 
-A deploy restarts the API, so an answer being written at that moment stops (the reader can ask again). Deploy at quiet times.
+A deploy restarts the API and workers gracefully (spec 017 AC13): an answer being written finishes and is saved (uvicorn waits up to 20 s), and a summary in progress finishes or is put back on the queue (Celery warm shutdown, 90 s). There is one API container, so **new requests get a 502 for about 8 seconds** while it is replaced. Deploy at quiet times. Tested 2026-11-15 with a summary and an answer in flight: both completed.
 
-**Roll back:** run the Deploy workflow again on the previous good commit (type its SHA in the `ref` box). Migrations are expand-only, so older code runs on the newer schema.
+**Roll back:** run the Deploy workflow again on the previous good commit (type its full SHA in the `ref` box). It must have passed CI. Migrations are expand-only, so older code runs on the newer schema. Tried 2026-11-15: back to `fc2fa62` and forward to `9b5fe09` again, about a minute each.
 
 ## Everyday commands (on the server)
 
@@ -91,7 +91,9 @@ The data is in Neon and the storage bucket, not on the server, so a rebuild lose
 |---|---|
 | Site down | `$C ps`; `sudo systemctl status nginx`; `/readyz` |
 | Uploads stuck in Processing | `$C logs worker`; jobs in Admin → Jobs |
+| A job stays `running` for hours | Admin → Jobs → Stuck, then Retry (audited). Its task was lost (for example in a restart while it waited to retry) |
 | Answers fail | `$C logs api` for `llm_route_failed`; Vertex quota; OpenRouter credit |
 | Sign-in fails | Clerk dashboard; `CLERK_ISSUER` and `CLERK_AUTHORIZED_PARTIES` in `.env.prod` |
-| Server slow or out of memory | `free -h`; `docker stats`; QuantEdge shares the host |
+| Server slow or out of memory | `free -h`; `docker stats`; QuantEdge shares the host. Normal peak: about 1.6 GB used with 20 answers at once (2026-11-15) |
+| Answers slow to start when many people ask | At most 8 AI calls run at once per provider (`LLM_MAX_CONCURRENCY_PER_PROVIDER`); others wait their turn. 20 at once: first words p95 19 s |
 | Spend climbing | Admin → Overview; the daily cap and the AI kill switch are there |

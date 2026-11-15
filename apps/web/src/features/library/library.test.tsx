@@ -83,6 +83,15 @@ describe("Library (AC1 to AC4)", () => {
     expect(screen.getAllByRole("menuitem").map((m) => m.textContent)).toEqual(["Add to collection", "Rename", "Delete"]); // star is its own icon on the row
   });
 
+  it("017 AC17: deleting a paper states the backup horizon", async () => {
+    await renderAt("/app/library");
+    const rows = within(await screen.findByRole("list", { name: "Papers" })).getAllByRole("listitem");
+    fireEvent.click(within(rows[0] as HTMLElement).getByRole("button", { name: /Actions for Attention/ }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Delete" }));
+    const dialog = await screen.findByRole("dialog", { name: "Delete paper?" });
+    expect(within(dialog).getByText(/gone from the app at once and from backups within 7 days/)).toBeInTheDocument();
+  });
+
   it("AC3: filters and sort live in the URL", async () => {
     const { router } = await renderAt("/app/library?starred=true&sort=title");
     await screen.findByRole("list", { name: "Papers" });
