@@ -24,6 +24,8 @@ import {
   type Region,
 } from "./api";
 import { useCitations } from "@/features/viewer/citation-context";
+import { useCanListen } from "@/features/voice/hooks";
+import { ListenControls } from "@/features/voice/ListenControls";
 
 import { withMarkers } from "./markers";
 import { completedSentences, useChat, type Draft } from "./useChat";
@@ -202,13 +204,20 @@ function SaveToNotes({ paperId, messageId, saved }: { paperId: string; messageId
 }
 
 function AssistantMessage({ message, paperId, notes }: { message: Message; paperId: string; notes: boolean }) {
+  const canListen = useCanListen();
   return (
     <Bubble role="assistant">
       {message.status === "stopped" && <StatusPill status="neutral">Stopped</StatusPill>}
       {message.retrieval_mode === "keyword" && <StatusPill status="neutral">Answered from a keyword search</StatusPill>}
       <Markdown>{withMarkers(message.content)}</Markdown>
       <Citations items={message.citations} />
-      {notes && message.content.trim() && <SaveToNotes paperId={paperId} messageId={message.id} saved={message.saved_to_notes} />}
+      {message.content.trim() && (notes || canListen) && (
+        <span className="flex flex-wrap items-center gap-2">
+          {notes && <SaveToNotes paperId={paperId} messageId={message.id} saved={message.saved_to_notes} />}
+          {/* Spec 020 AC5b: read this answer aloud, without markers or chips (AC5c). */}
+          {canListen && <ListenControls owner={`answer:${message.id}`} variant="answer" segments={() => [{ key: "answer", text: message.content }]} />}
+        </span>
+      )}
     </Bubble>
   );
 }

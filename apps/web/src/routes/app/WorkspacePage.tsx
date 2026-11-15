@@ -19,6 +19,7 @@ import { PillBar } from "@/components/shell/PillBar";
 import { useFlag } from "@/features/flags/api";
 import { SummaryCardSkeleton } from "@/components/feedback/Skeleton";
 import { ReferencesPanel } from "@/features/references/ReferencesPanel";
+import { useStopReadingOnLeave } from "@/features/voice/hooks";
 
 // The editor (TipTap) loads only when Notes is opened, keeping the Workspace light.
 const NotesPanel = lazy(() => import("@/features/notes/NotesPanel").then((m) => ({ default: m.NotesPanel })));
@@ -268,6 +269,7 @@ function ToggleButton({ pressed, onClick, disabled, children }: { pressed: boole
  */
 export default function WorkspacePage() {
   const { paperId } = useParams({ from: "/app/papers/$paperId" });
+  useStopReadingOnLeave(paperId); // spec 020 AC5
   const { layout, toggle, setChat, setSplit, setChatWidth, showPaper } = useWorkspaceLayout();
   const [mobile, setMobile] = useState<PanelId>("summary");
   const [tab, setTab] = useState<TabId>("workspace");

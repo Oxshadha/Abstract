@@ -45,7 +45,12 @@ import {
   type Summary,
   type SummaryField,
 } from "./api";
+import { getPaper, paperKeys } from "@/features/papers/api";
 import { useCitations } from "@/features/viewer/citation-context";
+import { useSentenceHighlight } from "@/features/voice/highlight";
+import { useCanListen } from "@/features/voice/hooks";
+import { ListenControls } from "@/features/voice/ListenControls";
+import { useReader, type Segment } from "@/features/voice/reader";
 
 import { Markdown } from "./Markdown";
 import { pageLabel } from "./pages";
@@ -64,14 +69,19 @@ const ICONS: Record<string, LucideIcon> = {
   future_work: Compass,
 };
 
-function FieldCard({ field }: { field: SummaryField }) {
+function FieldCard({ field, reading }: { field: SummaryField; reading: boolean }) {
   const Icon = ICONS[field.key] ?? FileText;
   const [open, setOpen] = useState(false);
   const viewer = useCitations();
   const firstEvidence = field.evidence.find((e) => e.page != null && e.verified) ?? field.evidence.find((e) => e.page != null);
   const pages = field.evidence.map((e) => e.page).filter((p): p is number => p != null);
   return (
-    <article className="border-b border-border pb-5 last:border-b-0">
+    // AC2: the field being read is marked (a bar at its side, not a colour).
+    <article
+      data-voice-key={field.key}
+      aria-current={reading ? "true" : undefined}
+      className={`border-b border-border pb-5 last:border-b-0 ${reading ? "-ml-3 border-l-2 border-l-text pl-[10px]" : ""}`}
+    >
       <header className="mb-2 flex flex-wrap items-center gap-2">
         <Icon aria-hidden className="size-5" />
         <h3 className="font-display text-lg font-bold">{field.label}</h3>
@@ -214,8 +224,25 @@ function TemplateSwitcher({
   );
 }
 
-function SummaryBody({ summary }: { summary: Summary }) {
+/** What Listen reads (spec 020 AC1): title and authors, then each field with its name. */
+function listenSegments(summary: Summary, paper: { title?: string | null; filename: string; authors: string[] } | undefined): Segment[] {
+  const authors = paper?.authors.length ? `By ${paper.authors.slice(0, 3).join(", ")}${paper.authors.length > 3 ? " and others" : ""}.` : "";
+  const title = paper ? `${paper.title ?? paper.filename.replace(/\.pdf$/i, "")}. ${authors}` : "";
+  return [
+    ...(title.trim() ? [{ key: "title", text: title }] : []),
+    ...summary.fields.map((f) => ({ key: f.key, heading: f.label, text: f.status === "not_reported" ? "Not reported." : f.value })),
+  ];
+}
+
+function SummaryBody({ summary, paperId }: { summary: Summary; paperId: string }) {
   const queryClient = useQueryClient();
+  const paper = useQuery({ queryKey: paperKeys.detail(paperId), queryFn: () => getPaper(paperId) });
+  const canListen = useCanListen();
+  const readerState = useReader();
+  const owner = `summary:${summary.id}`;
+  const root = useRef<HTMLDivElement>(null);
+  useSentenceHighlight(root, readerState, owner);
+  const readingKey = readerState.owner === owner ? readerState.segments[readerState.segment]?.key : undefined;
   const [editing, setEditing] = useState(false);
   const [save, setSave] = useState<SaveState>("idle");
   const version = useRef(summary.version);
@@ -242,12 +269,14 @@ function SummaryBody({ summary }: { summary: Summary }) {
   const pending = Math.max(0, summary.expected_fields - summary.fields.length);
 
   return (
-    <div className="flex flex-col gap-5">
+    <div ref={root} className="flex flex-col gap-5">
       <div className="flex items-center justify-between gap-2">
         <p aria-live="polite" className="text-sm text-text-secondary">
           {generating ? "Building your summary" : save === "saving" ? "Saving" : save === "saved" ? "Saved" : ""}
         </p>
         {summary.status === "ready" && (
+          <span className="flex flex-wrap items-center justify-end gap-2">
+          {canListen && !editing && <ListenControls owner={owner} variant="summary" segments={() => listenSegments(summary, paper.data)} />}
           <button
             type="button"
             aria-pressed={editing}
@@ -259,6 +288,7 @@ function SummaryBody({ summary }: { summary: Summary }) {
             <Pencil aria-hidden className="size-4" />
             {editing ? "Done" : "Edit"}
           </button>
+          </span>
         )}
       </div>
 
@@ -308,7 +338,7 @@ function SummaryBody({ summary }: { summary: Summary }) {
             onReset={() => persist(() => resetField(summary.id, field.key, version.current))}
           />
         ) : (
-          <FieldCard key={field.key} field={field} />
+          <FieldCard key={field.key} field={field} reading={readingKey === field.key} />
         ),
       )}
       {generating &&
@@ -418,7 +448,7 @@ export function SummaryPanel({ paperId }: { paperId: string }) {
           <SummaryCardSkeleton />
         </div>
       ) : summary.data ? (
-        <SummaryBody summary={summary.data} />
+        <SummaryBody summary={summary.data} paperId={paperId} />
       ) : (
         <div className="flex flex-col items-start gap-3 rounded-md border border-dashed border-border-strong p-4">
           <p className="text-text-secondary">No summary yet for this template.</p>
