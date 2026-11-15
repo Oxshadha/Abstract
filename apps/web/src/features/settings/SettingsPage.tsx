@@ -9,6 +9,7 @@ import { ListRowSkeleton, Loading } from "@/components/feedback/Skeleton";
 import { FieldError } from "@/components/status/FieldError";
 import { DESTRUCTIVE } from "@/components/status/tone";
 import { toast } from "@/components/status/toast";
+import { useFlag } from "@/features/flags/api";
 import { ThemeToggle } from "@/theme/ThemeToggle";
 
 import { deleteAccount, getUsage, settingsKeys, type Meter } from "./api";
@@ -123,6 +124,7 @@ function DeleteAccount({ email, onDeleted }: { email: string; onDeleted: () => v
 /** Settings (spec 012 AC11 to AC16): profile, plan and usage, appearance, account. */
 export function SettingsPage() {
   const auth = useAuthState();
+  const bin = useFlag("recently_deleted");
   const me = useQuery({ queryKey: ["me"], queryFn: fetchMe });
   const usage = useQuery({ queryKey: settingsKeys.usage, queryFn: getUsage });
   const name = me.data?.user.display_name ?? me.data?.user.email ?? "";
@@ -200,6 +202,11 @@ export function SettingsPage() {
             />
           )}
         </div>
+        {bin && (
+          <p className="text-sm text-text-secondary">
+            Deleted papers stay in Recently deleted in your Library for 7 days, then they are deleted for good. Deleting your account removes everything at once.
+          </p>
+        )}
       </Section>
       </div>
     </div>

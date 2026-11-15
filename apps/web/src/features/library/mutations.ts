@@ -3,11 +3,16 @@ import { useMutation, useQueryClient, type InfiniteData, type QueryClient } from
 import { toast } from "@/components/status/toast";
 import { deletePaper, paperKeys, type Paper, type PaperPage } from "@/features/papers/api";
 
+import { useFlag } from "@/features/flags/api";
+
 import {
   createCollection,
   deleteCollection,
+  deleteForever,
+  emptyTrash,
   libraryKeys,
   renameCollection,
+  restorePaper,
   setMembership,
   updatePaper,
   type Collection,
@@ -53,14 +58,60 @@ export function useUpdatePaper() {
   });
 }
 
-export function useDeletePaper() {
+function refreshPapers(client: QueryClient) {
+  void client.invalidateQueries({ queryKey: ["papers"] });
+  void client.invalidateQueries({ queryKey: libraryKeys.collections });
+}
+
+/** Restore from Recently deleted (spec 019 AC4), also the toast's Undo (AC2). */
+export function useRestorePaper() {
   const client = useQueryClient();
   return useMutation({
-    mutationFn: (id: string) => deletePaper(id),
+    mutationFn: (id: string) => restorePaper(id),
     onSuccess: () => {
-      toast("Paper deleted.");
-      void client.invalidateQueries({ queryKey: ["papers"] });
-      void client.invalidateQueries({ queryKey: libraryKeys.collections });
+      toast("Paper restored.");
+      refreshPapers(client);
+    },
+    onError: (err) => toast.error(err.message),
+  });
+}
+
+/** Delete moves the paper to Recently deleted while that is on (spec 019 AC1, AC2). */
+export function useDeletePaper() {
+  const client = useQueryClient();
+  const bin = useFlag("recently_deleted");
+  const restore = useRestorePaper();
+  return useMutation({
+    mutationFn: (id: string) => deletePaper(id),
+    onSuccess: (_data, id) => {
+      if (bin) toast("Moved to Recently deleted.", { duration: 8000, action: { label: "Undo", onClick: () => { restore.mutate(id); } } });
+      else toast("Paper deleted.");
+      refreshPapers(client);
+    },
+    onError: (err) => toast.error(err.message),
+  });
+}
+
+/** Delete forever and Empty (spec 019 AC5). */
+export function useDeleteForever() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteForever(id),
+    onSuccess: () => {
+      toast("Paper deleted for good.");
+      refreshPapers(client);
+    },
+    onError: (err) => toast.error(err.message),
+  });
+}
+
+export function useEmptyTrash() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: emptyTrash,
+    onSuccess: (count) => {
+      toast(count === 1 ? "1 paper deleted for good." : `${String(count)} papers deleted for good.`);
+      refreshPapers(client);
     },
     onError: (err) => toast.error(err.message),
   });

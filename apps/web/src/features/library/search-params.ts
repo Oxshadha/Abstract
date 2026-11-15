@@ -13,11 +13,13 @@ export function parseLibrarySearch(search: Record<string, unknown>): LibrarySear
   const type = TYPES.find((t) => t === search.type);
   const collection = typeof search.collection === "string" && UUID.test(search.collection) ? search.collection : undefined;
   const starred = search.starred === true || search.starred === "true";
+  const trash = search.trash === true || search.trash === "true";
   return {
     ...(sort && sort !== "added" ? { sort } : {}),
     ...(type ? { type } : {}),
     ...(starred ? { starred: true } : {}),
     ...(collection ? { collection } : {}),
+    ...(trash ? { trash: true } : {}),
   };
 }
 
