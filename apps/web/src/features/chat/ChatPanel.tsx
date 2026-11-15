@@ -24,7 +24,8 @@ import {
   type Region,
 } from "./api";
 import { useCitations } from "@/features/viewer/citation-context";
-import { useCanListen } from "@/features/voice/hooks";
+import { Dictation } from "@/features/voice/Dictation";
+import { countDictation, useCanListen, useCanSpeak } from "@/features/voice/hooks";
 import { ListenControls } from "@/features/voice/ListenControls";
 
 import { withMarkers } from "./markers";
@@ -341,6 +342,11 @@ export function ChatPanel({ paperId, onClose }: { paperId: string; onClose?: () 
   });
   const { draft, send, stop, busy, suggestions, retry } = useChat(conversationId);
   const [input, setInput] = useState("");
+  // Spec 020: what was typed before speaking, and what was dictated (to count edits, AC9).
+  const typedBefore = useRef("");
+  const dictated = useRef<string | null>(null);
+  const canSpeak = useCanSpeak();
+  const withTyped = (text: string) => (typedBefore.current ? `${typedBefore.current} ${text}` : text);
   const end = useRef<HTMLDivElement>(null);
   const pendingQuestion = useRef<{ text: string; attachment: Attachment } | null>(null);
   // Spec 015 AC1: questions written for this paper, the generic ones until they arrive.
@@ -392,6 +398,8 @@ export function ChatPanel({ paperId, onClose }: { paperId: string; onClose?: () 
   const ask = async (question: string) => {
     const text = question.trim().slice(0, MAX_MESSAGE_CHARS);
     if (!text || busy) return;
+    countDictation(dictated.current, text);
+    dictated.current = null;
     setInput("");
     await submit(text, takeAttachment());
   };
@@ -513,6 +521,16 @@ export function ChatPanel({ paperId, onClose }: { paperId: string; onClose?: () 
             <QuoteChip quote={viewerApi.quote} trimmed={viewerApi.quote.trimmed} onRemove={viewerApi.clearQuote} />
           </span>
         )}
+        <Dictation
+          paperId={paperId}
+          disabled={!ready || busy}
+          onStart={() => { typedBefore.current = input.trim(); }}
+          onDictated={(text) => { dictated.current = withTyped(text); }}
+          onReview={(text) => { setInput(withTyped(text)); }}
+          onSend={(text) => { void ask(withTyped(text)); }}
+        >
+          {(mic) => (
+            <>
         <label htmlFor={inputId} className="sr-only">Ask about this paper</label>
         <textarea
           id={inputId}
@@ -532,10 +550,16 @@ export function ChatPanel({ paperId, onClose }: { paperId: string; onClose?: () 
             <Square aria-hidden className="size-3.5 fill-current" />
           </button>
         ) : (
-          <button type="submit" aria-label="Send" disabled={!ready || !input.trim()} className="inline-flex size-11 items-center justify-center rounded-md bg-primary text-primary-text disabled:opacity-50">
-            <ArrowUp aria-hidden className="size-5" />
-          </button>
+          <>
+            {canSpeak && mic}
+            <button type="submit" aria-label="Send" disabled={!ready || !input.trim()} className="inline-flex size-11 items-center justify-center rounded-md bg-primary text-primary-text disabled:opacity-50">
+              <ArrowUp aria-hidden className="size-5" />
+            </button>
+          </>
         )}
+            </>
+          )}
+        </Dictation>
       </form>
       {input.length > MAX_MESSAGE_CHARS - 200 && (
         <p className="mt-1 text-right text-xs text-text-secondary">{`${String(input.length)} / ${String(MAX_MESSAGE_CHARS)}`}</p>

@@ -1,8 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { fireEvent, render, screen, within } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { useState, type ReactNode } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { Dictation } from "./Dictation";
 import { engines, type ListenCallbacks, type SpeechInput, type SpeechOutput } from "./engines";
 import { useCanListen, useCanSpeak } from "./hooks";
 import { ListenControls } from "./ListenControls";
@@ -41,6 +42,24 @@ function wrap(node: ReactNode) {
   return render(<QueryClientProvider client={client}>{node}</QueryClientProvider>);
 }
 
+/** A tiny composer like the chat's: a box, a send button and the microphone. */
+function Composer({ onSend }: { onSend: (text: string) => void }) {
+  const [input, setInput] = useState("");
+  return (
+    <form onSubmit={(e) => { e.preventDefault(); onSend(input); }}>
+      <Dictation paperId="p1" disabled={false} onStart={() => undefined} onDictated={() => undefined} onReview={setInput} onSend={onSend}>
+        {(mic) => (
+          <>
+            <label>Ask about this paper<textarea value={input} onChange={(e) => { setInput(e.target.value); }} /></label>
+            {mic}
+            <button type="submit">Send</button>
+          </>
+        )}
+      </Dictation>
+    </form>
+  );
+}
+
 beforeEach(() => {
   engines.input = fakeInput;
   engines.output = fakeOutput;
@@ -51,6 +70,60 @@ beforeEach(() => {
 afterEach(() => {
   engines.input = real.input;
   engines.output = real.output;
+});
+
+describe("Speak (spec 020 AC6 to AC8, D104)", () => {
+  it("AC6: listening shows the bar and the words; Stop puts them in the box and sends nothing", async () => {
+    const send = vi.fn();
+    wrap(<Composer onSend={send} />);
+    fireEvent.click(screen.getByRole("button", { name: "Ask by speaking" }));
+    const bar = screen.getByRole("group", { name: "Speaking" });
+    expect(within(bar).getByRole("button", { name: "Cancel" })).toBeInTheDocument();
+    expect(screen.getByText("Your speech is turned into text by Google.")).toBeInTheDocument(); // AC8 first use
+    act(() => { heard?.onText("what is the main result", false); });
+    expect(screen.getByText("what is the main result")).toBeInTheDocument();
+    fireEvent.click(within(bar).getByRole("button", { name: "Stop and review" }));
+    await waitFor(() => { expect(screen.getByLabelText("Ask about this paper")).toHaveValue("what is the main result"); });
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("AC6, D104: the send button while listening sends the dictated question", async () => {
+    const send = vi.fn();
+    wrap(<Composer onSend={send} />);
+    fireEvent.click(screen.getByRole("button", { name: "Ask by speaking" }));
+    act(() => { heard?.onText("what blue score did they get", true); });
+    fireEvent.click(within(screen.getByRole("group", { name: "Speaking" })).getByRole("button", { name: "Send" }));
+    await waitFor(() => { expect(send).toHaveBeenCalledWith("what BLEU score did they get"); });
+  });
+
+  it("AC6: Cancel throws the words away", () => {
+    const send = vi.fn();
+    wrap(<Composer onSend={send} />);
+    fireEvent.click(screen.getByRole("button", { name: "Ask by speaking" }));
+    act(() => { heard?.onText("never mind", true); });
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByLabelText("Ask about this paper")).toHaveValue("");
+    expect(send).not.toHaveBeenCalled();
+  });
+
+  it("AC7: research terms are matched to the paper, visibly and undoably", async () => {
+    wrap(<Composer onSend={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Ask by speaking" }));
+    act(() => { heard?.onText("what blue score on w m t", true); });
+    fireEvent.click(screen.getByRole("button", { name: "Stop and review" }));
+    const box = screen.getByLabelText("Ask about this paper");
+    await waitFor(() => { expect(box).toHaveValue("what BLEU score on WMT"); });
+    expect(screen.getByText(/Matched the paper's terms: w m t to WMT, blue to BLEU/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+    expect(box).toHaveValue("what blue score on w m t");
+  });
+
+  it("AC8: a blocked microphone says how to allow it", () => {
+    wrap(<Composer onSend={vi.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: "Ask by speaking" }));
+    act(() => { heard?.onError("not-allowed"); heard?.onEnd(); });
+    expect(screen.getByRole("alert")).toHaveTextContent("The microphone is blocked. Allow it for this site");
+  });
 });
 
 function Probe() {

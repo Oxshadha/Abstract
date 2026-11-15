@@ -20,6 +20,14 @@ for (const directive of ["frame-ancestors 'none'", "object-src 'none'", "base-ur
   if (!policy.includes(directive)) problems.push(`the CSP is missing ${directive}`);
 }
 
+// Spec 020 AC8: the microphone is allowed for this site only (Speak), camera and location stay off.
+const permissions = nginx.match(/add_header Permissions-Policy "([^"]+)"/g) ?? [];
+if (permissions.length !== enforcing.length + 1) problems.push(`expected a Permissions-Policy wherever headers are set, found ${permissions.length}`);
+for (const header of permissions) {
+  if (!header.includes("microphone=(self)")) problems.push("Permissions-Policy must allow the microphone for this site (microphone=(self))");
+  if (!header.includes("camera=()") || !header.includes("geolocation=()")) problems.push("Permissions-Policy must keep camera and geolocation off");
+}
+
 for (const page of ["index.html", "landing.html"]) {
   const html = readFileSync(`${root}apps/web/${page}`, "utf8");
   for (const [, body] of html.matchAll(/<script(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/g)) {
