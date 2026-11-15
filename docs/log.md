@@ -15,6 +15,13 @@ Entry format:
 
 ---
 
+## 2026-11-15: Specs 019 Recently deleted and 020 Voice built
+**Done:** Spec 019: deleting a paper moves it to Recently deleted for 7 days (Restore, Delete forever, Empty, Undo in the toast), purged nightly; a re-upload of a binned paper asks Restore or Upload as new; Admin counts the bin apart. Binned papers and their content are hidden by the queries and by restrictive RLS policies (migrations 0024, 0025). Spec 020: Listen on the Summary and on each answer (sentence by sentence, prepared text without markers, highlight, speed and on-device voices remembered) and Speak in the composer as a voice bar like familiar voice apps (owner request, D104) with paper-aware term correction and Undo; counts only in Admin (migration 0026); the site now allows the microphone for itself only.
+**Decisions:** D103 (bin design), D104 (voice bar)   **Assumptions:** A8 (Upload as new is counted)   **Specs:** 019 and 020 Implemented except AC12 browser checks
+**Artifacts:** `app/modules/papers/trash*.py`, `app/modules/voice/`, `features/library/TrashView.tsx`, `features/voice/`, migrations 0024 to 0026
+**Next:** browser checks for 019 and 020 (Chromium, WebKit, Firefox, phone and desktop) once Docker runs locally; owner merges #41 then the 020 PR; deploy.
+**Blockers / waiting on owner:** Docker Desktop had hung locally (integration tests ran in CI instead); A8 confirmation.
+
 ## 2026-11-15: Spec 017 production checks done; security review; README
 **Done:** Security review on production (cross-account access 404, admin APIs 403 to users, strict bodies 422 and 413, forged and missing tokens 401, prompt-injection attempts refused, rate limit 429, generic errors, no keys in the repo or web build); fixed what it found: the API schema and docs are off in production, source maps and dot-files return 404, an enforcing CSP checked in CI. Deploy button used for real; nightly cleanup cron installed and run; Langfuse checked after the SDK update; deploy-while-streaming test; rollback tried; 20-answer load check; migration safety check in CI (AC9); delete dialogs state the 7-day backup horizon (AC17). README rewritten with diagrams and screenshots. Spec 020 voice approved (D102). Dependabot set up and its first PRs handled.
 **Measured on production:**

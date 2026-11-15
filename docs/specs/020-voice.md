@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Approved (owner, 2026-11-15): browser-engine baseline with the upgrade path; a speaker icon on chat answers is in scope (D102) |
+| **Status** | Implemented (2026-11-15) except AC12's browser checks, which wait for the local stack; approved by the owner 2026-11-15 (D102), AC6 refined by D104 |
 | **Week** | after 017 and 019 |
 | **Decisions** | D88 (reading aids), D101 (chat), D102 |
 | **Engineering practices (D67)** | No new §3 items; accessibility (WCAG 2.1 AA) applies |
@@ -39,23 +39,23 @@ The baseline validates the feature at no cost; usage numbers (AC9) decide when a
 ## Acceptance criteria
 
 ### Listen
-- [ ] **AC1** — **Listen to the summary.** The Summary panel has a Listen control. It reads the title and authors, then each field in order: the field name ("Methodology."), then its text. Citation markers, status labels (Verified, Inferred) and Markdown symbols are not read. Fields that are *Not reported* are read as "not reported".
-- [ ] **AC2** — **Follow along.** The sentence being read is highlighted and kept in view; the field being read is marked. Highlighting is off with reduced motion turned on (the text stays readable).
-- [ ] **AC3** — **Controls.** Play, pause and resume, stop, skip to the next or previous field, and speed from 0.75× to 2×. Keyboard reachable with visible names; the chosen speed and voice are remembered on the device.
-- [ ] **AC4** — **Private by default.** Only voices that run on the device are offered (`localService`), so the summary text does not leave the device; online voices appear only after the reader turns on "Show online voices", with a one-line note that the text is sent to the browser's speech service.
-- [ ] **AC5b** — **Listen to an answer.** Each Ask Abstract answer has a small speaker icon (named "Listen to this answer") that reads that answer with the same controls and voice settings; starting one stops any other reading.
-- [ ] **AC5c** — **Sounds like a person, not a machine.** Before anything is spoken, the text is prepared: citation markers ([1], [S1], [1, 4, 5]), source chips, status labels and Markdown symbols are removed; maths is read in words where short (for example "d k equals d v") and as "formula" where long; code, URLs and table markup are skipped; abbreviations with dots (e.g., et al.) do not end a sentence. Unit tests cover each rule on real answers from the dev library.
-- [ ] **AC5** — **Reliable on long summaries.** Text is spoken sentence by sentence, so long summaries do not stop part way (a Chrome limit), pause and resume work, and leaving the paper stops speech.
+- [x] **AC1** — **Listen to the summary.** The Summary panel has a Listen control. It reads the title and authors, then each field in order: the field name ("Methodology."), then its text. Citation markers, status labels (Verified, Inferred) and Markdown symbols are not read. Fields that are *Not reported* are read as "not reported".
+- [x] **AC2** — **Follow along.** The sentence being read is highlighted and kept in view; the field being read is marked. Highlighting is off with reduced motion turned on (the text stays readable). *As built: the CSS Custom Highlight API (Chromium, Safari 17.2+, Firefox 140+); where a sentence cannot be matched on screen (maths read in words) only the field is marked.*
+- [x] **AC3** — **Controls.** Play, pause and resume, stop, skip to the next or previous field, and speed from 0.75× to 2×. Keyboard reachable with visible names; the chosen speed and voice are remembered on the device.
+- [x] **AC4** — **Private by default.** Only voices that run on the device are offered (`localService`), so the summary text does not leave the device; online voices appear only after the reader turns on "Show online voices", with a one-line note that the text is sent to the browser's speech service.
+- [x] **AC5b** — **Listen to an answer.** Each Ask Abstract answer has a small speaker icon (named "Listen to this answer") that reads that answer with the same controls and voice settings; starting one stops any other reading.
+- [x] **AC5c** — **Sounds like a person, not a machine.** Before anything is spoken, the text is prepared: citation markers ([1], [S1], [1, 4, 5]), source chips, status labels and Markdown symbols are removed; maths is read in words where short (for example "d k equals d v") and as "formula" where long; code, URLs and table markup are skipped; abbreviations with dots (e.g., et al.) do not end a sentence. Unit tests cover each rule on real answers from the dev library. *As built: maths up to 24 characters is read in words; tests use answer shapes from the dev library (Attention, LoRA, BERT).*
+- [x] **AC5** — **Reliable on long summaries.** Text is spoken sentence by sentence, so long summaries do not stop part way (a Chrome limit), pause and resume work, and leaving the paper stops speech. *As built: Pause stops the sentence and Resume starts it again, the same in every browser (native pause is unreliable in some).*
 
 ### Speak
-- [ ] **AC6** — **Ask by speaking.** The Ask Abstract composer has a microphone button. While listening it shows that it is listening and the words appear in the box as they are recognized; stopping, or a pause of about 2 seconds, ends it. **Nothing is sent automatically**: the reader reviews the text and presses Send.
-- [ ] **AC7** — **Research terms.** After dictation, words that closely match the paper's own vocabulary (its title, section headings and acronyms such as BLEU, WMT, LoRA) are corrected in the box ("blue score" → "BLEU score"), with the change visible and undoable. Runs in the browser, no model call.
-- [ ] **AC8** — **Permission and privacy.** The browser's microphone permission is asked only when the button is first pressed; a refusal shows how to allow it. The first use shows a one-line note on where speech is processed (Google in Chrome, Apple in Safari).
+- [x] **AC6** — **Ask by speaking.** The Ask Abstract composer has a microphone button. While listening it shows that it is listening and the words appear in the box as they are recognized; stopping, or a pause of about 2 seconds, ends it. **Nothing is sent automatically**: the reader reviews the text and presses Send. *As built with D104 (owner, 2026-11-15): while listening the box becomes a bar with cancel, a live waveform, stop (words into the box to review) and send (stop and send now); the words show above the bar as they are recognized. Send is always the reader's own press.*
+- [x] **AC7** — **Research terms.** After dictation, words that closely match the paper's own vocabulary (its title, section headings and acronyms such as BLEU, WMT, LoRA) are corrected in the box ("blue score" → "BLEU score"), with the change visible and undoable. Runs in the browser, no model call.
+- [x] **AC8** — **Permission and privacy.** The browser's microphone permission is asked only when the button is first pressed; a refusal shows how to allow it. The first use shows a one-line note on where speech is processed (Google in Chrome, Apple in Safari). *As built: the site's Permissions-Policy allows the microphone for this site only (`microphone=(self)`), guarded by `check:csp`.*
 
 ### Shared
-- [ ] **AC9** — **Know when to upgrade.** The app counts, per engine, how often dictated text is edited before sending and how often Listen is started and finished. Counts only, never words or audio (D76), visible in the Admin overview.
-- [ ] **AC10** — **Swappable engines.** Listen and Speak use `SpeechOutput` and `SpeechInput` interfaces; the browser adapters are one implementation each, chosen in one place, so a later engine is a new adapter with no change to the panels.
-- [ ] **AC11** — **Only where it works.** Each control is hidden when its flag is off or the browser has no support (Speak in Firefox); nothing breaks or shows an error.
+- [x] **AC9** — **Know when to upgrade.** The app counts, per engine, how often dictated text is edited before sending and how often Listen is started and finished. Counts only, never words or audio (D76), visible in the Admin overview. *As built: `voice_usage` counts (migration 0026), `POST /api/v1/usage/voice`, and a Voice card on the Admin Overview.*
+- [x] **AC10** — **Swappable engines.** Listen and Speak use `SpeechOutput` and `SpeechInput` interfaces; the browser adapters are one implementation each, chosen in one place, so a later engine is a new adapter with no change to the panels. *As built: `features/voice/engines.ts` (`engines` is the one place to swap).*
+- [x] **AC11** — **Only where it works.** Each control is hidden when its flag is off or the browser has no support (Speak in Firefox); nothing breaks or shows an error.
 - [ ] **AC12** — **Quality bar.** Works on phones (tap to start; screen lock stopping speech on iPhone is a browser limit and is stated in the help text), in light and dark, in Chromium, WebKit and Firefox where supported; axe passes; no em or en dashes in new UI text; the controls follow the design principles.
 
 ## API contract
