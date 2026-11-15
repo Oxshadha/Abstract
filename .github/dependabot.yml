@@ -23,6 +23,11 @@ updates:
     groups:
       web:
         update-types: [minor, patch]
+    ignore:
+      # TypeScript 7 is not supported yet by typescript-eslint or openapi-typescript (lint and the
+      # API-client check fail). Remove this when both support it, then take the upgrade on purpose.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
 
   - package-ecosystem: github-actions
     directory: /
