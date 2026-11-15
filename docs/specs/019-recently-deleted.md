@@ -2,9 +2,9 @@
 
 | | |
 |---|---|
-| **Status** | Draft |
+| **Status** | Approved (owner, 2026-11-15): filter plus RLS (EDP option 2); re-upload asks first (D103) |
 | **Week** | after 017 |
-| **Decisions** | D99 (the bin), D16 (tenancy and caching), D76 (metadata only), 004 AC15 (deletion), 017 AC17 (deletion horizon wording) |
+| **Decisions** | D99 (the bin), D103 (design), D16 (tenancy and caching), D76 (metadata only), 004 AC15 (deletion), 017 AC17 (deletion horizon wording) |
 | **Engineering practices (D67)** | No §3 items are mapped to 019; tenancy (§2.1) and the RLS conformance test apply |
 | **Feature flag** | `recently_deleted` (on by default; off means Delete works as today) |
 | **Mockup** | none; follows the Library mockup and `docs/design-principles.md` (one-line rows, icons with names, no native controls) |
@@ -28,7 +28,7 @@ Deleting a paper is no longer final on the spot. It moves to **Recently deleted*
 ### Purge and the edges
 - [ ] **AC6** — **Purge after 7 days.** A nightly task removes papers that have been in the bin for more than `TRASH_RETENTION_DAYS` (7) through the same deletion path. It is idempotent and safe to rerun, never touches papers outside the bin, and logs counts only. Runs with the nightly cleanup (017 AC11).
 - [ ] **AC7** — **Hidden everywhere, enforced twice.** A binned paper cannot be read, chatted with, summarized, exported, searched, opened from a citation, added to a collection or downloaded through any route: each returns 404 as for a missing paper, except the bin routes (AC3 to AC5). Enforced in the query layer **and** by row-level security (see Data model), so a route that forgets the filter still cannot see it. The answer cache does not serve binned papers (keys already include the paper; reads check it exists).
-- [ ] **AC8** — **Re-upload restores.** Uploading a PDF that is identical to one in the reader's bin restores that paper (with its summaries and chats) instead of failing on the duplicate, and says so: "This paper was in Recently deleted. It is back in your library." It does not count as a new upload for the monthly paper limit.
+- [ ] **AC8** — **Re-upload asks first.** Uploading a PDF identical to one in the reader's bin does not fail on the duplicate: it asks "This paper is in Recently deleted." with **Restore** (default) and **Upload as new**. Restore brings the paper back with its summaries and chats, opens it, and does not count as an upload. Upload as new deletes the binned copy for good (AC5) and processes the PDF as a normal, counted upload. Cancel leaves both as they were (the uploaded file expires with the 24-hour quarantine rule).
 - [ ] **AC9** — **Limits and admin.** Binned papers do not count as library papers in Settings or the Admin overview; they do not free the month's upload count (an upload is counted when it happens, as today). Admin sees a count of binned papers in Overview, never their titles (D76).
 - [ ] **AC10** — **Wording follows the bin.** The paper delete dialog, Settings and the Help text say papers go to Recently deleted for 7 days and are then gone, and gone from backups within 7 days after that (replaces 017 AC17's wording). Account deletion still says it removes everything at once.
 
@@ -44,7 +44,7 @@ Deleting a paper is no longer final on the spot. It moves to **Recently deleted*
 | POST | `/api/v1/papers/{id}/restore` | none | `200 Paper` | `404` (not in your bin) |
 | DELETE | `/api/v1/papers/{id}/forever` | none | `204` | `404` (not in your bin) |
 | DELETE | `/api/v1/papers/trash` | none | `200 {deleted: n}` | |
-| POST | `/api/v1/papers` (existing upload finish) | unchanged | `200` with the restored paper and `restored: true` when AC8 applies (today a duplicate already returns `200` with the existing paper) | |
+| POST | `/api/v1/papers` (existing upload finish) | unchanged | as today | `409 paper-in-trash` with `{paper_id, title}` when the PDF matches a binned paper (AC8); the client then calls restore, or delete forever and finishes again |
 
 All routes: `authorize()`, write or read rate-limit groups (D75), strict schemas.
 
@@ -81,6 +81,6 @@ No model calls. Library list queries keep their current budget (the partial inde
 3. **Move binned papers to a separate table:** strongest isolation, but restore must copy many rows back and every foreign key gets harder.
 **Recommendation:** option 2. **Impact:** migration 0024, the RLS conformance test, the paper service. **Reversibility:** easy (drop the column and policy clause).
 
-## Open questions
-- **Q1:** Approve the spec and the EDP (option 2)?
-- **Q2:** Re-uploading a binned paper restores it (AC8, recommended), or should it ask first?
+## Owner answers (2026-11-15)
+- **Q1:** approved, with filter plus RLS (EDP option 2).
+- **Q2:** ask first; Restore is not counted (assumption A8 for Upload as new).
