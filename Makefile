@@ -12,7 +12,7 @@ help: ## Show available commands
 check-env:
 	@test -f .env || (echo "Missing .env: run  cp .env.example .env" && exit 1)
 
-dev: check-env ## Start the full local stack (web, api, worker, postgres, redis, s3)
+dev: check-env ## Start the local stack (web, api, workers, postgres, redis, s3); light, no Docling or ClamAV
 	# -V renews anonymous volumes (web node_modules) so rebuilt images never run stale deps.
 	$(COMPOSE) up --build -d --wait -V
 	@echo ""
@@ -20,8 +20,11 @@ dev: check-env ## Start the full local stack (web, api, worker, postgres, redis,
 	@echo "  API:  http://localhost:8000/api/v1/docs"
 	@echo "  Logs: make logs"
 
-dev-full: check-env ## Like dev, plus real ClamAV scanning (needs about 3 GiB more RAM)
-	MALWARE_SCAN=clamav $(COMPOSE) --profile full up --build -d --wait -V
+dev-tables: check-env ## Like dev, plus tables and figures with Docling (about 6 GB more RAM, large first build)
+	ENRICHMENT_ENABLED=true WORKER_BG_TARGET=enrich-dev WORKER_BG_MEM=6g $(COMPOSE) up --build -d --wait -V
+
+dev-full: check-env ## Like dev-tables, plus real ClamAV virus scanning (about 3 GB more RAM)
+	ENRICHMENT_ENABLED=true WORKER_BG_TARGET=enrich-dev WORKER_BG_MEM=6g MALWARE_SCAN=clamav $(COMPOSE) --profile full up --build -d --wait -V
 
 down: check-env ## Stop the stack (keeps data volumes)
 	$(COMPOSE) down

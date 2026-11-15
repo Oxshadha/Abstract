@@ -227,6 +227,16 @@ make dev                # builds and starts web, api, workers, postgres, redis a
 
 Open the web app and choose **Continue as demo user**. Upload any PDF: with the fake provider the summary and answers are placeholders, but every screen and step works. `make down` stops everything (data is kept); `make help` lists every command.
 
+**Optional heavy parts.** `make dev` runs on an ordinary laptop: give Docker about 4 GB of memory. Two parts are left out because they are large, and you can switch them on if your machine has room:
+
+| Command | Adds | Docker memory | First build |
+|---|---|---|---|
+| `make dev` | Everything except the two below | about 4 GB | a few minutes |
+| `make dev-tables` | **Docling**: tables and figures extracted from PDFs, with "Ask about this region" | about 10 GB | longer (downloads the layout and table models) |
+| `make dev-full` | Docling plus **ClamAV** virus scanning of uploads | about 13 GB | longer still (ClamAV loads its virus database) |
+
+Without Docling, the *Figures & tables* tab is simply hidden; summaries, chat, citations and everything else work the same. Without ClamAV, every upload is still validated and sanitized (scripts, launch actions and embedded files removed), which is how production runs. Switching back is just `make dev` again.
+
 **With real models.** In `.env`, set `LLM_PROVIDER=vertex` with `GCP_SA_FILE` (path to a service-account JSON, mounted read-only and never committed) and `GCP_PROJECT_ID`, and `GCP_LOCATION=global`. Add `OPENROUTER_API_KEY` for the fallback, or use `LLM_PROVIDER=openrouter` on its own. Restart with `make dev`.
 
 **With real sign-in.** Create a Clerk application, then set `VITE_CLERK_PUBLISHABLE_KEY` and `CLERK_ISSUER`. Make yourself an admin with `make account ID=user_... EMAIL=you@example.org ROLE=admin PLAN=internal`.
@@ -239,7 +249,8 @@ make hooks       # git hooks: lint on commit, Conventional Commit messages
 make test        # backend (with real Postgres) and frontend tests, fake AI
 make lint        # ruff, mypy --strict, eslint, tsc
 make api-client  # regenerate the typed TypeScript client from the API schema
-make dev-full    # like dev, plus real ClamAV virus scanning (about 3 GB more RAM)
+make dev-tables  # like dev, plus tables and figures (Docling)
+make dev-full    # like dev-tables, plus ClamAV virus scanning
 ```
 
 ---
@@ -259,7 +270,7 @@ All settings are environment variables, read from `.env` locally and from a root
 | `OPENROUTER_API_KEY` | OpenRouter (fallback or primary) |
 | `VITE_CLERK_PUBLISHABLE_KEY`, `CLERK_ISSUER`, `CLERK_AUTHORIZED_PARTIES` | Sign-in; empty means local development sign-in |
 | `MALWARE_SCAN` | `fake`, `clamav`, `guardduty`, or `disabled-with-sanitization` in production |
-| `ENRICHMENT_ENABLED` | Tables and figures (needs about 6 GB RAM for Docling) |
+| `ENRICHMENT_ENABLED` | Tables and figures with Docling; off by default locally (`make dev-tables` switches it on) |
 | `LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY` | Tracing; off when empty |
 | `SENTRY_DSN`, `VITE_SENTRY_DSN` | Error reporting; off when empty |
 

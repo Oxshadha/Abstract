@@ -28,6 +28,8 @@ x-api-env: &api-env
   CORS_ORIGINS: '["http://localhost:${WEB_PORT:-5173}"]'
   # Fake scanner in `make dev`; `make dev-full` sets clamav (D77, spec 004 AC16).
   MALWARE_SCAN: ${MALWARE_SCAN:-fake}
+  # Tables and figures (Docling) are opt-in locally: `make dev-tables` or `make dev-full`.
+  ENRICHMENT_ENABLED: ${ENRICHMENT_ENABLED:-false}
   CLAMAV_HOST: clamav
   # Clerk sign-in (spec 002, D70): empty keeps the development login.
   CLERK_ISSUER: ${CLERK_ISSUER:-}
@@ -138,11 +140,12 @@ services:
       migrate: { condition: service_completed_successfully }
 
   worker-bg:
-    # Docling for tables and figures (spec 009, D85): its own image and memory budget.
-    build: { context: ./apps/api, target: enrich-dev }
+    # Background queues. The light dev image by default; with `make dev-tables` or `make dev-full`
+    # the Docling image for tables and figures (spec 009, D85), with its own memory budget.
+    build: { context: ./apps/api, target: "${WORKER_BG_TARGET:-dev}" }
     command: ["celery", "-A", "app.worker.celery_app", "worker", "--loglevel=INFO", "-Q", "enrichment,scan,deletion,lookups", "--concurrency=1", "-n", "bg@%h"]
     <<: *worker-hardening
-    mem_limit: 6g  # Docling layout and table models plus OCR at 300 dpi (D85)
+    mem_limit: ${WORKER_BG_MEM:-1g}  # 6g with Docling: layout and table models, OCR at 300 dpi
     environment: *worker-env
     volumes: ["./apps/api/app:/app/app"]
     secrets: [gcp_sa]
