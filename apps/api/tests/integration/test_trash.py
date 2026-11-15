@@ -15,7 +15,7 @@ from app.scripts.prune import purge_trash
 from tests.fakes.auth import bearer
 from tests.fakes.pdfs import make_pdf
 from tests.integration.papers_fixtures import PapersApi, Worker
-from tests.integration.papers_helpers import PAGE, new_user, upload_pdf
+from tests.integration.papers_helpers import PAGE, finalize, new_user, start_upload, upload_pdf
 from tests.integration.test_chat import ScriptedChat, ask, conversation, ready_paper
 
 pytestmark = [pytest.mark.integration, pytest.mark.enable_socket]
@@ -220,6 +220,43 @@ async def test_AC7_rls_hides_binned_papers_without_the_query_filter(
             assert shown.chunks > 0
     finally:
         await engine.dispose()
+
+
+async def test_AC8_reupload_of_a_binned_paper_asks_and_can_restore_or_start_again(
+    api: PapersApi, worker: Worker
+) -> None:
+    user = new_user()
+    data = make_pdf([PAGE])
+    paper = (await upload_pdf(api, user, data)).json()["paper"]["id"]
+    await trash(api, user, paper)
+
+    upload = await start_upload(api, user, data)
+    asked = await finalize(api, user, upload)
+    assert asked.status_code == 409
+    assert asked.json()["type"].endswith("/paper-in-trash")
+    assert asked.json()["paper_id"] == paper
+
+    # Upload as new: delete the binned copy for good, then finish the same upload.
+    forever = await api.client.delete(f"/api/v1/papers/{paper}/forever", headers=bearer(user))
+    assert forever.status_code == 204
+    again = await finalize(api, user, upload)
+    assert again.status_code == 202, again.text
+    assert again.json()["paper"]["id"] != paper
+
+
+async def test_AC8_restore_after_a_reupload_is_not_counted(api: PapersApi, worker: Worker) -> None:
+    user = new_user()
+    data = make_pdf([PAGE])
+    paper = (await upload_pdf(api, user, data)).json()["paper"]["id"]
+    used = "SELECT coalesce(sum(value), 0) AS n FROM usage_counters uc JOIN users u"
+    used += " ON u.id = uc.user_id WHERE u.clerk_user_id = :s AND uc.metric = 'papers'"
+    before = (await worker.row(used, s=user)).n
+    await trash(api, user, paper)
+    asked = await finalize(api, user, await start_upload(api, user, data))
+    assert asked.status_code == 409
+    restored = await api.client.post(f"/api/v1/papers/{paper}/restore", headers=bearer(user))
+    assert restored.status_code == 200
+    assert (await worker.row(used, s=user)).n == before
 
 
 async def test_AC11_another_user_cannot_see_restore_or_delete_my_bin(

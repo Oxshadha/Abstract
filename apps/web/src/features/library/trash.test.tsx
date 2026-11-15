@@ -6,8 +6,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { setAuthState } from "@/auth/state";
 import { Toaster } from "@/components/status/Toaster";
 import { getFlags } from "@/features/flags/client";
-import { deletePaper } from "@/features/papers/api";
+import { deletePaper, PaperInTrashError } from "@/features/papers/api";
 import { paper } from "@/features/papers/fixtures";
+import { InTrashDialog } from "@/features/papers/InTrashDialog";
+import type { useUploadFlow } from "@/features/papers/useUploadFlow";
 import { createAppRouter } from "@/router";
 import { seriousViolations } from "@/test/axe";
 
@@ -128,6 +130,22 @@ describe("Recently deleted (spec 019)", () => {
     fireEvent.click(within(rows[0] as HTMLElement).getByRole("button", { name: /Actions for/ }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Delete" }));
     expect(within(await screen.findByRole("dialog", { name: "Delete paper?" })).getByText(/This cannot be undone/)).toBeInTheDocument();
+  });
+
+  it("AC8: a re-upload of a binned paper asks Restore or Upload as new", () => {
+    const flow = {
+      binned: new PaperInTrashError("up1", "t1", "Attention Is All You Need"),
+      resolving: false,
+      restoreBinned: vi.fn(),
+      uploadAsNew: vi.fn(),
+      dismissBinned: vi.fn(),
+    } as unknown as ReturnType<typeof useUploadFlow>;
+    render(<InTrashDialog flow={flow} />);
+    const dialog = screen.getByRole("dialog", { name: "This paper is in Recently deleted" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Restore" }));
+    expect(flow.restoreBinned).toHaveBeenCalled();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Upload as new" }));
+    expect(flow.uploadAsNew).toHaveBeenCalled();
   });
 
   it("AC3: days left come from the server's purge time", () => {

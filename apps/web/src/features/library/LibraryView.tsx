@@ -8,6 +8,7 @@ import { ListRowSkeleton, Loading } from "@/components/feedback/Skeleton";
 import { Select } from "@/components/menu/Select";
 import { FieldError } from "@/components/status/FieldError";
 import { useFlag } from "@/features/flags/api";
+import { InTrashDialog } from "@/features/papers/InTrashDialog";
 import { useUploadFlow } from "@/features/papers/useUploadFlow";
 import { useMediaQuery } from "@/features/workspace/layout";
 
@@ -116,6 +117,7 @@ function AddPaper({ dropTarget }: { dropTarget: RefObject<HTMLDivElement | null>
         }}
       />
       <FieldError id="add-paper-error" message={flow.error} />
+      <InTrashDialog flow={flow} />
       {dragging && (
         <div aria-hidden className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center bg-text/40">
           <div className="flex flex-col items-center gap-2 rounded-xl border-2 border-dashed border-primary-text bg-surface px-10 py-8">
