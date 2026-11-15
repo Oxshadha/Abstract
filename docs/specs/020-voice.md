@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Implemented (2026-11-15) except AC12's browser checks, which wait for the local stack; approved by the owner 2026-11-15 (D102), AC6 refined by D104 |
+| **Status** | Implemented (2026-11-15); approved by the owner 2026-11-15 (D102), AC6 refined by D104 |
 | **Week** | after 017 and 019 |
 | **Decisions** | D88 (reading aids), D101 (chat), D102 |
 | **Engineering practices (D67)** | No new §3 items; accessibility (WCAG 2.1 AA) applies |
@@ -56,7 +56,7 @@ The baseline validates the feature at no cost; usage numbers (AC9) decide when a
 - [x] **AC9** — **Know when to upgrade.** The app counts, per engine, how often dictated text is edited before sending and how often Listen is started and finished. Counts only, never words or audio (D76), visible in the Admin overview. *As built: `voice_usage` counts (migration 0026), `POST /api/v1/usage/voice`, and a Voice card on the Admin Overview.*
 - [x] **AC10** — **Swappable engines.** Listen and Speak use `SpeechOutput` and `SpeechInput` interfaces; the browser adapters are one implementation each, chosen in one place, so a later engine is a new adapter with no change to the panels. *As built: `features/voice/engines.ts` (`engines` is the one place to swap).*
 - [x] **AC11** — **Only where it works.** Each control is hidden when its flag is off or the browser has no support (Speak in Firefox); nothing breaks or shows an error.
-- [ ] **AC12** — **Quality bar.** Works on phones (tap to start; screen lock stopping speech on iPhone is a browser limit and is stated in the help text), in light and dark, in Chromium, WebKit and Firefox where supported; axe passes; no em or en dashes in new UI text; the controls follow the design principles.
+- [x] **AC12** — **Quality bar.** Works on phones (tap to start; screen lock stopping speech on iPhone is a browser limit and is stated in the help text), in light and dark, in Chromium, WebKit and Firefox where supported; axe passes; no em or en dashes in new UI text; the controls follow the design principles. *Checked 2026-11-15 on the local stack in Chromium, WebKit and Firefox, desktop light and phone dark, with stand-in speech engines (headless browsers have none): Listen and its controls, the answer speaker, the voice bar, no sideways scroll, no console errors. Fixed: the voice bar overflowed at 390 px. Real audio (voices, recognition, iPhone screen lock) is checked by hand on devices.*
 
 ## API contract
 No new endpoints for the baseline. AC9 counts use the existing usage events (one small `POST /api/v1/usage/voice` with counts only, rate-limited, if no suitable event exists; decided in the build).

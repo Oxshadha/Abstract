@@ -25,8 +25,8 @@ This is lightweight spec-driven development. Each feature gets a one-to-two page
 | 016 | [Landing page (prerendered)](016-landing.md) (D93) | W4 | Implemented | [practices §3 Spec 016](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 017 | [Deploy and production hardening](017-deploy.md) | W4 | Implemented in part (D100; AC15 alerts, AC16 rebuild open) | [practices §3 Spec 017](../engineering-practices.md#3-proposed-additions-acceptance-criteria-style) |
 | 018 | [Admin dashboard: sidebar and charts](018-admin-dashboard.md) | W4 | Implemented | none new (011 items re-tested) |
-| 019 | [Recently deleted: a 7-day bin for papers](019-recently-deleted.md) | after 017 | Implemented except AC12 browser checks (D99, D103) | none mapped |
-| 020 | [Voice: listen to the summary, ask by speaking](020-voice.md) | after 017, 019 | Implemented except AC12 browser checks (D102, D104) | none new |
+| 019 | [Recently deleted: a 7-day bin for papers](019-recently-deleted.md) | after 017 | Implemented (D99, D103) | none mapped |
+| 020 | [Voice: listen to the summary, ask by speaking](020-voice.md) | after 017, 019 | Implemented (D102, D104) | none new |
 
 **Owner requirements for chat (D74)** are additional binding inputs to spec 007: no queue in the chat path, streamed progress steps, guardrails with an injection test set, and answer/retrieval caching.
 
