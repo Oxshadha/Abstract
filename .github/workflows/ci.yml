@@ -17,7 +17,7 @@ jobs:
     name: Commit messages
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { fetch-depth: 0 }
       - name: Conventional Commits, no co-author trailers
         run: |
@@ -35,8 +35,8 @@ jobs:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: apps/api } }
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
         with: { enable-cache: true }
       - name: Tesseract for the OCR tests (spec 004 AC10)
         # Retries: runner DNS to the Ubuntu mirrors sometimes fails for a few minutes.
@@ -70,8 +70,8 @@ jobs:
         image: clamav/clamav:1.4
         ports: ["3310:3310"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
         with: { enable-cache: true }
       - run: uv sync --frozen
       - name: Wait for clamd (loads signatures on start)
@@ -89,10 +89,10 @@ jobs:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: apps/web } }
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
         with: { package_json_file: apps/web/package.json }  # pnpm version from packageManager
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: pnpm
@@ -122,7 +122,7 @@ jobs:
     name: No secrets in git (gitleaks)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with: { fetch-depth: 0 }
       - name: Scan the whole history (spec 017 AC18)
         run: docker run --rm -v "$PWD:/repo" zricethezav/gitleaks:v8.30.1 git /repo --redact --no-banner
@@ -143,8 +143,8 @@ jobs:
       REDIS_URL: redis://localhost:6379/0
       S3_BUCKET: ci
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
         with: { enable-cache: true }
       - run: uv sync --frozen
       - name: Runtime roles, as on Neon (spec 002 AC6)
@@ -160,12 +160,12 @@ jobs:
     name: API client is up to date
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v7
         with: { enable-cache: true }
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with: { package_json_file: apps/web/package.json }
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: pnpm
@@ -181,10 +181,10 @@ jobs:
     runs-on: ubuntu-latest
     needs: [api, web]
     steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
+      - uses: actions/checkout@v7
+      - uses: docker/setup-buildx-action@v4
       - name: API image (prod target)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: apps/api
           target: prod
@@ -192,7 +192,7 @@ jobs:
           cache-from: type=gha,scope=api
           cache-to: type=gha,mode=max,scope=api
       - name: Web image (build target)
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: apps/web
           target: build
